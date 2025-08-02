@@ -32,7 +32,7 @@ class PerplexityAPI:
 Please search for the most recent and accurate information available online. Include specific dates, venues, and verifiable details. If certain information is not available through web search, clearly state that the information could not be verified rather than speculating."""
 
         payload = {
-            "model": "llama-3.1-sonar-large-128k-online",  # 더 강력한 온라인 모델 사용
+            "model": "sonar",  # 유효한 온라인 모델 사용
             "messages": [
                 {
                     "role": "system",
@@ -78,6 +78,9 @@ Please search for the most recent and accurate information available online. Inc
                 
             except requests.exceptions.RequestException as e:
                 logger.error(f"API 요청 실패 (시도 {attempt + 1}/{Config.MAX_RETRIES}): {e}")
+                if hasattr(e, 'response') and e.response is not None:
+                    logger.error(f"응답 상태 코드: {e.response.status_code}")
+                    logger.error(f"응답 내용: {e.response.text}")
                 if attempt < Config.MAX_RETRIES - 1:
                     time.sleep(Config.REQUEST_DELAY * (attempt + 1))
                 else:
@@ -100,6 +103,6 @@ Please search for the most recent and accurate information available online. Inc
         content_lower = content.lower()
         return any(indicator in content_lower for indicator in search_indicators)
     
-    def query(self, prompt: str, model: str = "llama-3.1-sonar-large-128k-online") -> str:
+    def query(self, prompt: str, model: str = "sonar") -> str:
         """기본 쿼리 메서드 (하위 호환성을 위해 유지)"""
         return self.query_with_search(prompt, search_focus=True)

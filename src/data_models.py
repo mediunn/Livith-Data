@@ -2,46 +2,84 @@ from dataclasses import dataclass
 from typing import Optional, List
 
 @dataclass
-class Concert:
+class Song:
     title: str
-    type: str
-    status: str
-    date: str
-    img_url: str
     artist: str
-    venue: Optional[str] = ""
-    venues: Optional[str] = ""
-    city: Optional[str] = ""
-    country: Optional[str] = ""
-
-@dataclass
-class Setlist:
-    concert_title: str
-    title: str
-    type: str
-    status: str
+    lyrics: str = ""  # 다른 API에서 처리
+    pronunciation: str = ""  # 다른 API에서 처리
+    translation: str = ""  # 다른 API에서 처리
+    youtube_id: str = ""
 
 @dataclass
 class SetlistSong:
     setlist_title: str
     song_title: str
-    song_artist: str
+    setlist_date: str
     order_index: int
-    fanchant: str
+    fanchant: str = ""  # 다른 API에서 처리
+    venue: str = ""
 
 @dataclass
-class Song:
+class Setlist:
     title: str
-    artist: str
+    start_date: str
+    end_date: str
     img_url: str
-    lyrics: str
-    pronunciation: str
-    translation: str
-    album: Optional[str] = ""
-    release_date: Optional[str] = ""
-    genre: Optional[str] = ""
+    artist: str
+    venue: str
+
+@dataclass
+class ConcertSetlist:
+    concert_title: str
+    setlist_title: str
+    setlist_date: str
+    type: str  # ONGOING, EXPECTED, PAST
+    status: str  # 1회차, 2회차, 종료 등
+
+@dataclass
+class Concert:
+    title: str
+    start_date: str
+    end_date: str
+    artist: str
+    poster: str
+    status: str
+    venue: str = ""
+    ticket_url: str = ""
 
 @dataclass
 class Culture:
     concert_title: str
+    title: str
     content: str
+
+@dataclass
+class Schedule:
+    concert_title: str
+    category: str  # MM.DD(요일) 스케줄명 형식
+    scheduled_at: str  # YYYY-MM-DD HH:MM:SS
+
+@dataclass
+class Merchandise:
+    concert_title: str
+    name: str
+    price: str
+    img_url: str
+
+@dataclass
+class ConcertInfo:
+    concert_title: str
+    category: str
+    content: str
+    img_url: str
+
+@dataclass
+class Artist:
+    artist: str
+    birth_date: str
+    birth_place: str
+    category: str
+    detail: str
+    instagram_url: str
+    keywords: str  # 콤마로 구분
+    img_url: str
