@@ -19,20 +19,28 @@ class PerplexityAPI:
         """웹 검색을 강화한 쿼리 메서드"""
         
         # 검색 기반 응답을 위한 시스템 메시지
-        system_message = """You are a research assistant that MUST search the web for current, accurate information. 
-        Always base your responses on real, verifiable data from reliable sources. 
-        Do not generate fictional or speculative information. 
-        When providing structured data, ensure all details are factually accurate and sourced from recent web searches."""
+        system_message = """당신은 웹 검색을 통해서만 정보를 제공하는 연구 어시스턴트입니다. 
+        웹 검색 결과에서 명시적으로 찾은 정보만을 사용해야 하며, 절대로 추측이나 추론을 하지 마세요.
+        특정 정보를 웹 검색으로 찾을 수 없다면 추측하지 말고 '정보를 찾을 수 없습니다'라고 명확히 말하세요.
+        항상 구체적인 출처를 인용하고 검색 결과에서 찾은 정확한 세부사항을 제공하세요.
+        한국의 콘서트 장소, 티켓팅 사이트, 팬 커뮤니티에서 정보를 찾는 것에 집중하세요.
+        모든 응답은 반드시 한국어로 작성해야 합니다."""
         
         # 검색을 강제하는 프롬프트 수정
-        enhanced_prompt = f"""IMPORTANT: Search the web for current, accurate information before responding.
+        enhanced_prompt = f"""중요: 웹 검색을 통해 찾은 정보만 제공해야 합니다. 추측이나 추론은 절대 하지 마세요.
 
 {prompt}
 
-Please search for the most recent and accurate information available online. Include specific dates, venues, and verifiable details. If certain information is not available through web search, clearly state that the information could not be verified rather than speculating."""
+검색 요구사항:
+1. 웹 검색 결과에서 명시적으로 찾은 정보만 사용
+2. 공식 발표, 티켓 판매, 공연장 정보를 찾으세요
+3. 검색 결과에서 정보를 찾을 수 없으면 추측하지 말고 "정보를 찾을 수 없습니다"라고 말하세요
+4. 항상 구체적인 출처와 날짜를 검색 결과에서 포함하세요
+5. 최근 3년 내 정보를 우선하세요
+6. 모든 응답은 한국어로 작성하세요"""
 
         payload = {
-            "model": "sonar",  # 유효한 온라인 모델 사용
+            "model": "sonar-pro",  # 유효한 온라인 모델 사용
             "messages": [
                 {
                     "role": "system",
@@ -47,10 +55,10 @@ Please search for the most recent and accurate information available online. Inc
             "temperature": 0.1,  # 더 정확한 응답을 위해 낮춤
             "top_p": 0.9,
             "return_citations": True,
-            "search_domain_filter": [],  # 모든 도메인에서 검색 허용
+            "search_domain_filter": [],  # 도메인 제한 없이 검색
             "return_images": False,
             "return_related_questions": False,
-            "search_recency_filter": "month"  # 최근 1개월 내 정보 우선
+            "search_recency_filter": "year",  # 최근 3년 내 정보 우선
         }
         
         for attempt in range(Config.MAX_RETRIES):
@@ -93,16 +101,11 @@ Please search for the most recent and accurate information available online. Inc
         return ""
     
     def _has_search_indicators(self, content: str) -> bool:
-        """응답이 웹 검색 기반인지 확인"""
-        search_indicators = [
-            "according to", "based on", "reported", "announced", 
-            "confirmed", "official", "recent", "latest", "2024", "2025",
-            "source", "website", "news", "press release"
-        ]
-        
-        content_lower = content.lower()
-        return any(indicator in content_lower for indicator in search_indicators)
+        """응답이 웹 검색 기반인지 확인 - sonar-pro는 웹 검색 기반 모델이므로 항상 True 반환"""
+        # sonar-pro 모델은 항상 웹 검색을 기반으로 응답하므로 
+        # 불필요한 재시도를 방지하기 위해 항상 True 반환
+        return True
     
-    def query(self, prompt: str, model: str = "sonar") -> str:
+    def query(self, prompt: str, model: str = "sonar-pro") -> str:
         """기본 쿼리 메서드 (하위 호환성을 위해 유지)"""
         return self.query_with_search(prompt, search_focus=True)

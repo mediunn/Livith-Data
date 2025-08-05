@@ -41,11 +41,13 @@ class Concert:
     title: str
     start_date: str
     end_date: str
-    artist: str
-    poster: str
-    status: str
+    artist: str  # 원본 아티스트명 (매칭용)
+    artist_display: str = ""  # 표기용 아티스트명
+    poster: str = ""
+    status: str = ""  # ONGOING, UPCOMING, PAST
     venue: str = ""
     ticket_url: str = ""
+    sorted_index: int = 0  # 정렬 순서
 
 @dataclass
 class Culture:

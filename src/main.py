@@ -116,8 +116,8 @@ def main():
         kopis_df.to_csv(kopis_csv_path, index=False, encoding='utf-8-sig')
         print(f"   ✅ KOPIS 필터링 결과 저장: {kopis_csv_path} ({len(kopis_csv_data)}개)")
         
-        # 테스트용으로 5개만 처리
-        test_limit = 5
+        # 테스트용으로 1개만 처리 (KOPIS 필드 디버깅용)
+        test_limit = 1
         selected_concerts = concert_details[:test_limit]
         print(f"\n🧪 테스트용으로 {test_limit}개 콘서트만 상세 데이터 수집합니다.")
         
@@ -154,12 +154,14 @@ def main():
             basic_concerts.append({
                 'title': concert.title,
                 'artist': concert.artist,
+                'artist_display': concert.artist_display,
                 'start_date': concert.start_date,
                 'end_date': concert.end_date,
                 'venue': concert.venue,
                 'status': concert.status,
                 'poster': concert.poster,
-                'ticket_url': concert.ticket_url
+                'ticket_url': concert.ticket_url,
+                'sorted_index': concert.sorted_index
             })
         
         # 단계별 저장

@@ -152,7 +152,7 @@ class KopisAPI:
                     if db is not None:
                         processed += 1
                         
-                        # 모든 필드 추출
+                        # 모든 필드 추출 (디버깅을 위해 모든 가능한 필드 시도)
                         concert_data = {
                             'code': self._get_text(db, 'mt20id'),
                             'title': self._get_text(db, 'prfnm'),
@@ -166,8 +166,22 @@ class KopisAPI:
                             'age': self._get_text(db, 'prfage'),
                             'visit': self._get_text(db, 'visit'),
                             'festival': self._get_text(db, 'festival'),
-                            'genre': self._get_text(db, 'genrenm')
+                            'genre': self._get_text(db, 'genrenm'),
+                            # 티켓 관련 가능한 필드들 시도
+                            'ticket_url': self._get_text(db, 'relateurl'),
+                            'ticket_url2': self._get_text(db, 'dtguidance'),
+                            'ticket_url3': self._get_text(db, 'sty'),
+                            'ticket_info': self._get_text(db, 'pcseguidance'),
+                            'sponsor': self._get_text(db, 'spon'),
+                            'producer': self._get_text(db, 'entrpsnm'),
+                            'entrps': self._get_text(db, 'entrpsnmH'),
+                            'producer2': self._get_text(db, 'entrpsnmP'),
+                            'producer3': self._get_text(db, 'entrpsnmA'),
+                            'producer4': self._get_text(db, 'entrpsnmH'),
+                            'producer5': self._get_text(db, 'entrpsnmS'),
                         }
+                        
+                        # 디버깅 로그 제거됨
                         
                         # 내한공연 필터링 조건
                         if (concert_data['visit'] == 'Y' and 
