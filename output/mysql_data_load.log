@@ -1,0 +1,2 @@
+2025-08-07 13:18:45,539 - ERROR - MySQL 연결 실패: 2003 (HY000): Can't connect to MySQL server on 'localhost:3307' (61)
+2025-08-07 13:18:45,540 - INFO - MySQL 연결 종료

@@ -11,6 +11,8 @@ from src.kopis_api import KopisAPI
 from src.perplexity_api import PerplexityAPI
 from src.enhanced_data_collector import EnhancedDataCollector
 from src.enhanced_csv_manager import EnhancedCSVManager
+from src.data_enhancement import DataEnhancement
+from src.artist_matcher import match_artist_names
 
 logging.basicConfig(
     level=getattr(logging, Config.LOG_LEVEL),
@@ -51,10 +53,10 @@ def main():
         
         print(f"   📋 총 {len(concert_codes)}개의 공연 발견")
         
-        # 2. 상세 정보 가져오기 (테스트용으로 10개만 필터링)
+        # 2. 상세 정보 가져오기 (전체 처리)
         print("2. KOPIS 공연 상세정보 수집 및 내한공연 필터링 중...")
-        print(f"   테스트용: 10개 내한공연 발견시까지만 처리 (visit=Y, festival=N)")
-        concert_details = kopis_api.fetch_concert_details(concert_codes, max_found=10)
+        print(f"   전체 처리: 모든 내한공연 수집 (visit=Y, festival=N)")
+        concert_details = kopis_api.fetch_concert_details(concert_codes)
         
         if not concert_details:
             print("❌ 내한공연 조건에 맞는 콘서트가 없습니다.")
@@ -116,10 +118,9 @@ def main():
         kopis_df.to_csv(kopis_csv_path, index=False, encoding='utf-8-sig')
         print(f"   ✅ KOPIS 필터링 결과 저장: {kopis_csv_path} ({len(kopis_csv_data)}개)")
         
-        # 테스트용으로 1개만 처리 (KOPIS 필드 디버깅용)
-        test_limit = 1
-        selected_concerts = concert_details[:test_limit]
-        print(f"\n🧪 테스트용으로 {test_limit}개 콘서트만 상세 데이터 수집합니다.")
+        # 전체 콘서트 처리
+        selected_concerts = concert_details
+        print(f"\n🚀 총 {len(selected_concerts)}개 내한 콘서트의 상세 데이터를 수집합니다.")
         
         # 3. Perplexity로 상세 데이터 수집
         print("3. Perplexity API로 상세 데이터 수집 중...")
@@ -147,21 +148,22 @@ def main():
         # 4. 각 단계별 CSV 파일로 저장
         print("4. 단계별 CSV 파일 저장 중...")
         
-        # 기본 콘서트 정보만 먼저 저장
+        # 기본 콘서트 정보만 먼저 저장 (새로운 컬럼 순서 적용)
         basic_concerts = []
         for data in all_collected_data:
             concert = data['concert']
             basic_concerts.append({
+                'artist': concert.artist,  # 기존 artist_display 내용
+                'code': concert.code,
                 'title': concert.title,
-                'artist': concert.artist,
-                'artist_display': concert.artist_display,
                 'start_date': concert.start_date,
                 'end_date': concert.end_date,
-                'venue': concert.venue,
                 'status': concert.status,
                 'poster': concert.poster,
+                'sorted_index': concert.sorted_index,
+                'ticket_site': concert.ticket_site,
                 'ticket_url': concert.ticket_url,
-                'sorted_index': concert.sorted_index
+                'venue': concert.venue
             })
         
         # 단계별 저장
@@ -173,6 +175,41 @@ def main():
         # 전체 상세 데이터 저장
         EnhancedCSVManager.save_all_data(all_collected_data)
         print(f"   ✅ 2단계 전체 상세 데이터 저장 완료")
+        
+        # 5. 굿즈(merchandise) 정보 수집
+        print("5. 굿즈(merchandise) 정보 수집 중...")
+        merchandise_data = []
+        
+        for i, data in enumerate(all_collected_data, 1):
+            concert = data['concert']
+            print(f"   🛍️ {i}/{len(all_collected_data)}: {concert.title} 굿즈 정보 수집 중...")
+            
+            try:
+                merchandise_info = collector.collect_merchandise_data(concert)
+                if merchandise_info:
+                    merchandise_data.extend(merchandise_info)
+                    print(f"      ✅ 굿즈 {len(merchandise_info)}개 발견")
+                else:
+                    print(f"      ⚪ 굿즈 정보 없음")
+                time.sleep(Config.REQUEST_DELAY)
+            except Exception as e:
+                logger.error(f"굿즈 정보 수집 실패: {e}")
+                print(f"      ❌ 실패: {str(e)}")
+                continue
+        
+        # 굿즈 데이터 CSV 저장
+        if merchandise_data:
+            merchandise_df = pd.DataFrame(merchandise_data)
+            merchandise_csv_path = os.path.join(Config.OUTPUT_DIR, 'md.csv')
+            merchandise_df.to_csv(merchandise_csv_path, index=False, encoding='utf-8-sig')
+            print(f"   ✅ 굿즈 정보 저장: {merchandise_csv_path} ({len(merchandise_data)}개)")
+        else:
+            print(f"   ⚪ 수집된 굿즈 정보가 없습니다.")
+        
+        # 7. artist.csv 기준으로 concerts.csv의 artist 이름 매칭
+        print("7. artist 이름 매칭 중...")
+        match_artist_names()
+        print("   ✅ artist 이름 매칭 완료")
         
         print(f"\n🎉 완료! 총 {len(all_collected_data)}개 내한 콘서트의 데이터가 저장되었습니다.")
         print(f"📁 파일 위치: {Config.OUTPUT_DIR}/")
@@ -193,7 +230,8 @@ def main():
             ("setlists.csv", "2단계: 셋리스트 정보"),
             ("songs.csv", "2단계: 곡 정보"),
             ("cultures.csv", "2단계: 팬 문화 정보"),
-            ("artists.csv", "2단계: 아티스트 정보")
+            ("artists.csv", "2단계: 아티스트 정보"),
+            ("md.csv", "3단계: 굿즈 정보")
         ]
         
         for filename, description in csv_files:

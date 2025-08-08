@@ -1,0 +1,29 @@
+2025-08-06 22:45:20,494 - src.lyrics_updater - INFO - 전체 가사 업데이트 시작
+2025-08-06 22:45:20,495 - src.lyrics_updater - INFO - songs.csv 발견: output/songs.csv
+2025-08-06 22:45:20,495 - src.lyrics_updater - INFO - 총 1개의 songs.csv 파일 발견
+2025-08-06 22:45:20,495 - src.lyrics_updater - INFO - 
+============================================================
+2025-08-06 22:45:20,495 - src.lyrics_updater - INFO - 파일 처리 (1/1): output/songs.csv
+2025-08-06 22:45:20,496 - src.lyrics_updater - INFO - ============================================================
+2025-08-06 22:45:20,496 - src.lyrics_updater - INFO - 가사 업데이트 시작: output/songs.csv
+2025-08-06 22:45:20,500 - src.lyrics_updater - INFO - output/songs.csv에서 503곡 로드
+2025-08-06 22:45:20,500 - src.lyrics_updater - INFO - CSV 필드명: ['title', 'artist', 'lyrics', 'pronunciation', 'translation', 'youtube_id']
+2025-08-06 22:45:20,500 - src.lyrics_updater - INFO - 테스트 모드: 최대 1곡만 처리
+2025-08-06 22:45:20,500 - src.lyrics_updater - INFO - 처리 중 (1/1): 'RISE' by MADKID
+2025-08-06 22:45:20,500 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='RISE', artist='MADKID'
+2025-08-06 22:45:21,466 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'RISE' by MADKID
+2025-08-06 22:45:22,471 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=168932143
+2025-08-06 22:45:23,244 - src.lyrics_updater - INFO - 가사 업데이트 성공
+2025-08-06 22:45:24,749 - src.lyrics_updater - INFO - 기존 파일 백업: output/songs.csv.backup
+2025-08-06 22:45:24,750 - src.lyrics_updater - INFO - 파일 저장 완료: output/songs.csv (1곡)
+2025-08-06 22:45:24,750 - src.lyrics_updater - INFO - 파일 저장 완료: output/songs.csv
+2025-08-06 22:45:24,751 - src.lyrics_updater - INFO - 파일 완료 - 총 1곡, 업데이트 1곡, 스킵 0곡, 실패 0곡
+2025-08-06 22:45:24,751 - src.lyrics_updater - INFO - 
+============================================================
+2025-08-06 22:45:24,751 - src.lyrics_updater - INFO - 전체 가사 업데이트 완료
+2025-08-06 22:45:24,751 - src.lyrics_updater - INFO - 처리된 파일 수: 1
+2025-08-06 22:45:24,751 - src.lyrics_updater - INFO - 전체 곡 수: 1
+2025-08-06 22:45:24,751 - src.lyrics_updater - INFO - 업데이트된 곡 수: 1
+2025-08-06 22:45:24,751 - src.lyrics_updater - INFO - 스킵된 곡 수: 0
+2025-08-06 22:45:24,751 - src.lyrics_updater - INFO - 실패한 곡 수: 0
+2025-08-06 22:45:24,751 - src.lyrics_updater - INFO - ============================================================

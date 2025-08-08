@@ -1,0 +1,447 @@
+2025-08-06 22:53:33,588 - __main__ - INFO - 가사 업데이트 시작: output/songs.csv
+2025-08-06 22:53:33,589 - __main__ - INFO - output/songs.csv에서 1곡 로드 (인코딩: utf-8-sig)
+2025-08-06 22:53:33,589 - __main__ - INFO - 테스트 모드: 최대 5곡만 처리
+2025-08-06 22:53:33,589 - __main__ - INFO - 처리 중 (1/1): 'RISE' by MADKID
+2025-08-06 22:53:33,589 - __main__ - INFO - 유효한 가사가 이미 있어서 스킵
+2025-08-06 22:53:33,590 - __main__ - INFO - 기존 파일 백업: output/songs.csv.backup
+2025-08-06 22:53:33,590 - __main__ - INFO - 파일 저장 완료: output/songs.csv (1곡)
+2025-08-06 22:53:33,590 - __main__ - INFO - 파일 저장 완료: output/songs.csv
+2025-08-06 22:56:09,697 - __main__ - INFO - 가사 업데이트 시작: output/songs.csv
+2025-08-06 22:56:09,699 - __main__ - INFO - output/songs.csv에서 1곡 로드 (인코딩: utf-8-sig)
+2025-08-06 22:56:09,699 - __main__ - INFO - 테스트 모드: 최대 5곡만 처리
+2025-08-06 22:56:09,699 - __main__ - INFO - 처리 중 (1/1): 'RISE' by MADKID
+2025-08-06 22:56:09,699 - __main__ - INFO - 유효한 가사가 이미 있어서 스킵
+2025-08-06 22:56:09,699 - __main__ - INFO - 기존 파일 백업: output/songs.csv.backup
+2025-08-06 22:56:09,700 - __main__ - INFO - 파일 저장 완료: output/songs.csv (1곡)
+2025-08-06 22:56:09,700 - __main__ - INFO - 파일 저장 완료: output/songs.csv
+2025-08-07 14:55:19,752 - __main__ - INFO - 가사 업데이트 시작: output/songs.csv
+2025-08-07 14:55:19,760 - __main__ - INFO - output/songs.csv에서 917곡 로드 (인코딩: utf-8-sig)
+2025-08-07 14:55:19,760 - __main__ - INFO - 처리 중 (1/917): 'Cloud Rap Dream' by 2hollis (투홀리스)
+2025-08-07 14:55:19,760 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Cloud Rap Dream', artist='2hollis (투홀리스)'
+2025-08-07 14:55:20,602 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Cloud Rap Dream', artist='2hollis (투홀리스)'
+2025-08-07 14:55:20,604 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Cloud Rap Dream 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:55:21,434 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Die With A Smile' by Lady Gaga feat. Bruno Mars
+2025-08-07 14:55:22,438 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=306855753
+2025-08-07 14:55:23,252 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:55:25,255 - __main__ - INFO - 처리 중 (2/917): 'Golden' by 2hollis (투홀리스)
+2025-08-07 14:55:25,256 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Golden', artist='2hollis (투홀리스)'
+2025-08-07 14:55:26,110 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Golden', artist='2hollis (투홀리스)'
+2025-08-07 14:55:26,113 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Golden 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:55:26,930 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Golden' by HUNTR/X feat. Ejae, AUDREY NUNA, REI AMI & KPop Demon Hunters Cast
+2025-08-07 14:55:27,938 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=343570693
+2025-08-07 14:55:28,194 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:55:30,198 - __main__ - INFO - 처리 중 (3/917): 'poster boy' by 2hollis (투홀리스)
+2025-08-07 14:55:30,198 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='poster boy', artist='2hollis (투홀리스)'
+2025-08-07 14:55:31,010 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'poster boy' by 2hollis
+2025-08-07 14:55:32,017 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=256346096
+2025-08-07 14:55:32,870 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:55:34,876 - __main__ - INFO - 처리 중 (4/917): 'crush' by 2hollis (투홀리스)
+2025-08-07 14:55:34,876 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='crush', artist='2hollis (투홀리스)'
+2025-08-07 14:55:35,714 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'crush' by 2hollis
+2025-08-07 14:55:36,719 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=289489360
+2025-08-07 14:55:37,581 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:55:39,586 - __main__ - INFO - 처리 중 (5/917): 'trauma' by 2hollis (투홀리스)
+2025-08-07 14:55:39,587 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='trauma', artist='2hollis (투홀리스)'
+2025-08-07 14:55:40,446 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'trauma' by 2hollis
+2025-08-07 14:55:41,452 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=294199426
+2025-08-07 14:55:42,293 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:55:44,298 - __main__ - INFO - 처리 중 (6/917): 'Feels So Good' by 2hollis (투홀리스)
+2025-08-07 14:55:44,299 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Feels So Good', artist='2hollis (투홀리스)'
+2025-08-07 14:55:45,156 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Feels So Good', artist='2hollis (투홀리스)'
+2025-08-07 14:55:45,157 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Feels So Good 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:55:45,989 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Golden' by HUNTR/X feat. Ejae, AUDREY NUNA, REI AMI & KPop Demon Hunters Cast
+2025-08-07 14:55:46,994 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=343570693
+2025-08-07 14:55:47,823 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:55:49,829 - __main__ - INFO - 처리 중 (7/917): 'K-Pop Demon Hunters' by 2hollis (투홀리스)
+2025-08-07 14:55:49,829 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='K-Pop Demon Hunters', artist='2hollis (투홀리스)'
+2025-08-07 14:55:50,686 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='K-Pop Demon Hunters', artist='2hollis (투홀리스)'
+2025-08-07 14:55:50,687 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='K-Pop Demon Hunters 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:55:51,608 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Golden' by HUNTR/X feat. Ejae, AUDREY NUNA, REI AMI & KPop Demon Hunters Cast
+2025-08-07 14:55:52,614 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=343570693
+2025-08-07 14:55:52,864 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:55:54,868 - __main__ - INFO - 처리 중 (8/917): 'EA SPORTS FC™ 24' by 2hollis (투홀리스)
+2025-08-07 14:55:54,868 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='EA SPORTS FC™ 24', artist='2hollis (투홀리스)'
+2025-08-07 14:55:55,704 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='EA SPORTS FC™ 24', artist='2hollis (투홀리스)'
+2025-08-07 14:55:55,706 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='EA SPORTS FC™ 24 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:55:56,625 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Sports car' by Tate McRae
+2025-08-07 14:55:57,632 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=317735266
+2025-08-07 14:55:58,408 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:56:00,415 - __main__ - INFO - 처리 중 (9/917): 'Owsla' by 2hollis (투홀리스)
+2025-08-07 14:56:00,415 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Owsla', artist='2hollis (투홀리스)'
+2025-08-07 14:56:01,234 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Owsla', artist='2hollis (투홀리스)'
+2025-08-07 14:56:01,236 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Owsla 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:56:02,203 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'poster boy' by 2hollis
+2025-08-07 14:56:03,209 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=256346096
+2025-08-07 14:56:03,972 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:56:05,978 - __main__ - INFO - 처리 중 (10/917): 'Hyperpop Anthem' by 2hollis (투홀리스)
+2025-08-07 14:56:05,978 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Hyperpop Anthem', artist='2hollis (투홀리스)'
+2025-08-07 14:56:06,817 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Hyperpop Anthem', artist='2hollis (투홀리스)'
+2025-08-07 14:56:06,819 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Hyperpop Anthem 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:56:07,632 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'This Flag' by Chris Janson
+2025-08-07 14:56:08,636 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=343571356
+2025-08-07 14:56:09,531 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:56:11,536 - __main__ - INFO - 처리 중 (11/917): 'Experimental Love' by 2hollis (투홀리스)
+2025-08-07 14:56:11,537 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Experimental Love', artist='2hollis (투홀리스)'
+2025-08-07 14:56:12,322 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Experimental Love', artist='2hollis (투홀리스)'
+2025-08-07 14:56:12,323 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Experimental Love 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:56:13,112 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Ordinary' by Alex Warren
+2025-08-07 14:56:14,117 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=324590116
+2025-08-07 14:56:14,924 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:56:16,930 - __main__ - INFO - 처리 중 (12/917): 'Atlanta Nights' by 2hollis (투홀리스)
+2025-08-07 14:56:16,930 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Atlanta Nights', artist='2hollis (투홀리스)'
+2025-08-07 14:56:17,823 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Atlanta Nights', artist='2hollis (투홀리스)'
+2025-08-07 14:56:17,825 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Atlanta Nights 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:56:18,131 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'What I Want (feat. Tate McRae)' by Morgan Wallen feat. Tate McRae
+2025-08-07 14:56:19,137 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=345697644
+2025-08-07 14:56:19,928 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:56:21,934 - __main__ - INFO - 처리 중 (13/917): 'Major Deal' by 2hollis (투홀리스)
+2025-08-07 14:56:21,934 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Major Deal', artist='2hollis (투홀리스)'
+2025-08-07 14:56:22,191 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Major Deal', artist='2hollis (투홀리스)'
+2025-08-07 14:56:22,193 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Major Deal 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:56:23,010 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'No Broke Boys' by Disco Lines
+2025-08-07 14:56:24,014 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=341938126
+2025-08-07 14:56:24,818 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:56:26,823 - __main__ - INFO - 처리 중 (14/917): 'North America Tour' by 2hollis (투홀리스)
+2025-08-07 14:56:26,823 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='North America Tour', artist='2hollis (투홀리스)'
+2025-08-07 14:56:27,604 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='North America Tour', artist='2hollis (투홀리스)'
+2025-08-07 14:56:27,605 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='North America Tour 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:56:27,890 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'South Of Sanity' by Zach Top
+2025-08-07 14:56:28,896 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=347916377
+2025-08-07 14:56:29,703 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:56:31,708 - __main__ - INFO - 처리 중 (15/917): 'Skrillex Vibe' by 2hollis (투홀리스)
+2025-08-07 14:56:31,708 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Skrillex Vibe', artist='2hollis (투홀리스)'
+2025-08-07 14:56:32,483 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Skrillex Vibe', artist='2hollis (투홀리스)'
+2025-08-07 14:56:32,486 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Skrillex Vibe 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:56:33,257 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Too Toxic For Me' by Jocelyn Leung
+2025-08-07 14:56:34,262 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=328595705
+2025-08-07 14:56:35,074 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:56:37,078 - __main__ - INFO - 처리 중 (16/917): 'Owsla Dreams' by 2hollis (투홀리스)
+2025-08-07 14:56:37,078 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Owsla Dreams', artist='2hollis (투홀리스)'
+2025-08-07 14:56:37,892 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Owsla Dreams', artist='2hollis (투홀리스)'
+2025-08-07 14:56:37,895 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Owsla Dreams 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:56:38,719 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Pink Pony Club' by Chappell Roan
+2025-08-07 14:56:39,723 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=259977044
+2025-08-07 14:56:40,523 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:56:42,527 - __main__ - INFO - 처리 중 (17/917): 'Hyperpop Star' by 2hollis (투홀리스)
+2025-08-07 14:56:42,527 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Hyperpop Star', artist='2hollis (투홀리스)'
+2025-08-07 14:56:43,322 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Hyperpop Star', artist='2hollis (투홀리스)'
+2025-08-07 14:56:43,324 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Hyperpop Star 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:56:44,140 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Your Idol' by Saja Boys feat. Andrew Choi, Neckwav, Danny Chung, KEVIN WOO, samUIL Lee & KPop Demon Hunters Cast
+2025-08-07 14:56:45,148 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=343570724
+2025-08-07 14:56:45,400 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:56:47,403 - __main__ - INFO - 처리 중 (18/917): 'Cloud Rapper' by 2hollis (투홀리스)
+2025-08-07 14:56:47,404 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Cloud Rapper', artist='2hollis (투홀리스)'
+2025-08-07 14:56:48,235 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Cloud Rapper', artist='2hollis (투홀리스)'
+2025-08-07 14:56:48,238 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Cloud Rapper 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:56:49,145 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Azizam' by Ed Sheeran
+2025-08-07 14:56:50,151 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=324472166
+2025-08-07 14:56:50,923 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:56:52,925 - __main__ - INFO - 처리 중 (19/917): 'Skrillex Family' by 2hollis (투홀리스)
+2025-08-07 14:56:52,925 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Skrillex Family', artist='2hollis (투홀리스)'
+2025-08-07 14:56:53,176 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Skrillex Family', artist='2hollis (투홀리스)'
+2025-08-07 14:56:53,176 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Skrillex Family 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:56:54,071 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Half The Plot' by Lil Tecca
+2025-08-07 14:56:55,076 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=342926773
+2025-08-07 14:56:55,337 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:56:57,342 - __main__ - INFO - 처리 중 (20/917): 'Major Debut' by 2hollis (투홀리스)
+2025-08-07 14:56:57,343 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Major Debut', artist='2hollis (투홀리스)'
+2025-08-07 14:56:58,172 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Major Debut', artist='2hollis (투홀리스)'
+2025-08-07 14:56:58,174 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Major Debut 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:56:59,018 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Praise God' by Kanye West
+2025-08-07 14:57:00,024 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=222687543
+2025-08-07 14:57:00,916 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:57:02,920 - __main__ - INFO - 처리 중 (21/917): 'EA SPORTS FC™ 24 Anthem' by 2hollis (투홀리스)
+2025-08-07 14:57:02,920 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='EA SPORTS FC™ 24 Anthem', artist='2hollis (투홀리스)'
+2025-08-07 14:57:03,760 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='EA SPORTS FC™ 24 Anthem', artist='2hollis (투홀리스)'
+2025-08-07 14:57:03,764 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='EA SPORTS FC™ 24 Anthem 2hollis (투홀리스)', track='None', artist='None'
+2025-08-07 14:57:04,044 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'This Flag' by Chris Janson
+2025-08-07 14:57:05,050 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=343571356
+2025-08-07 14:57:05,852 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:57:07,857 - __main__ - INFO - 처리 중 (22/917): 'グッバイバイ (Goodbye-bye)' by Ai Tomioka (토미오카 아이)
+2025-08-07 14:57:07,858 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='グッバイバイ (Goodbye-bye)', artist='Ai Tomioka (토미오카 아이)'
+2025-08-07 14:57:08,204 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='グッバイバイ (Goodbye-bye)', artist='Ai Tomioka (토미오카 아이)'
+2025-08-07 14:57:08,207 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='グッバイバイ (Goodbye-bye) Ai Tomioka (토미오카 아이)', track='None', artist='None'
+2025-08-07 14:57:09,077 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Mama, I'm Coming Home' by Ozzy Osbourne
+2025-08-07 14:57:10,083 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=223456111
+2025-08-07 14:57:10,850 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:57:12,855 - __main__ - INFO - 처리 중 (23/917): 'Good bye bye' by Ai Tomioka (토미오카 아이)
+2025-08-07 14:57:12,856 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Good bye bye', artist='Ai Tomioka (토미오카 아이)'
+2025-08-07 14:57:13,216 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Good Bye Thanksgiving' by AI MUSIC WORLD
+2025-08-07 14:57:13,217 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Good Bye Thanksgiving
+2025-08-07 14:57:13,217 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:57:15,222 - __main__ - INFO - 처리 중 (24/917): 'グッバイバイ' by Ai Tomioka (토미오카 아이)
+2025-08-07 14:57:15,222 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='グッバイバイ', artist='Ai Tomioka (토미오카 아이)'
+2025-08-07 14:57:16,011 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='グッバイバイ', artist='Ai Tomioka (토미오카 아이)'
+2025-08-07 14:57:16,013 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='グッバイバイ Ai Tomioka (토미오카 아이)', track='None', artist='None'
+2025-08-07 14:57:17,011 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Sapphire' by Ed Sheeran
+2025-08-07 14:57:18,016 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=328117213
+2025-08-07 14:57:18,278 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:57:20,283 - __main__ - INFO - 처리 중 (25/917): 'Chasin' the Voodoo' by Al Di Meola (알 디 메올라)
+2025-08-07 14:57:20,284 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Chasin' the Voodoo', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:20,621 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Chasin' the Voodoo' by Al Di Meola
+2025-08-07 14:57:20,624 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Chasin' the Voodoo
+2025-08-07 14:57:20,624 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:57:22,629 - __main__ - INFO - 처리 중 (26/917): 'Dark Eye Tango' by Al Di Meola (알 디 메올라)
+2025-08-07 14:57:22,629 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Dark Eye Tango', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:23,496 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Dark Eye Tango' by Al Di Meola
+2025-08-07 14:57:23,498 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Dark Eye Tango
+2025-08-07 14:57:23,499 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:57:25,502 - __main__ - INFO - 처리 중 (27/917): 'Splendido Sundance' by Al Di Meola (알 디 메올라)
+2025-08-07 14:57:25,502 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Splendido Sundance', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:25,789 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Splendido Sundance' by Al Di Meola
+2025-08-07 14:57:25,793 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Splendido Sundance
+2025-08-07 14:57:25,793 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:57:27,794 - __main__ - INFO - 처리 중 (28/917): 'Notorious' by Al Di Meola (알 디 메올라)
+2025-08-07 14:57:27,794 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Notorious', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:28,138 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Notorious' by Al Di Meola
+2025-08-07 14:57:28,139 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Notorious
+2025-08-07 14:57:28,140 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:57:30,145 - __main__ - INFO - 처리 중 (29/917): 'Elegant Gypsy Suite' by Al Di Meola (알 디 메올라)
+2025-08-07 14:57:30,145 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Elegant Gypsy Suite', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:30,510 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Elegant Gypsy Suite' by Al Di Meola
+2025-08-07 14:57:30,511 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Elegant Gypsy Suite
+2025-08-07 14:57:30,511 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:57:32,514 - __main__ - INFO - 처리 중 (30/917): 'One Night Last June' by Al Di Meola (알 디 메올라)
+2025-08-07 14:57:32,514 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='One Night Last June', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:33,395 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'One Night Last June' by Al Di Meola
+2025-08-07 14:57:33,397 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: One Night Last June
+2025-08-07 14:57:33,397 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:57:35,399 - __main__ - INFO - 처리 중 (31/917): 'Adour' by Al Di Meola (알 디 메올라)
+2025-08-07 14:57:35,399 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Adour', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:36,364 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Adour' by Al Di Meola
+2025-08-07 14:57:36,366 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Adour
+2025-08-07 14:57:36,366 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:57:38,372 - __main__ - INFO - 처리 중 (32/917): 'Electric Rendezvous' by Al Di Meola (알 디 메올라)
+2025-08-07 14:57:38,373 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Electric Rendezvous', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:39,231 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Electric Rendezvous' by Al Di Meola
+2025-08-07 14:57:39,233 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Electric Rendezvous
+2025-08-07 14:57:39,233 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:57:41,235 - __main__ - INFO - 처리 중 (33/917): 'Yesterday (Across the Universe)' by Al Di Meola (알 디 메올라)
+2025-08-07 14:57:41,236 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Yesterday (Across the Universe)', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:42,037 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Yesterday (Across the Universe)', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:42,040 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Yesterday (Across the Universe) Al Di Meola (알 디 메올라)', track='None', artist='None'
+2025-08-07 14:57:42,328 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Golden' by HUNTR/X feat. Ejae, AUDREY NUNA, REI AMI & KPop Demon Hunters Cast
+2025-08-07 14:57:43,335 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=343570693
+2025-08-07 14:57:43,586 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:57:45,590 - __main__ - INFO - 처리 중 (34/917): 'Azzura' by Al Di Meola (알 디 메올라)
+2025-08-07 14:57:45,591 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Azzura', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:46,503 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Azzura' by Al Di Meola
+2025-08-07 14:57:46,505 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Azzura
+2025-08-07 14:57:46,505 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:57:48,510 - __main__ - INFO - 처리 중 (35/917): 'Bravoto Fantasia' by Al Di Meola (알 디 메올라)
+2025-08-07 14:57:48,510 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Bravoto Fantasia', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:48,762 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Bravoto Fantasia', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:48,764 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Bravoto Fantasia Al Di Meola (알 디 메올라)', track='None', artist='None'
+2025-08-07 14:57:49,570 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Becky (feat. 41)' by Lola Brooke feat. 41
+2025-08-07 14:57:50,578 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=284011462
+2025-08-07 14:57:50,853 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:57:52,853 - __main__ - INFO - 처리 중 (36/917): 'Viva La Danzarina' by Al Di Meola (알 디 메올라)
+2025-08-07 14:57:52,854 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Viva La Danzarina', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:53,670 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Viva La Danzarina', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:53,673 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Viva La Danzarina Al Di Meola (알 디 메올라)', track='None', artist='None'
+2025-08-07 14:57:54,489 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Buenos Términos' by Rauw Alejandro
+2025-08-07 14:57:55,493 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=347875170
+2025-08-07 14:57:56,314 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:57:58,316 - __main__ - INFO - 처리 중 (37/917): 'Guitars of the Exotic Isle' by Al Di Meola (알 디 메올라)
+2025-08-07 14:57:58,316 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Guitars of the Exotic Isle', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:58,570 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Guitars of the Exotic Isle', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:57:58,571 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Guitars of the Exotic Isle Al Di Meola (알 디 메올라)', track='None', artist='None'
+2025-08-07 14:57:58,842 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Golden' by HUNTR/X feat. Ejae, AUDREY NUNA, REI AMI & KPop Demon Hunters Cast
+2025-08-07 14:57:59,845 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=343570693
+2025-08-07 14:58:00,106 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:58:02,111 - __main__ - INFO - 처리 중 (38/917): 'Rhapsody Italia' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:02,111 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Rhapsody Italia', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:02,987 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Rhapsody Italia', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:02,990 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Rhapsody Italia Al Di Meola (알 디 메올라)', track='None', artist='None'
+2025-08-07 14:58:03,832 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Becky (feat. 41)' by Lola Brooke feat. 41
+2025-08-07 14:58:04,839 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=284011462
+2025-08-07 14:58:05,091 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:58:07,096 - __main__ - INFO - 처리 중 (39/917): 'Midnight Tango' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:07,097 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Midnight Tango', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:07,978 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Midnight Tango' by Al Di Meola
+2025-08-07 14:58:07,981 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Midnight Tango
+2025-08-07 14:58:07,981 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:58:09,984 - __main__ - INFO - 처리 중 (40/917): 'Opus' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:09,985 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Opus', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:10,463 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Opus Posth. In A Minor, KK IIB Nr.5' by Various Artists
+2025-08-07 14:58:10,466 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Opus Posth. In A Minor, KK IIB Nr.5
+2025-08-07 14:58:10,466 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:58:12,471 - __main__ - INFO - 처리 중 (41/917): 'Twentyfour' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:12,471 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Twentyfour', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:13,330 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Twentyfour', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:13,332 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Twentyfour Al Di Meola (알 디 메올라)', track='None', artist='None'
+2025-08-07 14:58:13,637 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Becky (feat. 41)' by Lola Brooke feat. 41
+2025-08-07 14:58:14,642 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=284011462
+2025-08-07 14:58:14,889 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:58:16,893 - __main__ - INFO - 처리 중 (42/917): 'Across the Universe' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:16,893 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Across the Universe', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:17,765 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Across the Universe' by Various Artists
+2025-08-07 14:58:18,769 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=38625588
+2025-08-07 14:58:19,024 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:58:21,027 - __main__ - INFO - 처리 중 (43/917): 'Broken Heart' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:21,028 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Broken Heart', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:21,313 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'How Can You Mend a Broken Heart?' by Al Green
+2025-08-07 14:58:22,318 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=127734146
+2025-08-07 14:58:23,084 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:58:25,085 - __main__ - INFO - 처리 중 (44/917): 'Land of the Midnight Sun' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:25,086 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Land of the Midnight Sun', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:25,414 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Land Of The Midnight Sun' by Al Di Meola
+2025-08-07 14:58:25,416 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Land Of The Midnight Sun
+2025-08-07 14:58:25,416 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:58:27,420 - __main__ - INFO - 처리 중 (45/917): 'Ava's Dream Sequence Lullaby' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:27,421 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Ava's Dream Sequence Lullaby', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:27,754 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Ava's Dream Sequence Lullaby' by Al Di Meola
+2025-08-07 14:58:27,756 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Ava's Dream Sequence Lullaby
+2025-08-07 14:58:27,756 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:58:29,759 - __main__ - INFO - 처리 중 (46/917): 'Majestic Dance' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:29,759 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Majestic Dance', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:30,017 - src.musixmatch_lyrics_api - WARNING - 검색 결과 없음: query='None', track='Majestic Dance', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:30,020 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='Majestic Dance Al Di Meola (알 디 메올라)', track='None', artist='None'
+2025-08-07 14:58:30,861 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Pink Pony Club' by Chappell Roan
+2025-08-07 14:58:31,869 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=259977044
+2025-08-07 14:58:32,663 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:58:34,668 - __main__ - INFO - 처리 중 (47/917): 'Señor Mouse' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:34,669 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Señor Mouse', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:34,954 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Señor Mouse' by Al Di Meola
+2025-08-07 14:58:34,957 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Señor Mouse
+2025-08-07 14:58:34,957 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:58:36,958 - __main__ - INFO - 처리 중 (48/917): 'Casino' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:36,959 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Casino', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:37,274 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Casino' by Al Di Meola
+2025-08-07 14:58:37,277 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Casino
+2025-08-07 14:58:37,278 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:58:39,283 - __main__ - INFO - 처리 중 (49/917): 'Mediterranean Sundance' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:39,283 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Mediterranean Sundance', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:40,102 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Mediterranean Sundance' by Paco de Lucía feat. Al Di Meola & John McLaughlin
+2025-08-07 14:58:40,104 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Mediterranean Sundance
+2025-08-07 14:58:40,105 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:58:42,108 - __main__ - INFO - 처리 중 (50/917): 'Egyptian Danza' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:42,108 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Egyptian Danza', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:43,028 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Egyptian Danza' by Al Di Meola
+2025-08-07 14:58:43,031 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Egyptian Danza
+2025-08-07 14:58:43,032 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:58:45,033 - __main__ - INFO - 처리 중 (51/917): 'Fantasia Suite for Two Guitars' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:45,034 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Fantasia Suite for Two Guitars', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:45,387 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Fantasia Suite for Two Guitars' by Al Di Meola
+2025-08-07 14:58:45,390 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Fantasia Suite for Two Guitars
+2025-08-07 14:58:45,390 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:58:47,395 - __main__ - INFO - 처리 중 (52/917): 'Race with Devil on Spanish Highway' by Al Di Meola (알 디 메올라)
+2025-08-07 14:58:47,396 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Race with Devil on Spanish Highway', artist='Al Di Meola (알 디 메올라)'
+2025-08-07 14:58:47,839 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Race With Devil On Spanish Highway' by Al Di Meola
+2025-08-07 14:58:47,841 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: Race With Devil On Spanish Highway
+2025-08-07 14:58:47,841 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:58:49,844 - __main__ - INFO - 처리 중 (53/917): 'Irony' by Christopher (크리스토퍼)
+2025-08-07 14:58:49,845 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Irony', artist='Christopher (크리스토퍼)'
+2025-08-07 14:58:50,195 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Irony' by Christopher
+2025-08-07 14:58:51,203 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=164996235
+2025-08-07 14:58:52,001 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:58:54,006 - __main__ - INFO - 처리 중 (54/917): 'My Heart' by Christopher (크리스토퍼)
+2025-08-07 14:58:54,007 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='My Heart', artist='Christopher (크리스토퍼)'
+2025-08-07 14:58:54,312 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'My Heart' by Christopher
+2025-08-07 14:58:55,315 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=164996232
+2025-08-07 14:58:56,098 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:58:58,102 - __main__ - INFO - 처리 중 (55/917): 'CPH Girls' by Christopher (크리스토퍼)
+2025-08-07 14:58:58,102 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='CPH Girls', artist='Christopher (크리스토퍼)'
+2025-08-07 14:58:58,491 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'CPH Girls (feat. Brandon Beal)' by Christopher feat. Brandon Beal
+2025-08-07 14:58:59,497 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=78361010
+2025-08-07 14:59:00,296 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:02,296 - __main__ - INFO - 처리 중 (56/917): 'Told You So' by Christopher (크리스토퍼)
+2025-08-07 14:59:02,297 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Told You So', artist='Christopher (크리스토퍼)'
+2025-08-07 14:59:03,302 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Told You So' by Christopher
+2025-08-07 14:59:04,309 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=78361009
+2025-08-07 14:59:05,150 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:07,155 - __main__ - INFO - 처리 중 (57/917): 'If It Weren't for You' by Christopher (크리스토퍼)
+2025-08-07 14:59:07,156 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='If It Weren't for You', artist='Christopher (크리스토퍼)'
+2025-08-07 14:59:08,114 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'If It Weren't For You - 22Bullets Remix' by Christopher feat. 22Bullets
+2025-08-07 14:59:08,116 - src.musixmatch_lyrics_api - WARNING - 가사가 없는 트랙: If It Weren't For You - 22Bullets Remix
+2025-08-07 14:59:08,116 - __main__ - WARNING - 가사를 찾을 수 없음 - 상태: no_lyrics
+2025-08-07 14:59:10,117 - __main__ - INFO - 처리 중 (58/917): 'Real Life' by Christopher (크리스토퍼)
+2025-08-07 14:59:10,117 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Real Life', artist='Christopher (크리스토퍼)'
+2025-08-07 14:59:10,572 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Real Life' by Christopher
+2025-08-07 14:59:11,579 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=177471101
+2025-08-07 14:59:11,831 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:13,832 - __main__ - INFO - 처리 중 (59/917): 'Fall So Hard' by Christopher (크리스토퍼)
+2025-08-07 14:59:13,832 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Fall So Hard', artist='Christopher (크리스토퍼)'
+2025-08-07 14:59:14,259 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Fall So Hard' by Christopher
+2025-08-07 14:59:15,266 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=212061408
+2025-08-07 14:59:15,516 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:17,517 - __main__ - INFO - 처리 중 (60/917): 'Leap of Faith' by Christopher (크리스토퍼)
+2025-08-07 14:59:17,518 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Leap of Faith', artist='Christopher (크리스토퍼)'
+2025-08-07 14:59:17,948 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Leap of Faith' by Sean Christopher
+2025-08-07 14:59:18,955 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=146803158
+2025-08-07 14:59:19,205 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:21,207 - __main__ - INFO - 처리 중 (61/917): 'Monogamy' by Christopher (크리스토퍼)
+2025-08-07 14:59:21,208 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Monogamy', artist='Christopher (크리스토퍼)'
+2025-08-07 14:59:21,482 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Monogamy' by Christopher
+2025-08-07 14:59:22,487 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=164996237
+2025-08-07 14:59:23,376 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:25,382 - __main__ - INFO - 처리 중 (62/917): 'Heartbeat' by Christopher (크리스토퍼)
+2025-08-07 14:59:25,382 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Heartbeat', artist='Christopher (크리스토퍼)'
+2025-08-07 14:59:25,712 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Heartbeat' by Christopher
+2025-08-07 14:59:26,717 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=109555961
+2025-08-07 14:59:26,974 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:28,979 - __main__ - INFO - 처리 중 (63/917): 'Ghost' by Christopher (크리스토퍼)
+2025-08-07 14:59:28,979 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Ghost', artist='Christopher (크리스토퍼)'
+2025-08-07 14:59:29,848 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Ghost' by Christopher
+2025-08-07 14:59:30,858 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=190626758
+2025-08-07 14:59:31,657 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:33,660 - __main__ - INFO - 처리 중 (64/917): 'Happy' by Christopher (크리스토퍼)
+2025-08-07 14:59:33,661 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Happy', artist='Christopher (크리스토퍼)'
+2025-08-07 14:59:34,532 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Happy You're Mine' by Christopher Martin
+2025-08-07 14:59:35,540 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=176270199
+2025-08-07 14:59:35,787 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:37,788 - __main__ - INFO - 처리 중 (65/917): 'Bad' by Christopher (크리스토퍼)
+2025-08-07 14:59:37,788 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Bad', artist='Christopher (크리스토퍼)'
+2025-08-07 14:59:38,060 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Bad' by Christopher
+2025-08-07 14:59:39,065 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=164996236
+2025-08-07 14:59:39,840 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:41,845 - __main__ - INFO - 처리 중 (66/917): 'Stoned' by Christopher (크리스토퍼)
+2025-08-07 14:59:41,846 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Stoned', artist='Christopher (크리스토퍼)'
+2025-08-07 14:59:42,789 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Might As Well Get Stoned' by Chris Stapleton
+2025-08-07 14:59:43,797 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=254922969
+2025-08-07 14:59:44,056 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:46,057 - __main__ - INFO - 처리 중 (67/917): 'Good to Goodbye' by Christopher (크리스토퍼)
+2025-08-07 14:59:46,058 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Good to Goodbye', artist='Christopher (크리스토퍼)'
+2025-08-07 14:59:46,924 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Good To Goodbye (feat. Clara Mae)' by Christopher feat. Clara Mae
+2025-08-07 14:59:47,931 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=206472168
+2025-08-07 14:59:48,716 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:50,720 - __main__ - INFO - 처리 중 (68/917): '2way nice guy' by Creepy Nuts (크리피 넛츠)
+2025-08-07 14:59:50,720 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='2way nice guy', artist='Creepy Nuts (크리피 넛츠)'
+2025-08-07 14:59:50,997 - src.musixmatch_lyrics_api - INFO - 검색 성공: '2way nice guy' by Creepy Nuts
+2025-08-07 14:59:52,004 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=244167722
+2025-08-07 14:59:52,261 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:54,266 - __main__ - INFO - 처리 중 (69/917): 'ばかまじめ' by Creepy Nuts (크리피 넛츠)
+2025-08-07 14:59:54,266 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='ばかまじめ', artist='Creepy Nuts (크리피 넛츠)'
+2025-08-07 14:59:55,118 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'ばかまじめ' by Creepy Nuts feat. Ayase & Lilas Ikuta
+2025-08-07 14:59:56,124 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=232825287
+2025-08-07 14:59:56,374 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 14:59:58,378 - __main__ - INFO - 처리 중 (70/917): 'パッと咲いて散って灰に' by Creepy Nuts (크리피 넛츠)
+2025-08-07 14:59:58,378 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='パッと咲いて散って灰に', artist='Creepy Nuts (크리피 넛츠)'
+2025-08-07 14:59:58,648 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'パッと咲いて散って灰に' by Creepy Nuts
+2025-08-07 14:59:59,654 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=244167724
+2025-08-07 15:00:00,546 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 15:00:02,549 - __main__ - INFO - 처리 중 (71/917): '堕天' by Creepy Nuts (크리피 넛츠)
+2025-08-07 15:00:02,549 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='堕天', artist='Creepy Nuts (크리피 넛츠)'
+2025-08-07 15:00:03,398 - src.musixmatch_lyrics_api - INFO - 검색 성공: '堕天' by Creepy Nuts
+2025-08-07 15:00:04,405 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=244167726
+2025-08-07 15:00:04,643 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 15:00:06,648 - __main__ - INFO - 처리 중 (72/917): 'オトナ' by Creepy Nuts (크리피 넛츠)
+2025-08-07 15:00:06,649 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='オトナ', artist='Creepy Nuts (크리피 넛츠)'
+2025-08-07 15:00:06,922 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'オトナ' by Creepy Nuts
+2025-08-07 15:00:07,925 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=201725896
+2025-08-07 15:00:08,194 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 15:00:10,199 - __main__ - INFO - 처리 중 (73/917): 'バレる！' by Creepy Nuts (크리피 넛츠)
+2025-08-07 15:00:10,199 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='バレる！', artist='Creepy Nuts (크리피 넛츠)'
+2025-08-07 15:00:11,025 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'バレる！' by Creepy Nuts
+2025-08-07 15:00:12,028 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=222830402
+2025-08-07 15:00:12,285 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 15:00:14,287 - __main__ - INFO - 처리 중 (74/917): 'Lazy Boy' by Creepy Nuts (크리피 넛츠)
+2025-08-07 15:00:14,287 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='Lazy Boy', artist='Creepy Nuts (크리피 넛츠)'
+2025-08-07 15:00:14,675 - src.musixmatch_lyrics_api - INFO - 검색 성공: 'Lazy Boy' by Creepy Nuts
+2025-08-07 15:00:15,683 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=222830401
+2025-08-07 15:00:15,939 - __main__ - INFO - 가사 업데이트 성공
+2025-08-07 15:00:17,944 - __main__ - INFO - 처리 중 (75/917): '助演男優賞' by Creepy Nuts (크리피 넛츠)
+2025-08-07 15:00:17,944 - src.musixmatch_lyrics_api - INFO - Musixmatch API 검색: query='None', track='助演男優賞', artist='Creepy Nuts (크리피 넛츠)'
+2025-08-07 15:00:18,263 - src.musixmatch_lyrics_api - INFO - 검색 성공: '助演男優賞' by Creepy Nuts
+2025-08-07 15:00:19,269 - src.musixmatch_lyrics_api - INFO - 가사 가져오기: track_id=147917841
+2025-08-07 15:00:19,516 - __main__ - INFO - 가사 업데이트 성공

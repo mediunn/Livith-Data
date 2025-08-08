@@ -45,25 +45,50 @@ class KopisAPI:
             logger.info(f"최대 제한 도달: {len(all_codes)}개")
             return all_codes
         
-        # 3. 공연 예정 (내일부터 3개월)
-        logger.info("예정된 콘서트 수집...")
+        # 3. 공연 예정 (내일부터 10월 말까지)
+        logger.info("예정된 콘서트 수집 (10월 말까지)...")
         future_codes = []
         start_date = now + timedelta(days=1)
+        
+        # 10월 말까지 계산
+        end_of_october = datetime(now.year, 10, 31)
+        if now.month > 10:  # 현재가 10월 이후면 내년 10월
+            end_of_october = datetime(now.year + 1, 10, 31)
+            
         remaining_slots = max_concerts - len(all_codes)
         
-        for i in range(3):  # 3개월치
+        # 월별로 나누어서 수집 (10월까지)
+        months_to_collect = []
+        current_month = start_date.replace(day=1)
+        
+        while current_month <= end_of_october:
+            months_to_collect.append(current_month)
+            # 다음 달로 이동
+            if current_month.month == 12:
+                current_month = current_month.replace(year=current_month.year + 1, month=1)
+            else:
+                current_month = current_month.replace(month=current_month.month + 1)
+                
+        logger.info(f"수집 대상 월: {len(months_to_collect)}개월 (10월까지)")
+        
+        for i, month_start in enumerate(months_to_collect):
             if len(future_codes) >= remaining_slots:
                 break
                 
-            month_start = start_date + timedelta(days=30*i)
-            month_end = start_date + timedelta(days=30*(i+1) - 1)
+            # 해당 월의 마지막 날 계산
+            if month_start.month == 12:
+                month_end = month_start.replace(year=month_start.year + 1, month=1, day=1) - timedelta(days=1)
+            else:
+                month_end = month_start.replace(month=month_start.month + 1, day=1) - timedelta(days=1)
             
             month_start_str = month_start.strftime("%Y%m%d")
             month_end_str = month_end.strftime("%Y%m%d")
             
+            logger.info(f"수집 중: {month_start.strftime('%Y년 %m월')} ({month_start_str}~{month_end_str})")
             monthly_codes = self.fetch_concerts_in_range(month_start_str, month_end_str, "01")
             available_slots = remaining_slots - len(future_codes)
             future_codes.extend(monthly_codes[:available_slots])
+            logger.info(f"{month_start.strftime('%Y년 %m월')}: {len(monthly_codes)}개 발견")
         
         all_codes.extend(future_codes)
         logger.info(f"예정: {len(future_codes)}개")

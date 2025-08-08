@@ -90,16 +90,17 @@ class EnhancedCSVManager:
             concerts = []
             for _, row in df.iterrows():
                 concert = Concert(
+                    artist=row.get('artist', ''),  # 기존 artist_display 내용
+                    code=row.get('code', ''),
                     title=row.get('title', ''),
                     start_date=row.get('start_date', ''),
                     end_date=row.get('end_date', ''),
-                    artist=row.get('artist', ''),
-                    artist_display=row.get('artist_display', row.get('artist', '')),
-                    poster=row.get('poster', ''),
                     status=row.get('status', ''),
-                    venue=row.get('venue', ''),
+                    poster=row.get('poster', ''),
+                    sorted_index=int(row.get('sorted_index', 0)),
+                    ticket_site=row.get('ticket_site', ''),
                     ticket_url=row.get('ticket_url', ''),
-                    sorted_index=int(row.get('sorted_index', 0))
+                    venue=row.get('venue', '')
                 )
                 concerts.append(concert)
             return concerts
@@ -123,11 +124,29 @@ class EnhancedCSVManager:
                 # dataclass 객체인 경우 정의된 필드만 추출
                 item_dict = {}
                 for field_name in item.__dataclass_fields__.keys():
-                    item_dict[field_name] = getattr(item, field_name, '')
+                    value = getattr(item, field_name, '')
+                    
+                    # Artist 객체의 birth_date 처리
+                    if (hasattr(item, 'birth_date') and field_name == 'birth_date'):
+                        if value == 0:
+                            value = ''
+                        elif isinstance(value, float):
+                            value = int(value)  # float을 정수로 변환
+                    
+                    item_dict[field_name] = value
                 clean_data.append(item_dict)
             else:
                 # 일반 객체인 경우 vars() 사용
-                clean_data.append(vars(item))
+                item_data = vars(item).copy()
+                
+                # Artist 객체의 birth_date 처리
+                if 'birth_date' in item_data:
+                    if item_data['birth_date'] == 0:
+                        item_data['birth_date'] = ''
+                    elif isinstance(item_data['birth_date'], float):
+                        item_data['birth_date'] = int(item_data['birth_date'])  # float을 정수로 변환
+                
+                clean_data.append(item_data)
         
         df = pd.DataFrame(clean_data)
         
@@ -136,7 +155,7 @@ class EnhancedCSVManager:
             index=False,
             encoding='utf-8-sig',
             escapechar='\\',
-            quoting=1
+            quoting=0  # QUOTE_MINIMAL로 변경 (필요한 경우에만 따옴표 사용)
         )
         
         logger.info(f"{description} 데이터를 {filepath}에 저장했습니다. ({len(data)}개)")
@@ -157,11 +176,29 @@ class EnhancedCSVManager:
                 # dataclass 객체인 경우 정의된 필드만 추출
                 item_dict = {}
                 for field_name in item.__dataclass_fields__.keys():
-                    item_dict[field_name] = getattr(item, field_name, '')
+                    value = getattr(item, field_name, '')
+                    
+                    # Artist 객체의 birth_date 처리
+                    if (hasattr(item, 'birth_date') and field_name == 'birth_date'):
+                        if value == 0:
+                            value = ''
+                        elif isinstance(value, float):
+                            value = int(value)  # float을 정수로 변환
+                    
+                    item_dict[field_name] = value
                 clean_data.append(item_dict)
             else:
                 # 일반 객체인 경우 vars() 사용
-                clean_data.append(vars(item))
+                item_data = vars(item).copy()
+                
+                # Artist 객체의 birth_date 처리
+                if 'birth_date' in item_data:
+                    if item_data['birth_date'] == 0:
+                        item_data['birth_date'] = ''
+                    elif isinstance(item_data['birth_date'], float):
+                        item_data['birth_date'] = int(item_data['birth_date'])  # float을 정수로 변환
+                
+                clean_data.append(item_data)
         
         new_df = pd.DataFrame(clean_data)
         
@@ -173,7 +210,7 @@ class EnhancedCSVManager:
                 if not existing_df.empty and not new_df.empty:
                     key_column = new_df.columns[0]
                     if key_column in existing_df.columns:
-                        # 중복 제거
+                        # 데이터 업서트 (중복시 새 데이터로 업데이트)
                         combined_df = pd.concat([existing_df, new_df], ignore_index=True)
                         combined_df = combined_df.drop_duplicates(subset=[key_column], keep='last')
                     else:
@@ -191,7 +228,7 @@ class EnhancedCSVManager:
             index=False,
             encoding='utf-8-sig',
             escapechar='\\',
-            quoting=1
+            quoting=0  # QUOTE_MINIMAL로 변경 (필요한 경우에만 따옴표 사용)
         )
         
         logger.info(f"{description} 데이터를 {filepath}에 추가했습니다. ({len(data)}개 추가, 총 {len(combined_df)}개)")

@@ -3,7 +3,15 @@
     "allow": [
       "Bash(rm:*)",
       "Bash(python3:*)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(python -m pytest -v src/test_merchandise.py)",
+      "WebFetch(domain:jpop.fandom.com)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(python:*)",
+      "Bash(mv:*)",
+      "Bash(sed:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
