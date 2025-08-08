@@ -11,7 +11,8 @@
       "Bash(python:*)",
       "Bash(mv:*)",
       "Bash(sed:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }
