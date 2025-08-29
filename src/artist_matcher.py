@@ -1,7 +1,8 @@
 import pandas as pd
 import os
 import logging
-from config import Config
+from utils.config import Config
+from utils.safe_writer import SafeWriter
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,12 @@ def match_artist_names():
         
         # 수정된 데이터 저장
         if updated_count > 0:
+            # 메인 출력 디렉토리인 경우 백업 생성
+            if Config.OUTPUT_DIR == Config.MAIN_OUTPUT_DIR and os.path.exists(concerts_path):
+                backup_path = SafeWriter._create_backup_if_needed('concerts.csv')
+                if backup_path:
+                    logger.info(f"📋 백업 생성: {os.path.basename(backup_path)}")
+                    
             concerts_df.to_csv(
                 concerts_path,
                 index=False,
@@ -81,7 +88,7 @@ def match_artist_names():
                 escapechar='\\',
                 quoting=1
             )
-            logger.info(f"총 {updated_count}개의 artist 이름이 수정되었습니다.")
+            logger.info(f"💾 총 {updated_count}개의 artist 이름이 수정되었습니다.")
             print(f"      📝 {updated_count}개의 artist 이름 수정됨")
         else:
             logger.info("수정할 artist 이름이 없습니다.")

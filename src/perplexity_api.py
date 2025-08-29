@@ -2,7 +2,7 @@ import requests
 import time
 import logging
 from typing import Optional
-from config import Config
+from utils.config import Config
 
 logger = logging.getLogger(__name__)
 

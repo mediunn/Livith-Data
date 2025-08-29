@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import logging
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
-from config import Config
+from utils.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +11,12 @@ class KopisAPI:
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.base_url = "http://www.kopis.or.kr/openApi/restful"
+        # 세션을 사용하여 연결 재사용 및 안정성 향상
+        self.session = requests.Session()
+        self.session.headers.update({
+            'Accept': 'application/xml',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        })
     
     def fetch_all_concerts(self) -> List[str]:
         """다양한 상태의 콘서트를 모두 가져오기 (최대 50개 제한)"""
@@ -35,6 +41,7 @@ class KopisAPI:
         
         # 2. 공연 완료 (한 달 전~어제)
         logger.info("최근 완료된 콘서트 수집...")
+        one_month_ago = (now - timedelta(days=30)).strftime("%Y%m%d")
         remaining_slots = max_concerts - len(all_codes)
         completed_codes = self.fetch_concerts_in_range(one_month_ago, yesterday, "03")
         all_codes.extend(completed_codes[:remaining_slots])
@@ -118,7 +125,7 @@ class KopisAPI:
             }
             
             try:
-                response = requests.get(url, params=params, headers={'Accept': 'application/xml'})
+                response = self.session.get(url, params=params, timeout=15)
                 response.raise_for_status()
                 
                 root = ET.fromstring(response.text)
@@ -143,11 +150,23 @@ class KopisAPI:
         
         return result
     
-    def fetch_concert_details(self, concert_codes: List[str], max_found: int = None) -> List[Dict[str, Any]]:
+    def fetch_concert_details(self, concert_codes: List[str], existing_codes: set = None, max_found: int = None) -> List[Dict[str, Any]]:
         """공연 상세정보 가져오기 - 모든 내한공연 필터링"""
         result = []
         processed = 0
         batch_size = 50
+        
+        # 기존 코드 제외
+        if existing_codes:
+            original_count = len(concert_codes)
+            concert_codes = [code for code in concert_codes if code not in existing_codes]
+            excluded_count = original_count - len(concert_codes)
+            if excluded_count > 0:
+                logger.info(f"중복 제외: {excluded_count}개 콘서트 건너뜀 (남은 처리 대상: {len(concert_codes)}개)")
+        
+        if not concert_codes:
+            logger.info("처리할 새로운 콘서트가 없습니다.")
+            return result
         
         if max_found:
             logger.info(f"내한공연 필터링 시작: {len(concert_codes)}개 공연 처리 (최대 {max_found}개 발견시 중단)")
@@ -164,18 +183,34 @@ class KopisAPI:
             for i, code in enumerate(batch_codes):
                 current_index = batch_start + i + 1
                 
-                url = f"{self.base_url}/pblprfr/{code}"
-                params = {'service': self.api_key}
+                # URL에 직접 API 키 포함 (params 사용 시 인코딩 문제 가능)
+                url = f"{self.base_url}/pblprfr/{code}?service={self.api_key}"
                 
                 try:
-                    response = requests.get(url, params=params, headers={'Accept': 'application/xml'})
-                    response.raise_for_status()
+                    # 요청 전 대기 시간 늘리기 (차단 방지)
+                    import time
+                    time.sleep(0.5)  # 0.1초 → 0.5초로 증가
+                    
+                    # 세션에 이미 헤더가 설정되어 있음
+                    
+                    response = self.session.get(url, timeout=15)
+                    
+                    # 상태 코드 직접 확인 (raise_for_status는 에러를 숨길 수 있음)
+                    if response.status_code != 200:
+                        logger.error(f"공연 상세정보 HTTP 에러 (코드: {code}): {response.status_code} - {response.text[:200]}")
+                        continue
+                    
+                    # response.raise_for_status()  # 이걸 제거하고 직접 체크
                     
                     root = ET.fromstring(response.text)
                     db = root.find('.//db')
                     
                     if db is not None:
                         processed += 1
+                        
+                        # 진행 상황 표시 (100개마다 또는 내한공연일 때)
+                        if processed % 100 == 0 or processed <= 50:
+                            print(f"   📍 {processed}번째 공연 조사 중... (내한공연 {len(result)}개 발견)")
                         
                         # 모든 필드 추출 (디버깅을 위해 모든 가능한 필드 시도)
                         concert_data = {
@@ -206,14 +241,16 @@ class KopisAPI:
                             'producer5': self._get_text(db, 'entrpsnmS'),
                         }
                         
-                        # 디버깅 로그 제거됨
-                        
                         # 내한공연 필터링 조건
-                        if (concert_data['visit'] == 'Y' and 
-                            concert_data['festival'] == 'N' and
-                            concert_data['title'] and 
-                            concert_data['artist']):
+                        is_visit_concert = (concert_data['visit'] == 'Y' and 
+                                          concert_data['festival'] == 'N' and
+                                          concert_data['title'] and 
+                                          concert_data['artist'])
+                        
+                        if is_visit_concert:
+                            print(f"🎉 내한공연 발견: {concert_data['title']} - {concert_data['artist']}")
                             
+                        if is_visit_concert:
                             result.append(concert_data)
                             logger.info(f"✅ 내한공연 발견 ({len(result)}개): {concert_data['title']} - {concert_data['artist']}")
                             
@@ -224,8 +261,14 @@ class KopisAPI:
                         else:
                             logger.debug(f"필터링됨: {concert_data['title']} (visit:{concert_data['visit']}, festival:{concert_data['festival']})")
                         
+                except requests.RequestException as e:
+                    logger.error(f"공연 상세정보 요청 실패 (코드: {code}): {e}")
+                    continue
+                except ET.ParseError as e:
+                    logger.error(f"공연 상세정보 XML 파싱 실패 (코드: {code}): {e}")
+                    continue
                 except Exception as e:
-                    logger.error(f"공연 상세정보 가져오기 실패 (코드: {code}): {e}")
+                    logger.error(f"공연 상세정보 처리 실패 (코드: {code}): {e}")
                     continue
             
             # 배치 완료 후 진행 상황 출력

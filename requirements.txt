@@ -4,3 +4,4 @@ numpy==1.26.4
 python-dotenv==1.0.0
 lxml==4.9.3
 musixmatch==0.10
+google-generativeai==0.8.3

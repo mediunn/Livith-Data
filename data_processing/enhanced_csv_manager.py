@@ -2,9 +2,10 @@ import pandas as pd
 import os
 import logging
 from typing import List, Dict, Any
-from src.data_models import *
-from src.enhanced_data_collector import EnhancedDataCollector
-from config import Config
+from data_processing.data_models import *
+from data_processing.enhanced_data_collector import EnhancedDataCollector
+from utils.config import Config
+from utils.safe_writer import SafeWriter
 
 logger = logging.getLogger(__name__)
 
@@ -126,12 +127,7 @@ class EnhancedCSVManager:
                 for field_name in item.__dataclass_fields__.keys():
                     value = getattr(item, field_name, '')
                     
-                    # Artist 객체의 birth_date 처리
-                    if (hasattr(item, 'birth_date') and field_name == 'birth_date'):
-                        if value == 0:
-                            value = ''
-                        elif isinstance(value, float):
-                            value = int(value)  # float을 정수로 변환
+                    # debut_date는 이미 문자열이므로 특별한 처리 불필요
                     
                     item_dict[field_name] = value
                 clean_data.append(item_dict)
@@ -139,16 +135,17 @@ class EnhancedCSVManager:
                 # 일반 객체인 경우 vars() 사용
                 item_data = vars(item).copy()
                 
-                # Artist 객체의 birth_date 처리
-                if 'birth_date' in item_data:
-                    if item_data['birth_date'] == 0:
-                        item_data['birth_date'] = ''
-                    elif isinstance(item_data['birth_date'], float):
-                        item_data['birth_date'] = int(item_data['birth_date'])  # float을 정수로 변환
+                # debut_date는 이미 문자열이므로 특별한 처리 불필요
                 
                 clean_data.append(item_data)
         
         df = pd.DataFrame(clean_data)
+        
+        # 메인 출력 디렉토리인 경우 백업 생성
+        if Config.OUTPUT_DIR == Config.MAIN_OUTPUT_DIR and os.path.exists(filepath):
+            backup_path = SafeWriter._create_backup_if_needed(filename)
+            if backup_path:
+                logger.info(f"📋 백업 생성: {os.path.basename(backup_path)}")
         
         df.to_csv(
             filepath,
@@ -158,7 +155,7 @@ class EnhancedCSVManager:
             quoting=0  # QUOTE_MINIMAL로 변경 (필요한 경우에만 따옴표 사용)
         )
         
-        logger.info(f"{description} 데이터를 {filepath}에 저장했습니다. ({len(data)}개)")
+        logger.info(f"💾 {description} 데이터를 {filepath}에 저장했습니다. ({len(data)}개)")
 
     @staticmethod
     def _append_to_csv(data: List, filename: str, description: str):
@@ -178,12 +175,7 @@ class EnhancedCSVManager:
                 for field_name in item.__dataclass_fields__.keys():
                     value = getattr(item, field_name, '')
                     
-                    # Artist 객체의 birth_date 처리
-                    if (hasattr(item, 'birth_date') and field_name == 'birth_date'):
-                        if value == 0:
-                            value = ''
-                        elif isinstance(value, float):
-                            value = int(value)  # float을 정수로 변환
+                    # debut_date는 이미 문자열이므로 특별한 처리 불필요
                     
                     item_dict[field_name] = value
                 clean_data.append(item_dict)
@@ -191,12 +183,7 @@ class EnhancedCSVManager:
                 # 일반 객체인 경우 vars() 사용
                 item_data = vars(item).copy()
                 
-                # Artist 객체의 birth_date 처리
-                if 'birth_date' in item_data:
-                    if item_data['birth_date'] == 0:
-                        item_data['birth_date'] = ''
-                    elif isinstance(item_data['birth_date'], float):
-                        item_data['birth_date'] = int(item_data['birth_date'])  # float을 정수로 변환
+                # debut_date는 이미 문자열이므로 특별한 처리 불필요
                 
                 clean_data.append(item_data)
         
@@ -223,6 +210,12 @@ class EnhancedCSVManager:
         else:
             combined_df = new_df
         
+        # 메인 출력 디렉토리인 경우 백업 생성
+        if Config.OUTPUT_DIR == Config.MAIN_OUTPUT_DIR and os.path.exists(filepath):
+            backup_path = SafeWriter._create_backup_if_needed(filename)
+            if backup_path:
+                logger.info(f"📋 백업 생성: {os.path.basename(backup_path)}")
+        
         combined_df.to_csv(
             filepath,
             index=False,
@@ -231,4 +224,4 @@ class EnhancedCSVManager:
             quoting=0  # QUOTE_MINIMAL로 변경 (필요한 경우에만 따옴표 사용)
         )
         
-        logger.info(f"{description} 데이터를 {filepath}에 추가했습니다. ({len(data)}개 추가, 총 {len(combined_df)}개)")
+        logger.info(f"💾 {description} 데이터를 {filepath}에 추가했습니다. ({len(data)}개 추가, 총 {len(combined_df)}개)")

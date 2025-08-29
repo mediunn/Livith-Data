@@ -12,7 +12,8 @@
       "Bash(mv:*)",
       "Bash(sed:*)",
       "Bash(grep:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(cat:*)"
     ],
     "deny": []
   }

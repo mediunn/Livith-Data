@@ -4,7 +4,7 @@ Musixmatch API 인코딩 테스트
 """
 import requests
 import json
-from config import Config
+from utils.config import Config
 
 def test_musixmatch_encoding():
     """Musixmatch API 응답 인코딩 테스트"""

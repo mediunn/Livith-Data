@@ -78,8 +78,7 @@ class ConcertInfo:
 @dataclass
 class Artist:
     artist: str  # "원어 (한국어)" 형식
-    birth_date: int  # 데뷔년도 또는 첫 앨범 출간년도 (정수 형식)
-    birth_place: str
+    debut_date: str  # 데뷔연도 (YYYY 형식, 문자열)
     category: str
     detail: str  # 해요체 형식
     instagram_url: str

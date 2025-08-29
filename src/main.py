@@ -1,252 +1,155 @@
+#!/usr/bin/env python3
+"""
+내한 콘서트 데이터 수집 통합 실행 파일
+모든 단계를 순차적으로 실행하거나 특정 단계만 실행 가능
+"""
 import sys
 import os
+import argparse
 import logging
-import time
-from datetime import datetime, timedelta
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import Config
-from src.kopis_api import KopisAPI
-from src.perplexity_api import PerplexityAPI
-from src.enhanced_data_collector import EnhancedDataCollector
-from src.enhanced_csv_manager import EnhancedCSVManager
-from src.data_enhancement import DataEnhancement
-from src.artist_matcher import match_artist_names
+from utils.config import Config
+from src.stages import (
+    Stage1_FetchKopisData,
+    Stage2_CollectBasicInfo, 
+    Stage3_CollectDetailedInfo,
+    Stage4_CollectMerchandise,
+    Stage5_MatchArtistNames,
+    StageRunner
+)
+from src.update_concert_status import ConcertStatusUpdater
 
 logging.basicConfig(
-    level=getattr(logging, Config.LOG_LEVEL),
+    level=getattr(logging, Config.LOG_LEVEL, 'INFO'),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
 def main():
+    parser = argparse.ArgumentParser(
+        description='내한 콘서트 데이터 수집기',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+사용 예시:
+  python src/main.py              # 모든 단계 실행 (모드 선택)
+  python src/main.py --test       # 테스트 모드 (1개 콘서트만)
+  python src/main.py --test --reset  # 테스트 모드 (데이터 초기화 후 실행)
+  python src/main.py --full       # 전체 모드 (모든 콘서트)
+  python src/main.py --mode full  # 전체 갱신 모드
+  
+  python src/main.py --stage 1    # 단계 1만 실행 (KOPIS 데이터 수집)
+  python src/main.py --stage 1 --test  # 단계 1 테스트 모드
+  python src/main.py --from 2     # 단계 2부터 끝까지 실행
+  python src/main.py --from 3 --to 4 --full  # 단계 3-4 전체 모드
+  
+  python src/main.py --update-status  # 콘서트 상태만 업데이트
+
+단계 설명:
+  1: KOPIS API에서 공연 데이터 수집 및 필터링
+  2: 기본 콘서트 정보 수집 (Perplexity API)
+  3: 상세 데이터 수집 (아티스트, 셋리스트, 곡, 문화)
+  4: 굿즈(MD) 정보 수집
+  5: 아티스트명 매칭 및 정리
+        """
+    )
+    
+    parser.add_argument(
+        '--stage', 
+        type=int, 
+        choices=[1, 2, 3, 4, 5],
+        help='실행할 특정 단계 번호'
+    )
+    parser.add_argument(
+        '--from', 
+        type=int, 
+        dest='from_stage',
+        choices=[1, 2, 3, 4, 5],
+        help='시작 단계 번호 (이 단계부터 끝까지 실행)'
+    )
+    parser.add_argument(
+        '--to', 
+        type=int, 
+        dest='to_stage',
+        choices=[1, 2, 3, 4, 5],
+        help='종료 단계 번호 (--from과 함께 사용)'
+    )
+    parser.add_argument(
+        '--mode',
+        type=str,
+        choices=['incremental', 'full'],
+        default='incremental',
+        help='데이터 수집 모드: incremental(증분, 기본값) 또는 full(전체 갱신)'
+    )
+    parser.add_argument(
+        '--test',
+        action='store_true',
+        help='테스트 모드 실행 (1개 콘서트만 처리)'
+    )
+    parser.add_argument(
+        '--full',
+        action='store_true',
+        help='전체 모드 실행 (모든 콘서트 처리)'
+    )
+    parser.add_argument(
+        '--update-status',
+        action='store_true',
+        help='콘서트 상태만 업데이트 (매일 실행 권장)'
+    )
+    parser.add_argument(
+        '--reset',
+        action='store_true',
+        help='테스트 데이터 초기화 후 실행 (--test와 함께 사용)'
+    )
+    
+    args = parser.parse_args()
+    
+    # 테스트 모드 결정
+    test_mode = None
+    reset_data = args.reset
+    
+    if args.test:
+        test_mode = True
+    elif args.full:
+        test_mode = False
+    
+    # --reset 옵션은 --test와 함께 사용해야 함
+    if reset_data and not args.test:
+        print("❌ --reset 옵션은 --test와 함께 사용해야 합니다.")
+        return
+    
     try:
+        # 상태 업데이트만 실행하는 경우
+        if args.update_status:
+            run_status_update()
+            return
+        
         # 환경변수 검증
-        Config.validate()
-        
-        print("🎵 내한 콘서트 데이터 수집기")
-        print("=" * 60)
-        print("📅 수집 범위:")
-        print("   - 공연 중: 오늘")
-        print("   - 최근 완료: 지난 30일")
-        print("   - 예정: 향후 3개월")
-        print("🎯 필터링: 내한공연만 (visit=Y, festival=N)")
-        print("=" * 60)
-        
-        # API 클라이언트 초기화
-        kopis_api = KopisAPI(Config.KOPIS_API_KEY)
-        perplexity_api = PerplexityAPI(Config.PERPLEXITY_API_KEY)
-        collector = EnhancedDataCollector(perplexity_api)
-        
-        print(f"\n🚀 내한 콘서트 데이터 수집을 시작합니다...")
-        
-        # 1. KOPIS에서 모든 상태의 콘서트 목록 가져오기
-        print("1. KOPIS 공연 목록 수집 중...")
-        print("   (공연 중 + 최근 완료 + 예정 콘서트)")
-        concert_codes = kopis_api.fetch_all_concerts()
-        
-        if not concert_codes:
-            print("❌ 콘서트를 찾을 수 없습니다.")
-            print("💡 KOPIS API 키나 네트워크 연결을 확인해주세요.")
-            return
-        
-        print(f"   📋 총 {len(concert_codes)}개의 공연 발견")
-        
-        # 2. 상세 정보 가져오기 (전체 처리)
-        print("2. KOPIS 공연 상세정보 수집 및 내한공연 필터링 중...")
-        print(f"   전체 처리: 모든 내한공연 수집 (visit=Y, festival=N)")
-        concert_details = kopis_api.fetch_concert_details(concert_codes)
-        
-        if not concert_details:
-            print("❌ 내한공연 조건에 맞는 콘서트가 없습니다.")
-            print("💡 수집 기간을 조정하거나 필터링 조건을 확인해주세요.")
-            return
-        
-        print(f"   ✅ {len(concert_details)}개의 내한 콘서트 발견!")
-        
-        # 상태별 분류 및 표시
-        ongoing = [c for c in concert_details if c['status'] == '02']
-        upcoming = [c for c in concert_details if c['status'] == '01']
-        completed = [c for c in concert_details if c['status'] == '03']
-        
-        print(f"   📊 상태별 분류:")
-        print(f"      🔴 공연 중: {len(ongoing)}개")
-        print(f"      🟡 공연 예정: {len(upcoming)}개")
-        print(f"      🟢 공연 완료: {len(completed)}개")
-        
-        # 수집할 콘서트 목록 표시 (각 상태별로 최대 3개씩)
-        print(f"\n📋 발견된 내한 콘서트 목록:")
-        
-        def show_concerts(concerts, status_name, max_show=3):
-            if concerts:
-                print(f"   {status_name}:")
-                for i, concert in enumerate(concerts[:max_show], 1):
-                    start_date = concert['start_date']
-                    if len(start_date) == 8:
-                        date_str = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:8]}"
-                    else:
-                        date_str = start_date
-                    print(f"      {i}. {concert['title']} - {concert['artist']} ({date_str})")
-                if len(concerts) > max_show:
-                    print(f"      ... 외 {len(concerts) - max_show}개")
-        
-        show_concerts(ongoing, "🔴 공연 중")
-        show_concerts(upcoming, "🟡 공연 예정")
-        show_concerts(completed, "🟢 최근 완료")
-        
-        # KOPIS 필터링 결과를 CSV로 저장
-        print(f"\n💾 KOPIS 필터링 결과 저장 중...")
-        kopis_csv_data = []
-        for concert in concert_details:
-            kopis_csv_data.append({
-                'code': concert['code'],
-                'title': concert['title'],
-                'artist': concert['artist'],
-                'start_date': concert['start_date'],
-                'end_date': concert['end_date'],
-                'venue': concert['venue'],
-                'status': concert['status'],
-                'visit': concert['visit'],
-                'festival': concert['festival']
-            })
-        
-        # KOPIS 결과 CSV 저장
-        import pandas as pd
-        kopis_df = pd.DataFrame(kopis_csv_data)
-        kopis_csv_path = os.path.join(Config.OUTPUT_DIR, 'kopis_filtered_concerts.csv')
-        kopis_df.to_csv(kopis_csv_path, index=False, encoding='utf-8-sig')
-        print(f"   ✅ KOPIS 필터링 결과 저장: {kopis_csv_path} ({len(kopis_csv_data)}개)")
-        
-        # 전체 콘서트 처리
-        selected_concerts = concert_details
-        print(f"\n🚀 총 {len(selected_concerts)}개 내한 콘서트의 상세 데이터를 수집합니다.")
-        
-        # 3. Perplexity로 상세 데이터 수집
-        print("3. Perplexity API로 상세 데이터 수집 중...")
-        all_collected_data = []
-        
-        for i, concert in enumerate(selected_concerts, 1):
-            status_icon = "🔴" if concert['status'] == '02' else "🟡" if concert['status'] == '01' else "🟢"
-            print(f"   {status_icon} {i}/{len(selected_concerts)}: {concert['title']} - {concert['artist']}")
-            
-            try:
-                collected_data = collector.collect_concert_data(concert)
-                all_collected_data.append(collected_data)
-                print(f"      ✅ 완료")
-                time.sleep(Config.REQUEST_DELAY)
-            except Exception as e:
-                logger.error(f"데이터 수집 실패: {e}")
-                print(f"      ❌ 실패: {str(e)}")
-                continue
-        
-        if not all_collected_data:
-            print("❌ 수집된 데이터가 없습니다.")
-            print("💡 Perplexity API 키와 네트워크 연결을 확인해주세요.")
-            return
-        
-        # 4. 각 단계별 CSV 파일로 저장
-        print("4. 단계별 CSV 파일 저장 중...")
-        
-        # 기본 콘서트 정보만 먼저 저장 (새로운 컬럼 순서 적용)
-        basic_concerts = []
-        for data in all_collected_data:
-            concert = data['concert']
-            basic_concerts.append({
-                'artist': concert.artist,  # 기존 artist_display 내용
-                'code': concert.code,
-                'title': concert.title,
-                'start_date': concert.start_date,
-                'end_date': concert.end_date,
-                'status': concert.status,
-                'poster': concert.poster,
-                'sorted_index': concert.sorted_index,
-                'ticket_site': concert.ticket_site,
-                'ticket_url': concert.ticket_url,
-                'venue': concert.venue
-            })
-        
-        # 단계별 저장
-        basic_df = pd.DataFrame(basic_concerts)
-        basic_csv_path = os.path.join(Config.OUTPUT_DIR, 'step1_basic_concerts.csv')
-        basic_df.to_csv(basic_csv_path, index=False, encoding='utf-8-sig')
-        print(f"   ✅ 1단계 기본 정보 저장: {basic_csv_path} ({len(basic_concerts)}개)")
-        
-        # 전체 상세 데이터 저장
-        EnhancedCSVManager.save_all_data(all_collected_data)
-        print(f"   ✅ 2단계 전체 상세 데이터 저장 완료")
-        
-        # 5. 굿즈(merchandise) 정보 수집
-        print("5. 굿즈(merchandise) 정보 수집 중...")
-        merchandise_data = []
-        
-        for i, data in enumerate(all_collected_data, 1):
-            concert = data['concert']
-            print(f"   🛍️ {i}/{len(all_collected_data)}: {concert.title} 굿즈 정보 수집 중...")
-            
-            try:
-                merchandise_info = collector.collect_merchandise_data(concert)
-                if merchandise_info:
-                    merchandise_data.extend(merchandise_info)
-                    print(f"      ✅ 굿즈 {len(merchandise_info)}개 발견")
-                else:
-                    print(f"      ⚪ 굿즈 정보 없음")
-                time.sleep(Config.REQUEST_DELAY)
-            except Exception as e:
-                logger.error(f"굿즈 정보 수집 실패: {e}")
-                print(f"      ❌ 실패: {str(e)}")
-                continue
-        
-        # 굿즈 데이터 CSV 저장
-        if merchandise_data:
-            merchandise_df = pd.DataFrame(merchandise_data)
-            merchandise_csv_path = os.path.join(Config.OUTPUT_DIR, 'md.csv')
-            merchandise_df.to_csv(merchandise_csv_path, index=False, encoding='utf-8-sig')
-            print(f"   ✅ 굿즈 정보 저장: {merchandise_csv_path} ({len(merchandise_data)}개)")
-        else:
-            print(f"   ⚪ 수집된 굿즈 정보가 없습니다.")
-        
-        # 7. artist.csv 기준으로 concerts.csv의 artist 이름 매칭
-        print("7. artist 이름 매칭 중...")
-        match_artist_names()
-        print("   ✅ artist 이름 매칭 완료")
-        
-        print(f"\n🎉 완료! 총 {len(all_collected_data)}개 내한 콘서트의 데이터가 저장되었습니다.")
-        print(f"📁 파일 위치: {Config.OUTPUT_DIR}/")
-        
-        print(f"\n📊 최종 수집 통계:")
-        print(f"   🎯 필터링 조건: 내한 콘서트만 (visit=Y, festival=N)")
-        print(f"   📋 전체 발견 내한 콘서트: {len(concert_details)}개")
-        print(f"   🧪 테스트 처리 콘서트: {len(selected_concerts)}개")
-        print(f"   ✅ 상세 데이터 수집 완료: {len(all_collected_data)}개")
-        print(f"   🕐 상세 수집 소요 시간: 약 {len(all_collected_data) * Config.REQUEST_DELAY}초")
-        
-        # 파일별 행 수 확인
-        print(f"\n📄 생성된 파일 확인:")
-        csv_files = [
-            ("kopis_filtered_concerts.csv", "KOPIS 필터링 결과"),
-            ("step1_basic_concerts.csv", "1단계: 기본 콘서트 정보"),
-            ("concerts.csv", "2단계: 콘서트 상세 정보"),
-            ("setlists.csv", "2단계: 셋리스트 정보"),
-            ("songs.csv", "2단계: 곡 정보"),
-            ("cultures.csv", "2단계: 팬 문화 정보"),
-            ("artists.csv", "2단계: 아티스트 정보"),
-            ("md.csv", "3단계: 굿즈 정보")
-        ]
-        
-        for filename, description in csv_files:
-            filepath = os.path.join(Config.OUTPUT_DIR, filename)
-            if os.path.exists(filepath):
-                try:
-                    import pandas as pd
-                    df = pd.read_csv(filepath, encoding='utf-8-sig')
-                    row_count = len(df)
-                    print(f"   📋 {filename}: {description} ({row_count}개 행)")
-                except:
-                    print(f"   📋 {filename}: {description} (확인 불가)")
+        try:
+            Config.validate()
+        except ValueError as e:
+            # 단계 5는 API 키가 필요 없음
+            if args.stage == 5 or (args.from_stage == 5 and args.to_stage == 5):
+                pass
             else:
-                print(f"   ❌ {filename}: 생성되지 않음")
+                raise e
         
+        # 단계 실행 로직
+        if args.stage:
+            # 특정 단계만 실행
+            run_single_stage(args.stage, args.mode, test_mode)
+        elif args.from_stage:
+            # 범위 실행
+            to_stage = args.to_stage if args.to_stage else 5
+            if args.from_stage > to_stage:
+                print("❌ 오류: --from 값이 --to 값보다 큽니다.")
+                return
+            run_stages_range(args.from_stage, to_stage, args.mode, test_mode)
+        else:
+            # 모든 단계 실행
+            run_all_stages(args.mode, test_mode, reset_data)
+            
     except ValueError as e:
         logger.error(f"설정 오류: {e}")
         print("❌ 환경변수 설정 오류")
@@ -264,6 +167,101 @@ def main():
     except Exception as e:
         logger.error(f"예상치 못한 오류 발생: {e}")
         print(f"❌ 예상치 못한 오류: {e}")
+
+def run_single_stage(stage_num, mode='incremental', test_mode=None):
+    """특정 단계만 실행"""
+    mode_text = "증분 수집" if mode == 'incremental' else "전체 갱신"
+    test_text = " (테스트)" if test_mode else " (전체)" if test_mode is not None else ""
+    print(f"🎯 단계 {stage_num}만 실행합니다 ({mode_text}{test_text})")
+    print("=" * 60)
+    
+    # 단계 1은 항상 테스트 모드 선택 가능
+    if stage_num == 1 and test_mode is None:
+        test_mode = None  # Stage1이 자체적으로 선택하도록
+    
+    stages = {
+        1: lambda: Stage1_FetchKopisData.run(mode, test_mode),
+        2: lambda: Stage2_CollectBasicInfo.run(None, mode, test_mode if test_mode is not None else False),
+        3: lambda: Stage3_CollectDetailedInfo.run(None, mode, test_mode if test_mode is not None else False),
+        4: lambda: Stage4_CollectMerchandise.run(None, mode, test_mode if test_mode is not None else False),
+        5: lambda: Stage5_MatchArtistNames.run(test_mode if test_mode is not None else False)
+    }
+    
+    if stage_num in stages:
+        result = stages[stage_num]()
+        if result or stage_num == 5:  # 단계 5는 boolean 반환
+            print(f"\n✅ 단계 {stage_num} 완료!")
+        else:
+            print(f"\n⚠️  단계 {stage_num} 실행 중 문제가 발생했습니다.")
+
+def run_stages_range(from_stage, to_stage, mode='incremental', test_mode=None):
+    """지정된 범위의 단계 실행"""
+    mode_text = "증분 수집" if mode == 'incremental' else "전체 갱신"
+    test_text = " (테스트)" if test_mode else " (전체)" if test_mode is not None else ""
+    print(f"🎯 단계 {from_stage}부터 {to_stage}까지 실행합니다 ({mode_text}{test_text})")
+    print("=" * 60)
+    
+    # 이전 단계 결과를 전달하기 위한 변수
+    concert_details = None
+    all_collected_data = None
+    
+    for stage_num in range(from_stage, to_stage + 1):
+        print(f"\n📍 단계 {stage_num} 실행 중...")
+        
+        if stage_num == 1:
+            concert_details = Stage1_FetchKopisData.run(mode, test_mode)
+            if not concert_details:
+                print("❌ 단계 1 실패로 중단")
+                break
+                
+        elif stage_num == 2:
+            all_collected_data = Stage2_CollectBasicInfo.run(concert_details, mode, test_mode if test_mode is not None else False)
+            if not all_collected_data:
+                print("❌ 단계 2 실패로 중단")
+                break
+                
+        elif stage_num == 3:
+            Stage3_CollectDetailedInfo.run(all_collected_data, mode, test_mode if test_mode is not None else False)
+            
+        elif stage_num == 4:
+            Stage4_CollectMerchandise.run(all_collected_data, mode, test_mode if test_mode is not None else False)
+            
+        elif stage_num == 5:
+            Stage5_MatchArtistNames.run(test_mode if test_mode is not None else False)
+    
+    print(f"\n✅ 단계 {from_stage}~{to_stage} 완료!")
+
+def run_all_stages(mode='incremental', test_mode=None, force_reset=False):
+    """모든 단계 실행"""
+    success = StageRunner.run_all(mode, test_mode, force_reset)
+    if success:
+        print("\n🎉 모든 데이터 수집 완료!")
+    else:
+        print("\n⚠️  일부 단계에서 문제가 발생했습니다.")
+
+def run_status_update():
+    """콘서트 상태 업데이트 실행"""
+    print("🔄 콘서트 상태 업데이트 시작...")
+    
+    updater = ConcertStatusUpdater()
+    
+    try:
+        updated_files = updater.update_all_concerts()
+        
+        print()
+        if updated_files:
+            print("✅ 상태 업데이트 완료!")
+            for filename, count in updated_files:
+                print(f"   📁 {filename}: {count}개 업데이트")
+        else:
+            print("⚪ 업데이트할 콘서트가 없습니다.")
+        
+        print()
+        updater.show_status_summary()
+        
+    except Exception as e:
+        logger.error(f"상태 업데이트 실패: {e}")
+        print(f"❌ 상태 업데이트 오류: {e}")
 
 if __name__ == "__main__":
     main()

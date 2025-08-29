@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import List, Dict
 import time
 import unicodedata
-from config import Config
+from utils.config import Config
 from src.musixmatch_lyrics_api import MusixmatchLyricsAPI
 
 # CSV 모듈 설정 - 큰 필드 허용

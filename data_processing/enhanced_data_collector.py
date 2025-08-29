@@ -5,9 +5,10 @@ import re
 from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime
 from src.perplexity_api import PerplexityAPI
-from src.data_models import *
+from data_processing.data_models import *
 from src.artist_name_mapper import ArtistNameMapper
-from config import Config
+from utils.config import Config
+from utils.prompts import DataCollectionPrompts
 
 logger = logging.getLogger(__name__)
 
@@ -272,7 +273,7 @@ JSON만 반환하세요."""
             setlist_songs, songs = [], []
             
             for attempt in range(max_retries):
-                response = self.api.query_with_search(prompt)
+                response = self.api.query_with_search(prompt, context="셋리스트 수집")
                 setlist_songs, songs = self._parse_and_validate_songs(response, setlist, artist_name)
                 
                 # 예상 셋리스트는 10곡 이상일 때 성공으로 간주
@@ -355,7 +356,7 @@ JSON 형식으로만 답변:
 
 JSON 배열만 반환하세요."""
         
-        response = self.api.query_with_search(prompt)
+        response = self.api.query_with_search(prompt, context="팬 문화 수집")
         return self._parse_cultures(response, concert_title)
     
     def _collect_schedules(self, concert_title: str, artist_name: str, start_date: str, end_date: str) -> List[Schedule]:
@@ -442,23 +443,7 @@ JSON 배열만 반환하세요."""
     
     def _collect_artist_info(self, artist_name: str) -> Optional[Artist]:
         """아티스트 정보 수집"""
-        prompt = f""""{artist_name}" 아티스트에 대한 정보를 정확하게 검색해주세요.
-
-검색할 아티스트: {artist_name}
-
-반드시 위에 명시된 "{artist_name}" 아티스트의 정보만 찾아주세요. 다른 아티스트의 정보는 절대 포함하지 마세요.
-
-중요 규칙:
-1. artist: "원어 (한국어)" 형식으로 작성해주세요. 예: "IU (아이유)", "BTS (방탄소년단)"
-2. birth_date: 데뷔연도 또는 첫 앨범을 출간한 해를 정수로 작성해주세요 (예: 2010)
-3. detail: 반드시 해요체(~해요, ~이에요, ~돼요)로 작성하고, 출처나 참조 표시([1], [2], URL 등)는 절대 포함하지 마세요
-4. keywords: 장르, 스타일, 특징만 포함하고 아티스트 이름은 절대 포함하지 마세요 (예: "록,팝,발라드")
-5. img_url: 가장 대표적이고 고화질인 공식 프로필 사진 URL을 찾아주세요
-
-JSON 형식으로만 답변:
-{{"artist": "원어 (한국어) 형식", "birth_date": "데뷔연도(정수) 또는 0", "birth_place": "출생지 또는 빈문자열", "category": "아티스트 카테고리 또는 빈문자열", "detail": "해요체로 작성된 깔끔한 설명 (출처 표시 없음)", "instagram_url": "인스타그램URL 또는 빈문자열", "keywords": "장르나 특징만 (아티스트명 제외)", "img_url": "가장 대표적인 고화질 프로필이미지URL 또는 빈문자열"}}
-
-JSON만 반환하고, 반드시 "{artist_name}" 아티스트의 정보만 제공하세요."""
+        prompt = DataCollectionPrompts.get_artist_info_prompt(artist_name)
         
         response = self.api.query_with_search(prompt)
         return self._parse_artist_info(response, artist_name)
@@ -702,25 +687,7 @@ JSON 배열로만 응답 (다른 텍스트 절대 포함 금지):
 
     def _search_artist_from_concert(self, concert_title: str) -> Optional[str]:
         """퍼플렉시티 API로 콘서트 제목을 통해 아티스트 검색"""
-        prompt = f""""{concert_title}" 콘서트의 정확한 아티스트 이름을 검색해주세요.
-
-콘서트 제목: {concert_title}
-
-검색 우선순위:
-1. 공식 콘서트 정보 웹사이트 (인터파크, 예스24, 멜론티켓 등)
-2. 아티스트 공식 홈페이지 또는 SNS
-3. 음악 스트리밍 플랫폼의 콘서트 정보
-4. 공신력 있는 음악 매체 보도자료
-
-중요:
-- 콘서트 제목에서 추측하지 말고 실제 검색된 정보만 사용하세요
-- 여러 아티스트가 있다면 메인 아티스트/헤드라이너를 선택하세요  
-- 확실하지 않으면 빈 문자열로 답변하세요
-
-JSON 형식으로만 답변:
-{{"artist": "검색으로 확인된 정확한 아티스트명 또는 빈문자열"}}
-
-JSON만 반환하세요."""
+        prompt = DataCollectionPrompts.get_artist_name_prompt(concert_title)
         
         try:
             response = self.api.query_with_search(prompt)
@@ -1235,16 +1202,14 @@ JSON만 반환하세요."""
                 # "정보를 찾을 수 없습니다"를 빈 문자열로 변환
                 for key, value in data.items():
                     if isinstance(value, str) and "정보를 찾을 수 없습니다" in value:
-                        data[key] = "" if key != "birth_date" else 0
+                        data[key] = ""
                 
-                # birth_date를 정수로 변환
-                birth_date = data.get('birth_date', 0)
-                if isinstance(birth_date, str):
-                    try:
-                        birth_date = int(birth_date) if birth_date.isdigit() else 0
-                    except:
-                        birth_date = 0
-                data['birth_date'] = birth_date
+                # debut_date는 이미 문자열이므로 특별한 변환 불필요
+                debut_date = data.get('debut_date', '')
+                if isinstance(debut_date, (int, float)):
+                    data['debut_date'] = str(int(debut_date))
+                elif not isinstance(debut_date, str):
+                    data['debut_date'] = ''
                 
                 # detail을 해요체로 변환하고 출처 표기 제거
                 detail = data.get('detail', '')
@@ -1265,8 +1230,7 @@ JSON만 반환하세요."""
         
         return Artist(
             artist=f"{artist_name} (아티스트명)" if "(" not in artist_name else artist_name,
-            birth_date=0,
-            birth_place="",
+            debut_date="",
             category="",
             detail="",
             instagram_url="",
