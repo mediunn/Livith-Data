@@ -30,13 +30,17 @@ class EnhancedDataCollector:
         artist_display = self._collect_artist_display_name(concert_title, final_artist_name, artist_name)
         
         # 티켓 URL 및 사이트 정보 수집
-        ticket_info = self._collect_ticket_info(concert_title, final_artist_name)
+        date_str = f"{kopis_concert.get('start_date', '')}" 
+        ticket_info = self._collect_ticket_info(concert_title, final_artist_name, date_str)
         
         # 날짜 기반 상태 결정
         status = self._determine_status_from_dates(
             self._format_date(kopis_concert['start_date']),
             self._format_date(kopis_concert['end_date'])
         )
+        
+        # label과 introduction 정보 수집
+        label_intro_info = self._collect_label_introduction(final_artist_name, concert_title)
         
         # 기본 콘서트 정보 생성 - KOPIS 데이터를 데이터 모델에 맞게 매핑
         concert = Concert(
@@ -47,10 +51,11 @@ class EnhancedDataCollector:
             end_date=self._format_date(kopis_concert['end_date']),
             status=status,
             poster=kopis_concert.get('poster', ''),
-            sorted_index=0,  # 나중에 계산
             ticket_site=ticket_info.get('site', ''),
             ticket_url=ticket_info.get('url', ''),
-            venue=kopis_concert.get('venue', '')
+            venue=kopis_concert.get('venue', ''),
+            label=label_intro_info.get('label', ''),
+            introduction=label_intro_info.get('introduction', '')
         )
         
         # 상세 데이터 수집 (보완된 아티스트명 사용)
@@ -105,8 +110,8 @@ class EnhancedDataCollector:
         }
     
     @staticmethod
-    def calculate_sorted_indices(concerts: List[Concert]) -> List[Concert]:
-        """콘서트 목록에 sorted_index 계산하여 적용"""
+    def sort_concerts(concerts: List[Concert]) -> List[Concert]:
+        """콘서트 목록을 상태와 날짜 기준으로 정렬"""
         # 상태별로 분류
         ongoing = [c for c in concerts if c.status == "ONGOING"]
         upcoming = [c for c in concerts if c.status == "UPCOMING"]
@@ -121,12 +126,6 @@ class EnhancedDataCollector:
         
         # PAST: 시작일 기준 내림차순 (최근 날짜 먼저)
         past.sort(key=lambda x: x.start_date, reverse=True)
-        
-        # sorted_index 할당
-        index = 1
-        for concert in ongoing + upcoming + past:
-            concert.sorted_index = index
-            index += 1
         
         return ongoing + upcoming + past
     
@@ -195,6 +194,10 @@ class EnhancedDataCollector:
                 # 예상 셋리스트 수집 - 무조건 15곡 이상 생성
                 prompt = f"""🚨 중요: {artist_name}의 콘서트 예상 셋리스트를 15곡 이상 반드시 만들어주세요! 🚨
 
+⭐ 필수 규칙: 아티스트명 통일 ⭐
+- 모든 artist 필드는 반드시 "{artist_name}" 그대로 사용 (절대 변경 금지)
+- 다른 표기나 영문명으로 변경하지 말 것
+
 다음을 기반으로 정확히 15-20곡을 작성해야 합니다:
 1. {artist_name}의 대표 히트곡 5곡 이상
 2. 최신/인기 앨범 수록곡 3곡 이상  
@@ -206,6 +209,7 @@ class EnhancedDataCollector:
 - song_title과 title 필드는 절대 빈 문자열이면 안 됩니다
 - 모든 곡은 {artist_name}의 실제 곡이어야 합니다
 - order_index는 1부터 순서대로 매기세요
+- artist 필드는 항상 "{artist_name}"으로 통일
 
 JSON 응답 형식 (정확히 이 구조로):
 {{"setlist_songs": [{{"setlist_title": "{setlist.title}", "song_title": "곡제목1", "setlist_date": "{setlist.start_date}", "order_index": 1, "fanchant": "", "venue": "{setlist.venue}"}}, {{"setlist_title": "{setlist.title}", "song_title": "곡제목2", "setlist_date": "{setlist.start_date}", "order_index": 2, "fanchant": "", "venue": "{setlist.venue}"}}, ... (15-20개까지)], "songs": [{{"title": "곡제목1", "artist": "{artist_name}", "lyrics": "", "pronunciation": "", "translation": "", "youtube_id": ""}}, {{"title": "곡제목2", "artist": "{artist_name}", "lyrics": "", "pronunciation": "", "translation": "", "youtube_id": ""}}, ... (15-20개까지)]}}
@@ -228,6 +232,10 @@ JSON 응답 형식 (정확히 이 구조로):
                 search_terms_str = " OR ".join(search_terms) if search_terms else f'"{artist_name}"'
                 
                 prompt = f"""다음 아티스트의 콘서트에서 실제로 연주한 셋리스트를 전 세계적으로 검색해주세요.
+
+⭐ 필수 규칙: 아티스트명 통일 ⭐
+- 모든 artist 필드는 반드시 "{artist_name}" 그대로 사용 (절대 변경 금지)
+- 다른 표기나 영문명으로 변경하지 말 것
 
 아티스트 정보:
 - 원어명: {english_name if english_name else "없음"}  
@@ -259,6 +267,7 @@ JSON 응답 형식 (정확히 이 구조로):
 - 최소 10곡 이상 포함해주세요
 - 모든 song_title 필드에 실제 곡 제목을 반드시 넣어주세요
 - song_title이 비어있으면 안 되며, 찾지 못했을 경우 데이터를 추가하지 마세요.
+- artist 필드는 항상 "{artist_name}"으로 통일
 
 JSON 형식으로만 답변:
 {{"setlist_songs": [{{"setlist_title": "{setlist.title}", "song_title": "실제 곡 제목 (비워두지 마세요)", "setlist_date": "{setlist.start_date}", "order_index": 1, "fanchant": "", "venue": "{setlist.venue}"}}], "songs": [{{"title": "실제 곡 제목 (비워두지 마세요)", "artist": "{artist_name}", "lyrics": "", "pronunciation": "", "translation": "", "youtube_id": ""}}]}}
@@ -447,6 +456,38 @@ JSON 배열만 반환하세요."""
         
         response = self.api.query_with_search(prompt)
         return self._parse_artist_info(response, artist_name)
+    
+    def _collect_label_introduction(self, artist_name: str, concert_title: str) -> Dict[str, str]:
+        """콘서트 라벨과 소개 정보 수집"""
+        prompt = DataCollectionPrompts.get_concert_label_introduction_prompt(artist_name, concert_title)
+        
+        try:
+            response = self.api.query_with_search(prompt)
+            json_str = self._extract_json_from_response(response, '{', '}')
+            if json_str:
+                import json
+                data = json.loads(json_str)
+                
+                # introduction 검증 및 정리
+                intro = data.get('introduction', '').strip()
+                
+                # 부적절한 내용 필터링
+                invalid_phrases = ['정보가 없다', '검색할 수 없다', '찾을 수 없다', '알 수 없다', '정보가 부족하다', '확인할 수 없다']
+                if any(phrase in intro for phrase in invalid_phrases) or len(intro) < 10:
+                    intro = f"{artist_name}의 특별한 라이브 무대! 대표곡들과 함께하는 {concert_title}"
+                
+                return {
+                    'label': data.get('label', '').strip(),
+                    'introduction': intro
+                }
+        except Exception as e:
+            logger.error(f"Label/Introduction 수집 실패 ({artist_name} - {concert_title}): {e}")
+        
+        # 기본값 반환 - introduction은 항상 의미있는 내용으로 채우기
+        return {
+            'label': '',
+            'introduction': f"{artist_name}의 특별한 라이브 무대! 대표곡들과 함께하는 {concert_title}"
+        }
     
     def collect_merchandise_data(self, concert: Concert) -> List[Dict[str, str]]:
         """콘서트의 굿즈(merchandise) 정보를 수집합니다."""
@@ -739,19 +780,33 @@ JSON 배열로만 응답 (다른 텍스트 절대 포함 금지):
     def _collect_artist_display_name(self, concert_title: str, artist_name: str, kopis_artist: str = "") -> str:
         """퍼플렉시티 API로 아티스트 표기용 이름 수집"""
         
-        # KOPIS에서 제공된 아티스트 정보가 있고 충분하다면 그것을 우선 사용
-        if kopis_artist and kopis_artist.strip() and len(kopis_artist.strip()) > 1:
-            logger.info(f"KOPIS 아티스트 정보 사용: {kopis_artist}")
-            return kopis_artist.strip()
+        # KOPIS 아티스트 정보가 너무 길거나 이상한 경우 (멤버 이름 나열 등) 검증
+        if kopis_artist and kopis_artist.strip():
+            kopis_clean = kopis_artist.strip()
+            
+            # 이상한 패턴 감지 (쉼표로 구분된 긴 이름들, 너무 긴 텍스트 등)
+            if (',' in kopis_clean and len(kopis_clean) > 50) or len(kopis_clean) > 100:
+                logger.warning(f"KOPIS 아티스트명이 이상함, API로 검색: {kopis_clean[:50]}...")
+            elif len(kopis_clean) > 1 and len(kopis_clean) < 50:
+                # 정상적인 길이의 KOPIS 데이터는 그대로 사용
+                logger.info(f"KOPIS 아티스트 정보 사용: {kopis_clean}")
+                return kopis_clean
         
-        # KOPIS 정보가 없거나 불충분한 경우에만 퍼플렉시티로 검색
-        prompt = f""""{concert_title}" 콘서트의 아티스트 정보를 검색해서 정확한 표기명을 찾아주세요.
+        # KOPIS 정보가 없거나 이상한 경우 퍼플렉시티로 검색
+        prompt = f""""{concert_title}" 콘서트의 정확한 아티스트/밴드/그룹 이름을 찾아주세요.
 
-현재 아티스트명: {artist_name}
-다음 규칙에 따라 표기용 아티스트명을 찾아주세요: "원어표기 (한국어표기)" 형식
+현재 정보:
+- 콘서트명: {concert_title}
+- KOPIS 아티스트: {kopis_artist if kopis_artist else '없음'}
+- 추출된 이름: {artist_name}
+
+⚠️ 중요:
+- 밴드/그룹의 정식 이름을 찾아주세요 (멤버 이름 나열 X)
+- "원어표기 (한국어표기)" 형식으로 작성
+- 예: "Oasis (오아시스)", "BTS (방탄소년단)"
 
 JSON 형식으로만 답변:
-{{"artist_display": "정확한 표기용 아티스트명"}}
+{{"artist_display": "정확한 밴드/그룹/아티스트명"}}
 
 JSON만 반환하세요."""
         
@@ -791,34 +846,34 @@ JSON만 반환하세요."""
         # 최후: 기본값
         return "알 수 없는 아티스트"
 
-    def _collect_ticket_info(self, concert_title: str, artist_name: str) -> Dict[str, str]:
+    def _collect_ticket_info(self, concert_title: str, artist_name: str, date: str = "") -> Dict[str, str]:
         """퍼플렉시티 API로 티켓 예매 정보 수집 (사이트명과 URL)"""
-        prompt = f""""{artist_name}"의 "{concert_title}" 콘서트 정확한 예매 링크를 찾아주세요.
+        prompt = f""""{artist_name}"의 "{concert_title}" 콘서트 티켓 예매 정보를 찾아주세요.
 
 콘서트 정보:
 - 제목: {concert_title}
 - 아티스트: {artist_name}
+{f"- 일시: {date}" if date else ""}
 
-중요: 티켓 사이트 메인 링크가 아닌, 해당 공연의 구체적인 예매 링크를 찾아주세요.
+🎯 검색 전략:
+1. 정확한 공연명과 아티스트명으로 검색
+2. 공식 예매 사이트에서 구체적인 예매 링크 찾기
+3. 예매 정보가 아직 공개되지 않은 경우도 사이트명은 제공
 
 우선순위:
 1. 인터파크 티켓 (ticket.interpark.com) - 구체적인 공연 페이지
-2. 예스24 티켓 (ticket.yes24.com) - 구체적인 공연 페이지
+2. 예스24 티켓 (ticket.yes24.com) - 구체적인 공연 페이지  
 3. 멜론티켓 (ticket.melon.com) - 구체적인 공연 페이지
 4. 티켓링크 (www.ticketlink.co.kr) - 구체적인 공연 페이지
-5. 기타 공식 예매처 - 구체적인 공연 페이지
+5. 기타 공식 예매처 (예: 롯데콘서트홀 등 독자 예매)
 
-사이트명은 정확히 다음 중 하나로 답변해주세요:
-- "인터파크 티켓"
-- "예스24 티켓"
-- "멜론티켓"
-- "티켓링크"
-- "기타 사이트"
-
-예매 링크를 찾을 수 없는 경우 빈 문자열로 답변해주세요.
+📝 응답 규칙:
+- ticket_site: 예매하는 사이트명 (정확히 "인터파크 티켓", "예스24 티켓", "멜론티켓", "티켓링크", "기타 사이트" 중 하나)
+- ticket_url: 해당 공연의 구체적인 예매 링크 (없으면 빈 문자열)
+- 사이트는 알지만 정확한 링크를 못 찾은 경우: 사이트명은 채우고 URL은 빈 문자열
 
 JSON 형식으로만 답변:
-{{"ticket_site": "사이트명 또는 빈문자열", "ticket_url": "해당 공연의 구체적인 예매 URL 또는 빈문자열"}}
+{{"ticket_site": "예매사이트명", "ticket_url": "구체적인예매링크또는빈문자열"}}
 
 JSON만 반환하세요."""
         
@@ -830,8 +885,8 @@ JSON만 반환하세요."""
                 site = data.get('ticket_site', '').strip()
                 url = data.get('ticket_url', '').strip()
                 
-                # 유효한 정보가 있는 경우만 반환
-                if (site and url and url.startswith('http')):
+                # 유효한 정보가 있는 경우 반환 (사이트명이나 URL 중 하나라도 있으면 OK)
+                if site or (url and url.startswith('http')):
                     return {'site': site, 'url': url}
         except Exception as e:
             logger.error(f"티켓 정보 수집 실패: {e}")

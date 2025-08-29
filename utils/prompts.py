@@ -64,8 +64,13 @@ class DataCollectionPrompts:
 
 반드시 위에 명시된 "{artist_name}" 아티스트의 정보만 찾아주세요. 다른 아티스트의 정보는 절대 포함하지 마세요.
 
+⭐ 필수 규칙: 아티스트명 통일 ⭐
+- artist 필드는 반드시 "{artist_name}" 그대로 사용 (절대 변경 금지)
+- concerts 테이블과 동일한 표기 유지
+- 다른 표기나 영문명으로 변경하지 말고 입력된 그대로 사용
+
 중요 규칙:
-1. artist: "원어 (한국어)" 형식으로 작성해주세요. 예: "IU (아이유)", "BTS (방탄소년단)"
+1. artist: "{artist_name}" 그대로 사용
 2. debut_date: 데뷔연도를 YYYY 형식의 문자열로 작성해주세요 (예: "2010", "2008")
 3. detail: 아티스트 자체에 대한 정보만 포함하세요 (해요체 사용):
    - 활동 지역/국가 (어디서 활동하는지)
@@ -153,13 +158,56 @@ KOPIS 아티스트명: {kopis_artist}
         """
         return f"""{artist_name}의 "{concert_title}" 콘서트의 중요한 정보를 검색해주세요.
 
+⭐ 필수 규칙: 아티스트명 통일 ⭐
+- artist_name 필드는 반드시 "{artist_name}" 그대로 사용
+- 다른 표기나 영문명 사용 금지
+- 모든 JSON 응답에서 동일하게 "{artist_name}" 사용
+
 필요한 정보:
 - 공연장 정보
 - 공연 일정
 - 티켓 가격대
 - 특별한 공연 정보
 
-JSON 형식으로 반환해주세요."""
+JSON 형식으로 반환:
+[{{"artist_name": "{artist_name}", "concert_title": "{concert_title}", "category": "정보카테고리", "content": "구체적인 정보 내용", "img_url": "관련이미지URL또는빈문자열"}}]"""
+
+    @staticmethod
+    def get_concert_label_introduction_prompt(artist_name: str, concert_title: str) -> str:
+        """
+        사용 위치: data_processing/enhanced_data_collector.py -> _collect_label_introduction()
+        목적: concerts.csv의 label, introduction 컬럼 수집
+        테이블: concerts.csv
+        컬럼: label, introduction
+        """
+        return f"""{artist_name}의 "{concert_title}" 콘서트에 대한 정보를 검색해주세요.
+
+🔥 중요 규칙:
+1. label: 선택사항 (특별한 이슈가 있을 때만)
+   - 현재 화제가 되는 특별한 부분이 있으면: "\(내용) 콘서트" 형식
+   - 🎯 특히 주목해야 할 화제성:
+     * 밴드 해체 후 재결합/재유니온 (예: "15년 만의 재결합 콘서트")
+     * 오랜만의 내한 (예: "10년 만의 내한 콘서트", "데뷔 n년 만의 첫 내한 콘서트")
+     * 마지막 공연/고별 투어 (예: "해체 전 마지막 투어 콘서트") 
+     * 매진 임박/초고속 매진 (예: "매진 임박 콘서트", "최근 핫한 콘서트")
+     * 특별한 기념 투어 (예: "데뷔 20주년 기념 콘서트")
+   - 특별한 화제가 없으면: 빈 문자열
+
+2. introduction: 필수 항목 (반드시 채워야 함)
+   - {artist_name}에 대한 매력적인 소개 문구 작성
+   - 아티스트의 인기곡, 특징, 한국에서의 인지도 등 포함
+   - 형식 자유롭게, 화제성 있게 작성
+   - 예: "일본 대표 록밴드 뮤즈! 세계적 히트곡 Supermassive Black Hole로 유명"
+   - 예: "K-POP 4세대 대표 걸그룹! 글로벌 히트곡 Next Level로 전 세계 팬들 열광"
+
+❌ 금지사항:
+- introduction에 "정보가 없다", "검색할 수 없다" 등의 문구 절대 금지
+- introduction이 비어있으면 안됨 (반드시 채워야 함)
+
+JSON 형식으로만 답변:
+{{"label": "특별한 화제가 있으면 내용, 없으면 빈 문자열", "introduction": "매력적인 아티스트 소개 (반드시 채우기)"}}
+
+JSON만 반환하세요."""
 
     # =========================================================================
     # SETLISTS 테이블 관련 프롬프트
@@ -177,6 +225,11 @@ JSON 형식으로 반환해주세요."""
 
 콘서트: {artist_name}의 "{concert_title}"
 
+⭐ 필수 규칙: 아티스트명 통일 ⭐
+- artist_name 필드는 반드시 "{artist_name}" 그대로 사용
+- 다른 표기나 영문명 사용 금지
+- 모든 JSON 응답에서 동일하게 "{artist_name}" 사용
+
 조건:
 1. {artist_name}의 대표곡들을 중심으로 구성
 2. 최소 15곡 이상, 최대 25곡
@@ -185,7 +238,7 @@ JSON 형식으로 반환해주세요."""
 5. 앙코르 곡도 포함
 
 JSON 배열 형식으로 반환:
-[{{"order": 1, "song_title": "곡제목"}}, {{"order": 2, "song_title": "곡제목"}}, ...]"""
+[{{"order": 1, "song_title": "곡제목", "artist_name": "{artist_name}"}}, {{"order": 2, "song_title": "곡제목", "artist_name": "{artist_name}"}}, ...]"""
 
     @staticmethod  
     def get_actual_setlist_prompt(artist_name: str, concert_title: str, venue: str, date: str) -> str:
@@ -202,6 +255,11 @@ JSON 배열 형식으로 반환:
 장소: {venue}
 날짜: {date}
 
+⭐ 필수 규칙: 아티스트명 통일 ⭐
+- artist_name 필드는 반드시 "{artist_name}" 그대로 사용
+- 다른 표기나 영문명 사용 금지
+- 모든 JSON 응답에서 동일하게 "{artist_name}" 사용
+
 요구사항:
 1. 정확한 셋리스트만 제공 (추측 금지)
 2. 곡 순서와 제목을 정확히 기재
@@ -209,7 +267,7 @@ JSON 배열 형식으로 반환:
 4. 실제 정보가 없으면 "정보 없음" 반환
 
 JSON 배열 형식:
-[{{"order": 1, "song_title": "실제곡제목"}}, {{"order": 2, "song_title": "실제곡제목"}}, ...]"""
+[{{"order": 1, "song_title": "실제곡제목", "artist_name": "{artist_name}"}}, {{"order": 2, "song_title": "실제곡제목", "artist_name": "{artist_name}"}}, ...]"""
 
     # =========================================================================
     # CULTURES 테이블 관련 프롬프트
@@ -225,15 +283,22 @@ JSON 배열 형식:
         """
         return f"""{artist_name}의 "{concert_title}" 콘서트만의 독특하고 고유한 문화적 특징을 검색해주세요.
 
+⭐ 필수 규칙: 아티스트명 통일 ⭐
+- artist_name 필드는 반드시 "{artist_name}" 그대로 사용
+- 다른 표기나 영문명 사용 금지
+- 모든 JSON 응답에서 동일하게 "{artist_name}" 사용
+
 찾아야 할 문화 정보:
 1. 팬덤 문화 (응원 방식, 특별한 이벤트)
 2. 콘서트장 분위기와 독특한 관습
 3. 아티스트와 팬들 간의 특별한 소통 방식
-4. 이 콘서트만의 특별한 전통이나 의식
-5. 지역적 특색이나 한국적 요소
+4. 이 콘서트만의 특별한 전통이나 응원법, 문화
+5. 콘서트장 정보 (좌석 시야, 주변 혼잡도, 주차장 정보, 주의해야 할 부분 등)
+6. 기타 콘서트 전 참고하면 좋은 여러 가지 콘서트, 아티스트 관련 정보
+7. 해당 문화 관련 이미지 URL (해당 콘서트 관련 아니어도 됨, 문화와 관련된 키워드로 사진 찾을 것)
 
 JSON 배열 형식으로 반환:
-[{{"category": "문화카테고리", "content": "구체적인 문화 내용", "img_url": "관련이미지URL또는빈문자열"}}]"""
+[{{"artist_name": "{artist_name}", "concert_title": "{concert_title}", "category": "문화카테고리", "content": "구체적인 문화 내용", "img_url": "관련이미지URL또는빈문자열"}}]"""
 
     # =========================================================================
     # SCHEDULE 테이블 관련 프롬프트
@@ -249,6 +314,11 @@ JSON 배열 형식으로 반환:
         """
         return f"""{artist_name}의 "{concert_title}" 콘서트 관련 모든 일정을 {start_date}부터 {end_date}까지 검색해주세요.
 
+⭐ 필수 규칙: 아티스트명 통일 ⭐
+- artist_name 필드는 반드시 "{artist_name}" 그대로 사용
+- 다른 표기나 영문명 사용 금지
+- 모든 JSON 응답에서 동일하게 "{artist_name}" 사용
+
 포함할 일정:
 1. 티켓 예매 오픈 일정
 2. 콘서트 본 공연 일정 (모든 회차)
@@ -257,7 +327,7 @@ JSON 배열 형식으로 반환:
 5. 굿즈 판매 일정
 
 JSON 배열 형식으로 반환:
-[{{"date": "YYYY-MM-DD", "time": "HH:MM", "event": "이벤트명", "location": "장소", "note": "추가정보또는빈문자열"}}]"""
+[{{"artist_name": "{artist_name}", "concert_title": "{concert_title}", "date": "YYYY-MM-DD", "time": "HH:MM", "event": "이벤트명", "location": "장소", "note": "추가정보또는빈문자열"}}]"""
 
     # =========================================================================
     # MD (MERCHANDISE) 테이블 관련 프롬프트
@@ -273,6 +343,11 @@ JSON 배열 형식으로 반환:
         """
         return f""""{artist_name}"의 "{concert_title}" 콘서트 굿즈 판매 현황과 한정판 정보를 검색해주세요:
 
+⭐ 필수 규칙: 아티스트명 통일 ⭐
+- artist_name 필드는 반드시 "{artist_name}" 그대로 사용
+- 다른 표기나 영문명 사용 금지
+- 모든 JSON 응답에서 동일하게 "{artist_name}" 사용
+
 1. 공식 굿즈 목록과 가격
 2. 한정판이나 특별 제작 아이템
 3. 콘서트장 전용 굿즈
@@ -280,7 +355,7 @@ JSON 배열 형식으로 반환:
 5. 품절 현황
 
 JSON 배열 형식:
-[{{"item_name": "굿즈명", "price": "가격", "availability": "판매상태", "description": "상품설명", "img_url": "이미지URL또는빈문자열"}}]"""
+[{{"artist_name": "{artist_name}", "concert_title": "{concert_title}", "item_name": "굿즈명", "price": "가격", "availability": "판매상태", "description": "상품설명", "img_url": "이미지URL또는빈문자열"}}]"""
 
 
 class APIPrompts:

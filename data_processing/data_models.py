@@ -44,10 +44,11 @@ class Concert:
     end_date: str  # 공연 종료 날짜
     status: str  # 공연 상태 (ONGOING, UPCOMING, PAST)
     poster: str  # 포스터 URL
-    sorted_index: int  # 정렬 인덱스
     ticket_site: str  # 티켓 사이트명 (인터파크 티켓, 멜론티켓)
     ticket_url: str  # 티켓 구매 URL
     venue: str  # 공연장
+    label: str  # 이슈나 특별한 부분 (예: "(매진임박) 콘서트", "(데뷔 10주년 기념) 콘서트")
+    introduction: str  # 콘서트 한 줄 소개
 
 @dataclass
 class Culture:

@@ -282,10 +282,11 @@ class Stage2_CollectBasicInfo:
                 'end_date': concert.end_date,
                 'status': concert.status,
                 'poster': concert.poster,
-                'sorted_index': concert.sorted_index,
                 'ticket_site': concert.ticket_site,
                 'ticket_url': concert.ticket_url,
-                'venue': concert.venue
+                'venue': concert.venue,
+                'label': concert.label,
+                'introduction': concert.introduction
             })
         
         basic_df = pd.DataFrame(basic_concerts)
@@ -393,7 +394,8 @@ class Stage4_CollectMerchandise:
                     poster=concert.get('poster', ''),
                     ticket_site=concert.get('ticket_site', ''),
                     ticket_url=concert.get('ticket_url', ''),
-                    sorted_index=concert.get('sorted_index', 0)
+                    label=concert.get('label', ''),
+                    introduction=concert.get('introduction', '')
                 )
                 all_collected_data.append({'concert': concert_obj})
         

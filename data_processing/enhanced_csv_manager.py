@@ -46,24 +46,45 @@ class EnhancedCSVManager:
             if data['artist']:
                 all_artists.append(data['artist'])
         
-        # 콘서트 데이터에 sorted_index 계산
+        # 콘서트 데이터 정렬
         if all_concerts:
             # 기존 데이터 로드
             existing_concerts = EnhancedCSVManager._load_existing_data("concerts.csv")
             
-            # 새 데이터와 기존 데이터 병합
-            combined_concerts = existing_concerts + all_concerts
+            # 스마트 병합: KOPIS 데이터는 보존하고 새 필드는 업데이트
+            merged_concerts = {}
             
-            # 중복 제거 (title 기준)
-            unique_concerts = []
-            seen_titles = set()
-            for concert in combined_concerts:
-                if concert.title not in seen_titles:
-                    unique_concerts.append(concert)
-                    seen_titles.add(concert.title)
+            # 기존 데이터를 먼저 저장 (KOPIS 데이터 포함)
+            for concert in existing_concerts:
+                merged_concerts[concert.title] = concert
             
-            # sorted_index 계산
-            sorted_concerts = EnhancedDataCollector.calculate_sorted_indices(unique_concerts)
+            # 새 데이터로 업데이트 (KOPIS 데이터가 있으면 보존)
+            for new_concert in all_concerts:
+                if new_concert.title in merged_concerts:
+                    # 기존 콘서트가 있으면 KOPIS 데이터는 보존하고 새 필드만 업데이트
+                    existing = merged_concerts[new_concert.title]
+                    merged_concerts[new_concert.title] = Concert(
+                        artist=existing.artist,  # 기존 값 유지
+                        code=existing.code or new_concert.code,  # 기존 값이 있으면 우선, 없으면 새 값
+                        title=new_concert.title,
+                        start_date=existing.start_date or new_concert.start_date,
+                        end_date=existing.end_date or new_concert.end_date,
+                        status=new_concert.status,  # 상태는 새 값으로 업데이트
+                        poster=existing.poster or new_concert.poster,  # KOPIS 데이터 보존
+                        ticket_site=existing.ticket_site or new_concert.ticket_site,  # KOPIS 데이터 보존
+                        ticket_url=existing.ticket_url or new_concert.ticket_url,  # KOPIS 데이터 보존
+                        venue=existing.venue or new_concert.venue,  # KOPIS 데이터 보존
+                        label=new_concert.label,  # 새 필드는 업데이트
+                        introduction=new_concert.introduction  # 새 필드는 업데이트
+                    )
+                else:
+                    # 새 콘서트면 그대로 추가
+                    merged_concerts[new_concert.title] = new_concert
+            
+            unique_concerts = list(merged_concerts.values())
+            
+            # 콘서트 정렬
+            sorted_concerts = EnhancedDataCollector.sort_concerts(unique_concerts)
             
             # 전체 데이터로 콘서트 저장 (overwrite)
             EnhancedCSVManager._save_to_csv(sorted_concerts, "concerts.csv", "콘서트", mode="overwrite")
@@ -88,20 +109,24 @@ class EnhancedCSVManager:
         
         try:
             df = pd.read_csv(filepath, encoding='utf-8-sig')
+            # NaN 값을 빈 문자열로 치환
+            df = df.fillna('')
+            
             concerts = []
             for _, row in df.iterrows():
                 concert = Concert(
-                    artist=row.get('artist', ''),  # 기존 artist_display 내용
-                    code=row.get('code', ''),
-                    title=row.get('title', ''),
-                    start_date=row.get('start_date', ''),
-                    end_date=row.get('end_date', ''),
-                    status=row.get('status', ''),
-                    poster=row.get('poster', ''),
-                    sorted_index=int(row.get('sorted_index', 0)),
-                    ticket_site=row.get('ticket_site', ''),
-                    ticket_url=row.get('ticket_url', ''),
-                    venue=row.get('venue', '')
+                    artist=str(row.get('artist', '')),
+                    code=str(row.get('code', '')),
+                    title=str(row.get('title', '')),
+                    start_date=str(row.get('start_date', '')),
+                    end_date=str(row.get('end_date', '')),
+                    status=str(row.get('status', '')),
+                    poster=str(row.get('poster', '')),
+                    ticket_site=str(row.get('ticket_site', '')),
+                    ticket_url=str(row.get('ticket_url', '')),
+                    venue=str(row.get('venue', '')),
+                    label=str(row.get('label', '')),
+                    introduction=str(row.get('introduction', ''))
                 )
                 concerts.append(concert)
             return concerts
