@@ -2,4 +2,18 @@
 __pycache__/
 .env
 venv/
+
+# CSV 데이터 파일들
 output/*.csv
+output/**/*.csv
+**/*.csv.backup*
+*.csv.backup
+*.backup_*.csv
+
+# 로그 파일들
+logs/
+*.log
+
+# 백업 디렉토리
+output/backups/
+backup/

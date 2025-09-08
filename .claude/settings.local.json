@@ -1,26 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(rm:*)",
       "Bash(python3:*)",
-      "Bash(source:*)",
-      "Bash(python -m pytest -v src/test_merchandise.py)",
-      "WebFetch(domain:jpop.fandom.com)",
-      "Bash(find:*)",
-      "Bash(ls:*)",
-      "Bash(python:*)",
-      "Bash(mv:*)",
-      "Bash(sed:*)",
-      "Bash(grep:*)",
-      "Bash(mkdir:*)",
-      "Bash(cat:*)",
-      "Bash(chmod:*)",
-      "Bash(OUTPUT_MODE=test python3 /Users/youz2me/Xcode/Livith-Data/scripts/fix_data.py --search \"제이콥\" --type artist)",
-      "Bash(OUTPUT_MODE=test python3 src/main.py --stage 3)",
-      "Bash(OUTPUT_MODE=test python3 src/stages.py --stage 3 --mode full)",
-      "Bash(OUTPUT_MODE=test python3 -m src.stages --stage 3)",
-      "Bash(OUTPUT_MODE=test python3 -c \"\nimport sys\nsys.path.append(''.'')\nfrom src.stages import Stage2_CollectBasicInfo\n\nprint(''Starting stage 2...'')\nresult = Stage2_CollectBasicInfo.run(mode=''full'', test_mode=True)\nprint(''Stage 2 completed'')\n\")"
+      "Bash(ls:*)"
     ],
-    "deny": []
+    "deny": [],
+    "ask": []
   }
 }

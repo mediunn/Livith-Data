@@ -17,7 +17,7 @@ class SetlistSong:
     setlist_date: str
     order_index: int
     fanchant: str = ""  # 다른 API에서 처리
-    venue: str = ""
+    fanchant_point: str = ""  # 특별한 응원법 (한글 30자 이하)
 
 @dataclass
 class Setlist:
@@ -55,6 +55,7 @@ class Culture:
     concert_title: str
     title: str
     content: str
+    img_url: str
 
 @dataclass
 class Schedule:
@@ -81,7 +82,19 @@ class Artist:
     artist: str  # "원어 (한국어)" 형식
     debut_date: str  # 데뷔연도 (YYYY 형식, 문자열)
     category: str
-    detail: str  # 해요체 형식
+    detail: str  # 합니다체 형식
     instagram_url: str
     keywords: str  # 콤마로 구분
     img_url: str  # 퍼플렉시티로 검색된 대표 사진
+
+@dataclass
+class Genre:
+    id: int
+    name: str
+
+@dataclass
+class ConcertGenre:
+    concert_id: str  # concert_title과 같은 값
+    concert_title: str  # concerts.csv의 title과 대응
+    genre_id: int  # genres.csv의 id
+    name: str  # 장르명 (JPOP, RAP_HIPHOP, ROCK_METAL, ACOUSTIC, CLASSIC_JAZZ, ELECTRONIC)

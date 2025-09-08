@@ -27,8 +27,19 @@ class Config:
     # 현재 실행 모드에 따른 출력 디렉토리 (동적으로 설정됨)
     OUTPUT_DIR = MAIN_OUTPUT_DIR  # 기본값
     
+    @classmethod
+    def set_output_mode(cls):
+        """OUTPUT_MODE 환경변수에 따라 출력 디렉토리 설정"""
+        output_mode = os.getenv('OUTPUT_MODE', 'production')
+        if output_mode == 'test':
+            cls.OUTPUT_DIR = cls.TEST_OUTPUT_DIR
+            print(f"🧪 테스트 모드: {cls.OUTPUT_DIR} 사용")
+        else:
+            cls.OUTPUT_DIR = cls.MAIN_OUTPUT_DIR
+            print(f"🚀 프로덕션 모드: {cls.OUTPUT_DIR} 사용")
+    
     # API 요청 설정
-    REQUEST_DELAY = int(os.getenv('REQUEST_DELAY', 2))
+    REQUEST_DELAY = int(os.getenv('REQUEST_DELAY', 5))  # 2초 → 5초로 증가
     MAX_RETRIES = int(os.getenv('MAX_RETRIES', 3))
     TIMEOUT = int(os.getenv('TIMEOUT', 30))
     

@@ -13,7 +13,7 @@ class CSVToMySQLLoader:
         self.ssh_process = None
         self.connection = None
         self.cursor = None
-        self.csv_base_path = '/Users/youz2me/Xcode/Livith-Data/output'
+        self.csv_base_path = '/Users/youz2me/Xcode/Livith-Data/output/test_output'
 
     def create_ssh_tunnel(self):
         """SSH 터널 생성"""
@@ -60,7 +60,7 @@ class CSVToMySQLLoader:
                 'port': 3307,
                 'user': 'root',
                 'password': 'livith0407',
-                'database': 'livith_v2',
+                'database': 'livith_v3',
                 'charset': 'utf8mb4',
                 'use_unicode': True
             }
@@ -75,41 +75,15 @@ class CSVToMySQLLoader:
             print(f"❌ MySQL 연결 실패: {e}")
             return False
 
-    def clear_data_tables(self):
-        """기존 데이터 삭제 (Foreign Key 순서 고려)"""
+    def prepare_append_mode(self):
+        """추가 모드로 데이터 삽입 준비"""
         try:
-            print("🗑️ 기존 데이터 삭제 중...")
-            
-            # Foreign Key 체크 비활성화
-            self.cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
-            
-            # 데이터 삭제 (의존성 역순)
-            tables_to_clear = [
-                'setlist_songs',
-                'concert_setlists', 
-                'concert_info',
-                'cultures',
-                'schedule',
-                'setlists',
-                'songs',
-                'concerts',
-                'artists'
-            ]
-            
-            for table in tables_to_clear:
-                # 기존 데이터는 유지하고 업서트 준비
-                print(f"  ✓ {table} 업서트 준비 완료")
-            
-            # Foreign Key 체크 재활성화
-            self.cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
-            
-            self.connection.commit()
-            print("✅ 모든 기존 데이터 삭제 완료")
+            print("📝 추가 모드로 데이터 삽입 준비 중...")
+            print("  ✓ 기존 데이터는 유지하고 새 데이터 추가 모드")
             return True
             
         except Error as e:
-            print(f"❌ 데이터 삭제 실패: {e}")
-            self.connection.rollback()
+            print(f"❌ 추가 모드 준비 실패: {e}")
             return False
 
     def load_artists(self):
@@ -326,9 +300,9 @@ class CSVToMySQLLoader:
             print("🚀 CSV → MySQL 데이터 로드 시작")
             print("="*60)
             
-            # 로드 순서 (Foreign Key 의존성 고려)
+            # 로드 순서 (Foreign Key 의존성 고려) - 추가 모드
             load_steps = [
-                ("기존 데이터 삭제", self.clear_data_tables),
+                ("추가 모드 준비", self.prepare_append_mode),
                 ("Artists 로드", self.load_artists),
                 ("Concerts 로드", self.load_concerts), 
                 ("Songs 로드", self.load_songs),

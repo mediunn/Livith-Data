@@ -144,8 +144,12 @@ class Stage1_FetchKopisData:
                     print("\n❌ 취소되었습니다.")
                     return None
         else:
-            # 전체 모드: 모든 내한공연 처리
-            concert_details = all_concert_details
+            # 전체 모드: 데이터 검토 및 필터링
+            concert_details = Stage1_FetchKopisData._review_and_filter_concerts(all_concert_details)
+            
+            if not concert_details:
+                print("❌ 처리할 콘서트가 없습니다.")
+                return None
             
             # 콘서트 목록 표시
             Stage1_FetchKopisData._show_concerts([c for c in concert_details if c['status'] == '02'], "🔴 공연 중")
@@ -200,6 +204,100 @@ class Stage1_FetchKopisData:
                     logger.warning(f"{filename} 로드 실패: {e}")
         
         return existing_codes
+    
+    @staticmethod
+    def _review_and_filter_concerts(all_concert_details):
+        """내한공연 목록을 5개씩 페이지네이션하여 검토하고 제외할 항목 선택"""
+        print("\n" + "=" * 60)
+        print("📋 내한공연 데이터 검토")
+        print("=" * 60)
+        print(f"총 {len(all_concert_details)}개의 내한공연이 발견되었습니다.")
+        print("5개씩 표시됩니다. 제외할 콘서트가 있으면 번호를 입력하세요.")
+        print("=" * 60)
+        
+        excluded_indices = set()
+        page_size = 5
+        total_pages = (len(all_concert_details) + page_size - 1) // page_size
+        
+        for page in range(total_pages):
+            start_idx = page * page_size
+            end_idx = min(start_idx + page_size, len(all_concert_details))
+            
+            print(f"\n📄 페이지 {page + 1}/{total_pages} (전체 {len(all_concert_details)}개 중 {start_idx + 1}-{end_idx}번)")
+            print("-" * 60)
+            
+            # 현재 페이지의 콘서트 표시
+            for i in range(start_idx, end_idx):
+                concert = all_concert_details[i]
+                status_icon = "🔴" if concert['status'] == '02' else "🟡" if concert['status'] == '01' else "🟢"
+                
+                # 날짜 포맷팅
+                start_date = concert['start_date']
+                if len(start_date) == 8:
+                    date_str = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:8]}"
+                else:
+                    date_str = start_date
+                
+                # 제외된 항목 표시
+                excluded_mark = " ❌ [제외됨]" if i in excluded_indices else ""
+                
+                print(f"{i + 1:3d}. {status_icon} {concert['title'][:35]:<35} | {concert['artist'][:25]:<25} | {date_str}{excluded_mark}")
+            
+            print("-" * 60)
+            
+            # 사용자 입력 처리
+            while True:
+                try:
+                    user_input = input("\n제외할 번호를 입력하세요 (쉼표로 구분, Enter: 다음 페이지, 'b': 이전 페이지, 'f': 완료): ").strip()
+                    
+                    if user_input.lower() == 'f':
+                        # 검토 완료
+                        filtered_concerts = [c for i, c in enumerate(all_concert_details) if i not in excluded_indices]
+                        print(f"\n✅ 검토 완료: {len(all_concert_details)}개 중 {len(excluded_indices)}개 제외, {len(filtered_concerts)}개 처리 예정")
+                        return filtered_concerts
+                    
+                    elif user_input.lower() == 'b':
+                        # 이전 페이지
+                        if page > 0:
+                            page -= 2  # for 루프에서 +1 되므로 -2
+                            break
+                        else:
+                            print("⚠️  첫 페이지입니다.")
+                    
+                    elif user_input == '':
+                        # 다음 페이지
+                        break
+                    
+                    else:
+                        # 제외할 번호 처리
+                        numbers = [n.strip() for n in user_input.split(',') if n.strip()]
+                        for num_str in numbers:
+                            try:
+                                num = int(num_str) - 1  # 0-based index로 변환
+                                if 0 <= num < len(all_concert_details):
+                                    if num in excluded_indices:
+                                        excluded_indices.remove(num)
+                                        print(f"↩️  {num + 1}번 복원됨")
+                                    else:
+                                        excluded_indices.add(num)
+                                        print(f"❌ {num + 1}번 제외됨")
+                                else:
+                                    print(f"⚠️  {num_str}번은 유효하지 않은 번호입니다.")
+                            except ValueError:
+                                print(f"⚠️  '{num_str}'는 올바른 숫자가 아닙니다.")
+                        break
+                        
+                except KeyboardInterrupt:
+                    print("\n❌ 검토가 취소되었습니다.")
+                    return None
+                except Exception as e:
+                    print(f"❌ 오류 발생: {e}")
+                    continue
+        
+        # 모든 페이지 검토 완료
+        filtered_concerts = [c for i, c in enumerate(all_concert_details) if i not in excluded_indices]
+        print(f"\n✅ 검토 완료: {len(all_concert_details)}개 중 {len(excluded_indices)}개 제외, {len(filtered_concerts)}개 처리 예정")
+        return filtered_concerts
     
     @staticmethod
     def _show_concerts(concerts, status_name, max_show=3):

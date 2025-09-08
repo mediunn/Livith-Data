@@ -2,6 +2,10 @@
 """
 Musixmatch API를 사용하여 가사를 업데이트하는 스크립트
 """
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import logging
 from src.lyrics_updater import LyricsUpdater
 

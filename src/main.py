@@ -125,6 +125,9 @@ def main():
             run_status_update()
             return
         
+        # 출력 모드 설정 (OUTPUT_MODE 환경변수 확인)
+        Config.set_output_mode()
+        
         # 환경변수 검증
         try:
             Config.validate()

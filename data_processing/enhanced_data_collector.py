@@ -53,22 +53,33 @@ class EnhancedDataCollector:
             poster=kopis_concert.get('poster', ''),
             ticket_site=ticket_info.get('site', ''),
             ticket_url=ticket_info.get('url', ''),
-            venue=kopis_concert.get('venue', ''),
+            venue=self._clean_venue_name(kopis_concert.get('venue', '')),
             label=label_intro_info.get('label', ''),
             introduction=label_intro_info.get('introduction', '')
         )
         
-        # 상세 데이터 수집 (보완된 아티스트명 사용)
-        # 셋리스트 생성 (공연 상태에 따라)
-        setlists = self._collect_setlists(concert_title, final_artist_name, status)
+        # 상세 데이터 수집 - CSV 파일별로 하나씩 순차적으로 수집
+        logger.info("=" * 50)
+        logger.info(f"상세 데이터 수집 시작: {concert_title}")
+        logger.info("=" * 50)
         
-        # 셋리스트에 날짜와 장소 정보 추가
+        # 1. 셋리스트 정보 수집
+        logger.info("[1/8] 셋리스트 정보 수집 중...")
+        setlists = self._collect_setlists(concert_title, final_artist_name, status)
         for setlist in setlists:
             setlist.start_date = concert.start_date
             setlist.end_date = concert.end_date
             setlist.venue = concert.venue
+            setlist.img_url = concert.poster  # 콘서트 포스터를 셋리스트 이미지로 사용
+        time.sleep(Config.REQUEST_DELAY)
         
-        # 콘서트-셋리스트 연결 정보 생성
+        # 2. 곡 정보 수집
+        logger.info("[2/8] 곡 정보 수집 중...")
+        setlist_songs, songs = self._collect_songs_data(setlists, final_artist_name)
+        time.sleep(Config.REQUEST_DELAY)
+        
+        # 3. 콘서트-셋리스트 연결 정보 생성
+        logger.info("[3/8] 콘서트-셋리스트 연결 정보 생성 중...")
         concert_setlists = []
         for setlist in setlists:
             if "예상 셋리스트" in setlist.title:
@@ -86,15 +97,33 @@ class EnhancedDataCollector:
                     status=""
                 ))
         
-        # 곡 정보 수집
-        logger.info(f"곡 정보 수집 시작: {final_artist_name}")
-        setlist_songs, songs = self._collect_songs_data(setlists, final_artist_name)
+        # 4. 문화 정보 수집
+        logger.info("[4/8] 문화 정보 수집 중...")
+        cultures = self._collect_cultures(concert_title, final_artist_name, concert)
+        time.sleep(Config.REQUEST_DELAY)
         
-        cultures = self._collect_cultures(concert_title, final_artist_name)
+        # 5. 스케줄 정보 수집
+        logger.info("[5/8] 스케줄 정보 수집 중...")
         schedules = self._collect_schedules(concert_title, final_artist_name, concert.start_date, concert.end_date)
-        merchandise = self._collect_merchandise(concert_title, final_artist_name)
+        time.sleep(Config.REQUEST_DELAY)
+        
+        # 6. 콘서트 상세 정보 수집
+        logger.info("[6/7] 콘서트 상세 정보 수집 중...")
         concert_info = self._collect_concert_info(concert_title, final_artist_name)
+        time.sleep(Config.REQUEST_DELAY)
+        
+        # 7. 아티스트 정보 수집
+        logger.info("[7/7] 아티스트 정보 수집 중...")
         artist_info = self._collect_artist_info(final_artist_name)
+        time.sleep(Config.REQUEST_DELAY)
+        
+        # 9. 장르 정보 수집
+        logger.info("[보너스] 장르 정보 수집 중...")
+        concert_genres = self._collect_concert_genres(concert_title, final_artist_name)
+        
+        logger.info("=" * 50)
+        logger.info(f"상세 데이터 수집 완료: {concert_title}")
+        logger.info("=" * 50)
         
         return {
             'concert': concert,
@@ -104,9 +133,9 @@ class EnhancedDataCollector:
             'songs': songs,
             'cultures': cultures,
             'schedules': schedules,
-            'merchandise': merchandise,
             'concert_info': concert_info,
-            'artist': artist_info
+            'artist': artist_info,
+            'concert_genres': concert_genres
         }
     
     @staticmethod
@@ -144,7 +173,7 @@ class EnhancedDataCollector:
                 title=f"{concert_title} 예상 셋리스트",
                 start_date="",  # 나중에 콘서트 정보에서 채움
                 end_date="",    # 나중에 콘서트 정보에서 채움
-                img_url="",
+                img_url="",     # 나중에 콘서트 포스터로 채움
                 artist=artist_name,
                 venue=""
             ))
@@ -156,7 +185,7 @@ class EnhancedDataCollector:
                 title=f"{concert_title} 실제 셋리스트",
                 start_date="",  # 나중에 콘서트 정보에서 채움
                 end_date="",    # 나중에 콘서트 정보에서 채움  
-                img_url="",
+                img_url="",     # 나중에 콘서트 포스터로 채움
                 artist=artist_name,
                 venue=""
             ))
@@ -168,7 +197,7 @@ class EnhancedDataCollector:
                 title=f"{concert_title} 예상 셋리스트",
                 start_date="",
                 end_date="",
-                img_url="",
+                img_url="",     # 나중에 콘서트 포스터로 채움
                 artist=artist_name,
                 venue=""
             ))
@@ -184,37 +213,17 @@ class EnhancedDataCollector:
     
     def _collect_songs_data(self, setlists: List[Setlist], artist_name: str) -> Tuple[List[SetlistSong], List[Song]]:
         """곡 정보 수집 - 예상 셋리스트와 예전 셋리스트 모두 수집"""
+        logger.info(f"_collect_songs_data 시작: setlists 수={len(setlists)}, artist={artist_name}")
         all_setlist_songs = []
         all_songs = []
         valid_setlists = []  # 유효한 셋리스트만 저장
         
-        for setlist in setlists:
+        for i, setlist in enumerate(setlists):
+            logger.info(f"셋리스트 처리 중 [{i+1}/{len(setlists)}]: {setlist.title}")
             # 예상 셋리스트인지 과거 셋리스트인지 확인
             if "예상 셋리스트" in setlist.title:
                 # 예상 셋리스트 수집 - 무조건 15곡 이상 생성
-                prompt = f"""🚨 중요: {artist_name}의 콘서트 예상 셋리스트를 15곡 이상 반드시 만들어주세요! 🚨
-
-⭐ 필수 규칙: 아티스트명 통일 ⭐
-- 모든 artist 필드는 반드시 "{artist_name}" 그대로 사용 (절대 변경 금지)
-- 다른 표기나 영문명으로 변경하지 말 것
-
-다음을 기반으로 정확히 15-20곡을 작성해야 합니다:
-1. {artist_name}의 대표 히트곡 5곡 이상
-2. 최신/인기 앨범 수록곡 3곡 이상  
-3. 팬들이 가장 사랑하는 곡 3곡 이상
-4. 콘서트 정규 레퍼토리 4곡 이상
-
-⚠️ 절대 준수 사항:
-- 곡 개수는 최소 15개, 최대 20개 (이 범위를 벗어나면 안 됩니다!)
-- song_title과 title 필드는 절대 빈 문자열이면 안 됩니다
-- 모든 곡은 {artist_name}의 실제 곡이어야 합니다
-- order_index는 1부터 순서대로 매기세요
-- artist 필드는 항상 "{artist_name}"으로 통일
-
-JSON 응답 형식 (정확히 이 구조로):
-{{"setlist_songs": [{{"setlist_title": "{setlist.title}", "song_title": "곡제목1", "setlist_date": "{setlist.start_date}", "order_index": 1, "fanchant": "", "venue": "{setlist.venue}"}}, {{"setlist_title": "{setlist.title}", "song_title": "곡제목2", "setlist_date": "{setlist.start_date}", "order_index": 2, "fanchant": "", "venue": "{setlist.venue}"}}, ... (15-20개까지)], "songs": [{{"title": "곡제목1", "artist": "{artist_name}", "lyrics": "", "pronunciation": "", "translation": "", "youtube_id": ""}}, {{"title": "곡제목2", "artist": "{artist_name}", "lyrics": "", "pronunciation": "", "translation": "", "youtube_id": ""}}, ... (15-20개까지)]}}
-
-15곡 미만으로 응답하면 오류입니다! JSON만 반환하세요."""
+                prompt = DataCollectionPrompts.get_expected_setlist_prompt(artist_name, setlist.title)
             elif "실제 셋리스트" in setlist.title:
                 # 실제 셋리스트 수집 - 완료된 공연의 실제 연주곡 검색
                 search_artist = ArtistNameMapper.get_optimal_search_name(artist_name)
@@ -231,48 +240,7 @@ JSON 응답 형식 (정확히 이 구조로):
                 
                 search_terms_str = " OR ".join(search_terms) if search_terms else f'"{artist_name}"'
                 
-                prompt = f"""다음 아티스트의 콘서트에서 실제로 연주한 셋리스트를 전 세계적으로 검색해주세요.
-
-⭐ 필수 규칙: 아티스트명 통일 ⭐
-- 모든 artist 필드는 반드시 "{artist_name}" 그대로 사용 (절대 변경 금지)
-- 다른 표기나 영문명으로 변경하지 말 것
-
-아티스트 정보:
-- 원어명: {english_name if english_name else "없음"}  
-- 최적 검색명: {search_artist}
-
-검색 키워드: {search_terms_str}
-
-검색 대상 (우선순위):
-1. setlist.fm - {search_artist} 공연 기록 (전 세계 어디든)
-2. 해외 음악 사이트 - {search_artist} recent concert setlists 
-3. 해외 콘서트 리뷰 - {search_artist} live performance reviews
-4. 팬 사이트 - {search_artist} tour setlists worldwide
-5. 유튜브 콘서트 영상 - {search_artist} live concert full show
-6. 음악 매거진 - {search_artist} concert reviews and setlists
-
-추가 검색 키워드 (모두 시도):
-- "{search_artist} setlist 2024"
-- "{search_artist} concert setlist recent"  
-- "{search_artist} tour songs list"
-- "{search_artist} live performance tracklist"
-- "{english_name} setlist" (영어명이 있는 경우)
-- "{korean_name} 셋리스트" (한국어명이 있는 경우)
-
-중요 규칙:
-- 한국 공연에 국한하지 말고 전 세계 최신 공연 기록을 우선 검색하세요
-- setlist.fm은 가장 신뢰할 수 있는 출처이므로 우선적으로 활용하세요
-- 여러 언어로 검색하여 더 많은 정보를 찾으세요
-- 실제 공연에서 연주된 곡 목록을 찾지 못하면 {search_artist}의 히트곡과 대표곡으로 구성하세요
-- 최소 10곡 이상 포함해주세요
-- 모든 song_title 필드에 실제 곡 제목을 반드시 넣어주세요
-- song_title이 비어있으면 안 되며, 찾지 못했을 경우 데이터를 추가하지 마세요.
-- artist 필드는 항상 "{artist_name}"으로 통일
-
-JSON 형식으로만 답변:
-{{"setlist_songs": [{{"setlist_title": "{setlist.title}", "song_title": "실제 곡 제목 (비워두지 마세요)", "setlist_date": "{setlist.start_date}", "order_index": 1, "fanchant": "", "venue": "{setlist.venue}"}}], "songs": [{{"title": "실제 곡 제목 (비워두지 마세요)", "artist": "{artist_name}", "lyrics": "", "pronunciation": "", "translation": "", "youtube_id": ""}}]}}
-
-JSON만 반환하세요."""
+                prompt = DataCollectionPrompts.get_actual_setlist_prompt(artist_name, setlist.title, setlist.venue, setlist.start_date)
             
             # 셋리스트 수집
             logger.info(f"셋리스트 수집 중: {setlist.title}")
@@ -282,8 +250,17 @@ JSON만 반환하세요."""
             setlist_songs, songs = [], []
             
             for attempt in range(max_retries):
+                logger.info(f"API 호출 중 (시도 {attempt + 1}/{max_retries})...")
                 response = self.api.query_with_search(prompt, context="셋리스트 수집")
-                setlist_songs, songs = self._parse_and_validate_songs(response, setlist, artist_name)
+                logger.info(f"API 응답 받음, 파싱 시작...")
+                try:
+                    setlist_songs, songs = self._parse_and_validate_songs(response, setlist, artist_name)
+                    logger.info(f"파싱 완료: setlist_songs={len(setlist_songs)}, songs={len(songs)}")
+                except Exception as e:
+                    import traceback
+                    logger.error(f"파싱 중 오류 발생: {e}")
+                    logger.error(f"스택 트레이스: {traceback.format_exc()}")
+                    setlist_songs, songs = [], []
                 
                 # 예상 셋리스트는 10곡 이상일 때 성공으로 간주
                 if "예상 셋리스트" in setlist.title:
@@ -299,20 +276,21 @@ JSON만 반환하세요."""
                     # 과거 셋리스트는 첫 시도만
                     break
             
-            # 셋리스트 유형에 따른 처리
+            # 셋리스트 유형에 따른 처리 - 모든 셋리스트 10곡 이상 기준
             if "예상 셋리스트" in setlist.title:
-                # 예상 셋리스트는 곡이 적어도 항상 포함
-                all_setlist_songs.extend(setlist_songs)
-                all_songs.extend(songs)
-                valid_setlists.append(setlist)
-                if len(songs) >= 15:
-                    logger.info(f"✅ 예상 셋리스트 {len(songs)}곡 수집 완료 (목표 달성)")
-                elif len(songs) >= 10:
-                    logger.warning(f"⚠️ 예상 셋리스트 {len(songs)}곡 수집 완료 (목표 미달성이지만 허용)")
+                # 예상 셋리스트는 10곡 이상일 때만 포함
+                if len(songs) >= 10:
+                    all_setlist_songs.extend(setlist_songs)
+                    all_songs.extend(songs)
+                    valid_setlists.append(setlist)
+                    if len(songs) >= 15:
+                        logger.info(f"✅ 예상 셋리스트 {len(songs)}곡 수집 완료 (목표 달성)")
+                    else:
+                        logger.warning(f"⚠️ 예상 셋리스트 {len(songs)}곡 수집 완료 (최소 기준 충족)")
                 else:
-                    logger.error(f"❌ 예상 셋리스트 {len(songs)}곡만 수집됨 (목표 크게 미달성)")
+                    logger.error(f"❌ 예상 셋리스트 곡이 {len(songs)}개로 10곡 미만, 제외")
             elif "실제 셋리스트" in setlist.title:
-                # 실제 셋리스트는 10곡 이상일 때만 추가
+                # 실제 셋리스트도 10곡 이상일 때만 추가
                 if len(songs) >= 10:
                     all_setlist_songs.extend(setlist_songs)
                     all_songs.extend(songs)
@@ -321,7 +299,7 @@ JSON만 반환하세요."""
                 else:
                     logger.warning(f"실제 셋리스트 곡이 10개 미만 ({len(songs)}개), 제외")
             else:
-                # 기타 (호환성용)
+                # 기타 (호환성용) - 10곡 이상 기준
                 if len(songs) >= 10:
                     all_setlist_songs.extend(setlist_songs)
                     all_songs.extend(songs)
@@ -338,117 +316,65 @@ JSON만 반환하세요."""
         
         return all_setlist_songs, all_songs
     
-    def _collect_cultures(self, concert_title: str, artist_name: str) -> List[Culture]:
+    def _collect_cultures(self, concert_title: str, artist_name: str, concert) -> List[Culture]:
         """문화 정보 수집"""
-        prompt = f"""{artist_name}의 "{concert_title}" 콘서트만의 독특하고 고유한 문화적 특징을 검색해주세요.
-
-다음과 같은 고유한 특징들을 우선적으로 찾아주세요:
-- 이 아티스트만의 특별한 응원 방법이나 팬 문화 (특정 구호, 손동작, 응원 도구 등)
-- 이 아티스트 콘서트에서만 볼 수 있는 독특한 순간이나 전통
-- 팬들이 특별히 준비하는 이 공연만의 복장이나 아이템
-- 이 아티스트와 팬 사이의 특별한 소통 방식이나 약속
-- 공연 장르나 스타일로 인한 독특한 관람 문화
-- 해당 공연장에서만 경험할 수 있는 특별한 분위기나 특징
-- 이 공연에서 금지되거나 권장되는 특별한 행동들
-- 팬들 사이에서 전해지는 이 공연만의 숨겨진 팁이나 관례
-
-일반적인 티켓팅 정보나 기본 공연장 정보는 제외하고, 오직 이 공연만의 고유하고 특별한 문화적 요소만 찾아주세요.
-
-응답 작성 규칙:
-- 말투는 반드시 해요체로 통일해주세요 (예: "~이에요", "~해요", "~돼요")
-- 출처나 참조 표시는 절대 포함하지 마세요 ([출처:], [1], [2], URL 등 제외)
-- "정보를 찾을 수 없습니다"라고 답하지 말고, 비슷한 장르나 아티스트의 일반적인 문화라도 유추해서 제공해주세요
-- 구체적이고 흥미로운 정보만 포함해주세요
-
-JSON 형식으로만 답변:
-[{{"concert_title": "{concert_title}", "title": "고유 문화 특징 제목", "content": "구체적이고 흥미로운 해요체 설명"}}]
-
-JSON 배열만 반환하세요."""
+        prompt = DataCollectionPrompts.get_culture_info_prompt(artist_name, concert_title, concert)
         
-        response = self.api.query_with_search(prompt, context="팬 문화 수집")
+        # JSON 형식 강제를 위해 query_json 사용
+        json_prompt = f"{prompt}\n\n중요: 반드시 유효한 JSON 배열 형식으로만 응답하세요. 설명이나 추가 텍스트는 포함하지 마세요."
+        response = self.api.query_json(json_prompt)
         return self._parse_cultures(response, concert_title)
     
     def _collect_schedules(self, concert_title: str, artist_name: str, start_date: str, end_date: str) -> List[Schedule]:
         """스케줄 정보 수집"""
-        prompt = f"""{artist_name}의 "{concert_title}" 콘서트 관련 모든 일정을 {start_date}부터 {end_date}까지 검색해주세요.
-
-다음 모든 종류의 일정을 찾아주세요:
-1. 티켓팅 관련:
-   - 일반예매 시작
-   - 팬클럽 선예매 
-   - 추가 티켓팅
-   - 현장 판매
-
-2. 공연 관련:
-   - 공연 시간 (각 회차별로)
-   - 입장 시간
-   - 리허설 또는 사운드체크
-
-3. 굿즈 관련:
-   - 당일 MD 구매 시간
-   - 사전 굿즈 판매
-
-4. 기타:
-   - 만남의 시간 (팬미팅)
-   - 특별 이벤트
-
-공연 일정 카테고리 작성 규칙:
-- 하루 공연: "{artist_name} 콘서트"
-- 여러 날: "{artist_name} 1일차 콘서트", "{artist_name} 2일차 콘서트"
-- 날짜 표시는 빼고 작성하세요
-
-중요:
-- scheduled_at 필드는 반드시 채워주세요
-- 정확한 시간을 아는 경우: YYYY-MM-DD HH:MM:SS 형식
-- 시간을 모르는 경우: YYYY-MM-DD 형식 (날짜만)
-- scheduled_at이 비어있으면 그 데이터는 제외됩니다
-- 추정하지 말고 실제 정보만 사용하세요
-
-JSON 형식으로만 답변:
-[{{"concert_title": "{concert_title}", "category": "일정 카테고리 (예: 티켓팅, {artist_name} 콘서트)", "scheduled_at": "YYYY-MM-DD HH:MM:SS 또는 YYYY-MM-DD (반드시 채우기)"}}]
-
-JSON 배열만 반환하세요."""
+        prompt = DataCollectionPrompts.get_schedule_info_prompt(artist_name, concert_title, start_date, end_date)
         
         response = self.api.query_with_search(prompt)
-        return self._parse_schedules(response, concert_title)
+        schedules = self._parse_schedules(response, concert_title)
+        
+        # 스케줄을 찾지 못한 경우 기본 콘서트 스케줄 추가
+        if not schedules:
+            schedules.append(Schedule(
+                concert_title=concert_title,
+                category="콘서트",
+                scheduled_at=start_date
+            ))
+            logger.info(f"기본 콘서트 스케줄 생성: {start_date}")
+        
+        return schedules
     
     def _collect_merchandise(self, concert_title: str, artist_name: str) -> List[Merchandise]:
         """MD 상품 정보 수집"""
-        prompt = f""""{artist_name}"의 "{concert_title}" 콘서트 굿즈 판매 현황과 한정판 정보를 검색해주세요:
-
-JSON 형식으로만 답변:
-[{{"concert_title": "{concert_title}", "name": "상품명", "price": "원화 가격 (예: 35,000)", "img_url": "상품 이미지 URL"}}]
-
-굿즈 정보를 찾을 수 없는 경우 빈 배열 []로 응답하세요."""
+        prompt = DataCollectionPrompts.get_merchandise_prompt(artist_name, concert_title)
         
-        response = self.api.query_with_search(prompt)
+        # JSON 형식 강제를 위해 query_json 사용
+        json_prompt = f"{prompt}\n\n중요: 반드시 유효한 JSON 배열 형식으로만 응답하세요."
+        response = self.api.query_json(json_prompt)
         return self._parse_merchandise(response, concert_title)
+    
+    def _collect_concert_genres(self, concert_title: str, artist_name: str) -> List[ConcertGenre]:
+        """콘서트 장르 정보 수집"""
+        prompt = DataCollectionPrompts.get_concert_genre_prompt(artist_name, concert_title)
+        
+        response = self.api.query_with_search(prompt, context="장르 분류")
+        return self._parse_concert_genres(response, concert_title)
     
     def _collect_concert_info(self, concert_title: str, artist_name: str) -> List[ConcertInfo]:
         """콘서트 정보 수집"""
-        prompt = f"""{artist_name}의 "{concert_title}" 콘서트의 중요한 정보를 검색해주세요.
-
-다음과 같은 실용적인 정보를 찾아주세요:
-- 공연장 정보와 좌석 배치
-- 공연 관람 규칙과 주의사항
-- 입장 및 퇴장 안내
-- 주차 및 교통 정보
-- 음식물 반입 규정
-- 기타 관람객이 알아야 할 정보
-
-중요 규칙:
-- content는 반드시 해요체(~해요, ~이에요, ~돼요)로 작성해주세요
-- content가 비어있거나 "정보를 찾을 수 없습니다" 같은 내용이면 해당 항목을 아예 포함하지 마세요
-- 실제로 유용한 정보가 있는 항목만 반환하세요
-- content는 최소 10자 이상의 의미 있는 내용이어야 합니다
-
-JSON 형식으로만 답변:
-[{{"concert_title": "{concert_title}", "category": "정보 카테고리", "content": "실제로 유용한 해요체 설명 (10자 이상)", "img_url": "관련 이미지URL 또는 빈문자열"}}]
-
-JSON 배열만 반환하세요."""
+        logger.info(f"콘서트 정보 수집 시작: {artist_name} - {concert_title}")
+        prompt = DataCollectionPrompts.get_concert_info_prompt(artist_name, concert_title)
         
-        response = self.api.query_with_search(prompt)
-        return self._parse_concert_info(response, concert_title)
+        # JSON 형식 강제를 위해 query_json 사용
+        json_prompt = f"{prompt}\n\n중요: 반드시 유효한 JSON 배열 형식으로만 응답하세요."
+        logger.debug(f"콘서트 정보 프롬프트: {json_prompt[:500]}...")
+        
+        response = self.api.query_json(json_prompt)
+        logger.info(f"콘서트 정보 API 응답 받음: {type(response)}, 길이: {len(response) if isinstance(response, (list, dict)) else len(str(response))}")
+        logger.debug(f"콘서트 정보 응답 내용: {response}")
+        
+        result = self._parse_concert_info(response, concert_title)
+        logger.info(f"콘서트 정보 파싱 결과: {len(result)}개 항목")
+        return result
     
     def _collect_artist_info(self, artist_name: str) -> Optional[Artist]:
         """아티스트 정보 수집"""
@@ -492,21 +418,7 @@ JSON 배열만 반환하세요."""
     def collect_merchandise_data(self, concert: Concert) -> List[Dict[str, str]]:
         """콘서트의 굿즈(merchandise) 정보를 수집합니다."""
         
-        prompt = f"""
-"{concert.artist}"의 "{concert.title}" 콘서트 공식 굿즈 판매 현황과 한정판 정보를 검색해주세요.
-
-JSON 배열로만 응답 (다른 텍스트 절대 포함 금지):
-[
-    {{
-        "concert_title": "{concert.title}",
-        "name": "정확한 상품명 (예: 공식 투어 티셔츠)",
-        "price": "정확한 원화 가격 (예: 35,000)",
-        "img_url": "실제 상품 이미지 URL"
-    }}
-]
-
-굿즈를 찾을 수 없으면 빈 배열 []로 응답하세요.
-"""
+        prompt = DataCollectionPrompts.get_merchandise_prompt(concert.artist, concert.title)
         
         try:
             response = self.api.query_with_search(prompt)
@@ -629,25 +541,25 @@ JSON 배열로만 응답 (다른 텍스트 절대 포함 금지):
         return items[:3]  # 최대 3개까지만 반환
     
     def _ensure_artist_name(self, concert_title: str, original_artist: str) -> str:
-        """퍼플렉시티 API로 아티스트 정보 검색 후 fallback 로직 적용"""
-        # 1순위: 퍼플렉시티로 아티스트 정보 검색
-        searched_artist = self._search_artist_from_concert(concert_title)
+        """AI 검색으로만 아티스트 정보 검색 - fallback 로직 제거"""
+        # AI 검색으로 아티스트 정보 검색 (최대 3번 재시도)
+        for attempt in range(3):
+            searched_artist = self._search_artist_from_concert(concert_title)
+            
+            if searched_artist and len(searched_artist) > 1:
+                logger.info(f"AI 검색으로 아티스트 발견 (시도 {attempt + 1}/3): '{concert_title}' -> '{searched_artist}'")
+                return searched_artist
+            
+            logger.warning(f"AI 아티스트 검색 실패, 재시도 {attempt + 1}/3")
         
-        if searched_artist:
-            logger.info(f"퍼플렉시티 검색으로 아티스트 발견: '{concert_title}' -> '{searched_artist}'")
-            return searched_artist
+        # 모든 시도 실패 시 KOPIS 원본 데이터 사용
+        if original_artist and original_artist.strip():
+            logger.warning(f"AI 검색 완전 실패, KOPIS 원본 데이터 사용: '{original_artist}'")
+            return original_artist.strip()
         
-        # 2순위: 콘서트 제목에서 아티스트 정보 추출 (fallback)
-        extracted_artist = self._extract_artist_from_title(concert_title)
-        
-        if extracted_artist:
-            logger.info(f"콘서트 제목에서 아티스트 추출 (fallback): '{concert_title}' -> '{extracted_artist}'")
-            return extracted_artist
-        
-        # 3순위: 콘서트 제목을 기반으로 추정
-        fallback_artist = self._generate_fallback_artist(concert_title)
-        logger.warning(f"아티스트 정보 추출 실패, 추정값 사용: '{concert_title}' -> '{fallback_artist}'")
-        return fallback_artist
+        # 최후의 수단: 콘서트 제목 정리해서 사용
+        logger.error(f"모든 아티스트 정보 수집 실패, 콘서트 제목 사용: '{concert_title}'")
+        return concert_title.replace("[서울]", "").replace("내한공연", "").strip()
 
     def _extract_artist_from_title(self, concert_title: str) -> Optional[str]:
         """콘서트 제목에서 아티스트명 추출"""
@@ -793,22 +705,7 @@ JSON 배열로만 응답 (다른 텍스트 절대 포함 금지):
                 return kopis_clean
         
         # KOPIS 정보가 없거나 이상한 경우 퍼플렉시티로 검색
-        prompt = f""""{concert_title}" 콘서트의 정확한 아티스트/밴드/그룹 이름을 찾아주세요.
-
-현재 정보:
-- 콘서트명: {concert_title}
-- KOPIS 아티스트: {kopis_artist if kopis_artist else '없음'}
-- 추출된 이름: {artist_name}
-
-⚠️ 중요:
-- 밴드/그룹의 정식 이름을 찾아주세요 (멤버 이름 나열 X)
-- "원어표기 (한국어표기)" 형식으로 작성
-- 예: "Oasis (오아시스)", "BTS (방탄소년단)"
-
-JSON 형식으로만 답변:
-{{"artist_display": "정확한 밴드/그룹/아티스트명"}}
-
-JSON만 반환하세요."""
+        prompt = DataCollectionPrompts.get_artist_display_prompt(concert_title, artist_name, kopis_artist if kopis_artist else "")
         
         try:
             response = self.api.query_with_search(prompt)
@@ -910,6 +807,21 @@ JSON만 반환하세요."""
             logger.error(f"날짜 상태 결정 실패: {e}")
             return "PAST"  # 기본값
 
+    def _clean_venue_name(self, venue: str) -> str:
+        """장소명에서 괄호 안의 내용 제거"""
+        if not venue:
+            return ""
+        
+        import re
+        # 괄호와 그 안의 내용 제거 (소괄호, 대괄호 모두)
+        cleaned = re.sub(r'\([^)]*\)', '', venue)  # (내용) 제거
+        cleaned = re.sub(r'\[[^\]]*\]', '', cleaned)  # [내용] 제거
+        
+        # 연속된 공백 정리
+        cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+        
+        return cleaned
+    
     def _format_date(self, date_str: str) -> str:
         """날짜 형식 변환 (YYYY.MM.DD -> YYYY-MM-DD)"""
         if not date_str:
@@ -1040,27 +952,70 @@ JSON만 반환하세요."""
         return default_setlists
     
     def _parse_and_validate_songs(self, response: str, setlist: Setlist, artist_name: str) -> Tuple[List[SetlistSong], List[Song]]:
-        """곡 데이터를 파싱하고 song_title이 비어있지 않은 것만 반환"""
+        """곡 데이터를 파싱하고 songs와 setlist_songs 데이터를 동기화하여 반환"""
         try:
+            logger.info(f"_parse_and_validate_songs 시작: setlist={setlist.title}, artist={artist_name}")
             json_str = self._extract_json_from_response(response, '{', '}')
             if json_str:
                 data = json.loads(json_str)
                 
-                # song_title이 있는 것만 필터링
+                # setlist_songs 데이터를 먼저 파싱
                 valid_setlist_songs = []
+                setlist_song_titles = set()  # 중복 제거용
+                
                 for item in data.get('setlist_songs', []):
                     if isinstance(item, dict) and item.get('song_title', '').strip():
-                        valid_setlist_songs.append(SetlistSong(**item))
+                        current_song_title = item.get('song_title', '').strip()
+                        if current_song_title not in setlist_song_titles:
+                            # 모든 셋리스트에 대해 콘서트 날짜로 setlist_date 수정
+                            if hasattr(setlist, 'start_date') and setlist.start_date:
+                                item['setlist_date'] = setlist.start_date
+                            valid_setlist_songs.append(SetlistSong(**item))
+                            setlist_song_titles.add(current_song_title)
                 
-                # title이 있는 것만 필터링
+                # songs 데이터를 setlist_songs와 동기화하여 생성
                 valid_songs = []
+                song_titles = set()  # 중복 제거용
+                
+                # 1. setlist_songs에 있는 곡들을 기반으로 songs 생성
+                for setlist_song in valid_setlist_songs:
+                    target_song_title = setlist_song.song_title
+                    if target_song_title not in song_titles:
+                        # songs 배열에서 해당 곡 찾기
+                        song_data = None
+                        for item in data.get('songs', []):
+                            if isinstance(item, dict) and item.get('title', '').strip() == target_song_title:
+                                song_data = item
+                                break
+                        
+                        # 찾지 못한 경우 기본 Song 객체 생성
+                        if not song_data:
+                            song_data = {
+                                'title': target_song_title,
+                                'artist': artist_name,
+                                'lyrics': '',
+                                'pronunciation': '',
+                                'translation': '',
+                                'youtube_id': ''
+                            }
+                        
+                        valid_songs.append(Song(**song_data))
+                        song_titles.add(target_song_title)
+                
+                # 2. songs 배열에만 있고 setlist_songs에 없는 곡들도 추가 (기존 데이터 호환성)
                 for item in data.get('songs', []):
                     if isinstance(item, dict) and item.get('title', '').strip():
-                        valid_songs.append(Song(**item))
+                        additional_song_title = item.get('title', '').strip()
+                        if additional_song_title not in song_titles:
+                            valid_songs.append(Song(**item))
+                            song_titles.add(additional_song_title)
                 
+                logger.info(f"동기화된 곡 데이터: setlist_songs={len(valid_setlist_songs)}, songs={len(valid_songs)}")
                 return valid_setlist_songs, valid_songs
         except Exception as e:
+            import traceback
             logger.error(f"곡 데이터 파싱 실패: {e}")
+            logger.error(f"스택 트레이스: {traceback.format_exc()}")
         
         return [], []
     
@@ -1068,41 +1023,70 @@ JSON만 반환하세요."""
         """기존 함수 - 호환성을 위해 유지"""
         return self._parse_and_validate_songs(response, setlist, artist_name)
     
-    def _parse_cultures(self, response: str, concert_title: str) -> List[Culture]:
+    def _parse_cultures(self, response, concert_title: str) -> List[Culture]:
         try:
-            json_str = self._extract_json_from_response(response, '[', ']')
-            if json_str:
-                data = json.loads(json_str)
-                cultures = []
-                for item in data:
-                    if isinstance(item, dict):
-                        title = item.get('title', '').strip()
-                        content = item.get('content', item.get('description', '')).strip()
-                        
-                        # "정보를 찾을 수 없습니다" 관련 내용 필터링
-                        skip_keywords = [
-                            "정보를 찾을 수 없습니다", "찾을 수 없습니다", "확인할 수 없습니다",
-                            "검색 결과에서 확인되지 않았습니다", "공식적으로 공개된 내용을 찾을 수 없습니다",
-                            "구체적인 정보는 공식 채널에 명시되어 있지 않습니다"
-                        ]
-                        
-                        # 유효하지 않은 내용이면 건너뛰기
-                        if not title or not content or any(keyword in content for keyword in skip_keywords):
-                            continue
-                        
-                        # 출처 표시 제거
-                        content = self._remove_sources(content)
-                        
-                        # 말투 통일 (해요체)
-                        content = self._normalize_tone(content)
-                        
-                        culture_data = {
-                            'concert_title': item.get('concert_title', concert_title),
-                            'title': title,
-                            'content': content
-                        }
-                        cultures.append(Culture(**culture_data))
-                return cultures
+            # response가 이미 list인 경우 (query_json 응답)
+            if isinstance(response, list):
+                data = response
+            # response가 문자열인 경우 JSON 추출
+            elif isinstance(response, str):
+                # API 응답에서 불필요한 텍스트 제거
+                cleaned_response = response
+                # "Google Search를 통해" 같은 설명 텍스트 제거
+                if "Google Search" in cleaned_response or "검색하여" in cleaned_response:
+                    # JSON 배열 부분만 추출
+                    import re
+                    json_match = re.search(r'\[\s*\{[\s\S]*?\}\s*\]', cleaned_response)
+                    if json_match:
+                        json_str = json_match.group()
+                    else:
+                        json_str = self._extract_json_from_response(cleaned_response, '[', ']')
+                else:
+                    json_str = self._extract_json_from_response(cleaned_response, '[', ']')
+                
+                if json_str:
+                    data = json.loads(json_str)
+                else:
+                    logger.warning("JSON 추출 실패, 빈 리스트 반환")
+                    return []
+            else:
+                return []
+            
+            cultures = []
+            for item in data:
+                if isinstance(item, dict):
+                    title = item.get('title', '').strip()
+                    content = item.get('content', item.get('description', '')).strip()
+                    
+                    # "정보를 찾을 수 없습니다" 관련 내용 필터링
+                    skip_keywords = [
+                        "정보를 찾을 수 없습니다", "찾을 수 없습니다", "확인할 수 없습니다",
+                        "검색 결과에서 확인되지 않았습니다", "공식적으로 공개된 내용을 찾을 수 없습니다",
+                        "구체적인 정보는 공식 채널에 명시되어 있지 않습니다"
+                    ]
+                    
+                    # 유효하지 않은 내용이면 건너뛰기
+                    if not title or not content or any(keyword in content for keyword in skip_keywords):
+                        continue
+                    
+                    # Google Search 관련 텍스트 제거
+                    content = self._remove_search_artifacts(content)
+                    
+                    # 출처 표시 제거
+                    content = self._remove_sources(content)
+                    
+                    # 말투 통일 (해요체)
+                    content = self._normalize_tone(content)
+                    
+                    img_url = item.get('img_url', '').strip()
+                    culture_data = {
+                        'concert_title': item.get('concert_title', concert_title),
+                        'title': title,
+                        'content': content,
+                        'img_url': img_url
+                    }
+                    cultures.append(Culture(**culture_data))
+            return cultures
         except Exception as e:
             logger.error(f"문화 정보 파싱 실패: {e}")
         
@@ -1117,7 +1101,8 @@ JSON만 반환하세요."""
                 return [Culture(
                     concert_title=concert_title,
                     title="콘서트 관련 정보",
-                    content=content + "..." if len(response) > 500 else content
+                    content=content + "..." if len(response) > 500 else content,
+                    img_url=""
                 )]
         
         # 완전히 실패한 경우 해당 아티스트나 장르의 추정 문화 정보 제공
@@ -1126,12 +1111,14 @@ JSON만 반환하세요."""
                 Culture(
                     concert_title=concert_title,
                     title="인디 콘서트 특유의 친밀한 분위기",
-                    content="인디 아티스트들의 콘서트는 대형 공연장보다는 소규모 라이브하우스에서 열리는 경우가 많아, 아티스트와 관객 간의 거리가 가깝습니다. 공연 중 아티스트가 직접 관객과 대화하는 시간이 많고, 편안하고 자유로운 분위기에서 진행됩니다."
+                    content="인디 아티스트들의 콘서트는 대형 공연장보다는 소규모 라이브하우스에서 열리는 경우가 많아, 아티스트와 관객 간의 거리가 가깝습니다. 공연 중 아티스트가 직접 관객과 대화하는 시간이 많고, 편안하고 자유로운 분위기에서 진행됩니다.",
+                    img_url="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800"
                 ),
                 Culture(
                     concert_title=concert_title,
                     title="조용한 감상 문화",
-                    content="인디/얼터너티브 장르 특성상 서정적인 곡들이 많아, 팬들은 조용히 음악에 집중하며 감상하는 문화가 발달되어 있습니다. 큰 소리로 떼창하기보다는 가사에 집중하고, 아티스트의 감정을 함께 느끼는 것을 중요하게 생각합니다."
+                    content="인디/얼터너티브 장르 특성상 서정적인 곡들이 많아, 팬들은 조용히 음악에 집중하며 감상하는 문화가 발달되어 있습니다. 큰 소리로 떼창하기보다는 가사에 집중하고, 아티스트의 감정을 함께 느끼는 것을 중요하게 생각합니다.",
+                    img_url="https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=800"
                 )
             ]
         elif "jazz" in artist_name.lower() or "jazz" in concert_title.lower() or "알 디 메올라" in artist_name:
@@ -1139,12 +1126,14 @@ JSON만 반환하세요."""
                 Culture(
                     concert_title=concert_title,
                     title="재즈 공연의 즉흥연주 감상법",
-                    content="재즈 콘서트에서는 즉흥연주(improvisation)가 중요한 부분을 차지합니다. 관객들은 연주자의 기교적인 솔로 연주 후 박수를 치는 것이 관례이며, 특히 뛰어난 연주에는 '브라보'나 휘파람으로 감탄을 표현하기도 합니다."
+                    content="재즈 콘서트에서는 즉흥연주(improvisation)가 중요한 부분을 차지합니다. 관객들은 연주자의 기교적인 솔로 연주 후 박수를 치는 것이 관례이며, 특히 뛰어난 연주에는 '브라보'나 휘파람으로 감탄을 표현하기도 합니다.",
+                    img_url="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800"
                 ),
                 Culture(
                     concert_title=concert_title,
                     title="앉아서 감상하는 문화",
-                    content="재즈 공연은 음악의 섬세함과 복잡함을 집중해서 들어야 하기 때문에, 대부분 앉아서 조용히 감상하는 것이 일반적입니다. 휴대폰 사용을 자제하고, 연주 중에는 대화를 피하는 것이 매너입니다."
+                    content="재즈 공연은 음악의 섬세함과 복잡함을 집중해서 들어야 하기 때문에, 대부분 앉아서 조용히 감상하는 것이 일반적입니다. 휴대폰 사용을 자제하고, 연주 중에는 대화를 피하는 것이 매너입니다.",
+                    img_url="https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800"
                 )
             ]
         else:
@@ -1152,7 +1141,8 @@ JSON만 반환하세요."""
                 Culture(
                     concert_title=concert_title,
                     title="이 공연만의 특별한 순간",
-                    content="모든 라이브 공연에는 그 순간에만 경험할 수 있는 특별함이 있습니다. 아티스트와 관객이 함께 만들어가는 유일무이한 경험을 통해 음악의 진정한 매력을 느낄 수 있습니다."
+                    content="모든 라이브 공연에는 그 순간에만 경험할 수 있는 특별함이 있습니다. 아티스트와 관객이 함께 만들어가는 유일무이한 경험을 통해 음악의 진정한 매력을 느낄 수 있습니다.",
+                    img_url="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=800"
                 )
             ]
     
@@ -1176,76 +1166,186 @@ JSON만 반환하세요."""
         
         return []
     
-    def _parse_merchandise(self, response: str, concert_title: str) -> List[Merchandise]:
+    def _parse_merchandise(self, response, concert_title: str) -> List[Merchandise]:
         try:
-            json_str = self._extract_json_from_response(response, '[', ']')
-            if json_str:
-                data = json.loads(json_str)
-                merchandise_list = []
-                for item in data:
-                    if isinstance(item, dict):
-                        # 가격 형식을 nn,nnn원 형태로 변환
-                        if 'price' in item:
-                            price = item['price']
-                            # 숫자만 추출하고 천 단위 구분자 추가
-                            import re
-                            numbers = re.findall(r'\d+', price.replace(',', ''))
-                            if numbers:
-                                num = int(numbers[0])
-                                formatted_price = f"{num:,}원"
-                                item['price'] = formatted_price
-                        merchandise_list.append(Merchandise(**item))
-                return merchandise_list
-        except:
-            pass
-        
-        return []
+            # response가 이미 list인 경우 (query_json 응답)
+            if isinstance(response, list):
+                data = response
+            # response가 문자열인 경우 JSON 추출
+            elif isinstance(response, str):
+                json_str = self._extract_json_from_response(response, '[', ']')
+                if json_str:
+                    data = json.loads(json_str)
+                else:
+                    return []
+            else:
+                return []
+                
+            merchandise_list = []
+            for item in data:
+                if isinstance(item, dict):
+                    # 필드명 매핑 (item_name -> name)
+                    if 'item_name' in item:
+                        item['name'] = item.pop('item_name')
+                    
+                    # artist_name 필드가 있으면 제거 (Merchandise 모델에 없음)
+                    if 'artist_name' in item:
+                        item.pop('artist_name')
+                        
+                    # 필요하지 않은 필드들 제거
+                    for unnecessary_field in ['availability', 'description']:
+                        if unnecessary_field in item:
+                            item.pop(unnecessary_field)
+                    
+                    # 가격 형식을 nn,nnn원 형태로 변환
+                    if 'price' in item:
+                        price = str(item['price'])
+                        # 숫자만 추출하고 천 단위 구분자 추가
+                        import re
+                        numbers = re.findall(r'\d+', price.replace(',', ''))
+                        if numbers:
+                            num = int(numbers[0])
+                            formatted_price = f"{num:,}원"
+                            item['price'] = formatted_price
+                    merchandise_list.append(Merchandise(**item))
+            return merchandise_list
+        except Exception as e:
+            logger.error(f"굿즈 파싱 실패: {e}")
+            return []
     
-    def _parse_concert_info(self, response: str, concert_title: str) -> List[ConcertInfo]:
+    def _parse_concert_genres(self, response: str, concert_title: str) -> List[ConcertGenre]:
         try:
             json_str = self._extract_json_from_response(response, '[', ']')
             if json_str:
                 data = json.loads(json_str)
-                concert_infos = []
+                genres = []
                 for item in data:
                     if isinstance(item, dict):
-                        # content가 비어있거나 너무 짧은 경우 해당 항목 제외
-                        content = item.get('content', '')
-                        category = item.get('category', 'Unknown')
+                        # 필수 필드 검증
+                        if all(key in item for key in ['concert_id', 'concert_title', 'genre_id', 'name']):
+                            genres.append(ConcertGenre(**item))
+                
+                if genres:
+                    return genres
+        except Exception as e:
+            logger.error(f"콘서트 장르 파싱 실패: {e}")
+        
+        # 파싱 실패 시 AI에게 다시 간단히 물어보기
+        logger.warning(f"콘서트 장르 파싱 실패, 간단한 장르 분류 재시도: {concert_title}")
+        return self._get_fallback_genre(concert_title)
+    
+    def _get_fallback_genre(self, concert_title: str) -> List[ConcertGenre]:
+        """장르 파싱 실패 시 간단한 프롬프트로 재시도"""
+        try:
+            fallback_prompt = f""""{concert_title}" 콘서트의 장르를 아래 6개 중에서 1개만 선택해주세요.
+
+장르 목록:
+1. JPOP (일본 팝, J-POP)
+2. RAP_HIPHOP (랩, 힙합)  
+3. ROCK_METAL (록, 메탈)
+4. ACOUSTIC (어쿠스틱, 포크)
+5. CLASSIC_JAZZ (클래식, 재즈)
+6. ELECTRONIC (일렉트로닉, EDM)
+
+JSON으로 응답: {{"genre_id": 숫자, "name": "장르명"}}
+
+예시:
+- 일본 아티스트 콘서트 → {{"genre_id": 1, "name": "JPOP"}}
+- 힙합 아티스트 콘서트 → {{"genre_id": 2, "name": "RAP_HIPHOP"}}"""
+
+            response = self.api.query_with_search(fallback_prompt)
+            json_str = self._extract_json_from_response(response, '{', '}')
+            
+            if json_str:
+                data = json.loads(json_str)
+                genre_id = data.get('genre_id', 1)
+                name = data.get('name', 'JPOP')
+                
+                return [ConcertGenre(
+                    concert_id=concert_title,
+                    concert_title=concert_title,
+                    genre_id=genre_id,
+                    name=name
+                )]
+        except Exception as e:
+            logger.error(f"Fallback 장르 분류도 실패: {e}")
+        
+        # 최후의 수단: JPOP 기본값
+        logger.error(f"모든 장르 분류 실패, JPOP으로 강제 할당: {concert_title}")
+        return [ConcertGenre(
+            concert_id=concert_title,
+            concert_title=concert_title,
+            genre_id=1,
+            name="JPOP"
+        )]
+    
+    def _parse_concert_info(self, response, concert_title: str) -> List[ConcertInfo]:
+        logger.info(f"concert_info 파싱 시작: {concert_title}")
+        try:
+            # response가 이미 list인 경우 (query_json 응답)
+            if isinstance(response, list):
+                data = response
+                logger.debug(f"응답이 list 형태, 항목 수: {len(data)}")
+            # response가 문자열인 경우 JSON 추출
+            elif isinstance(response, str):
+                json_str = self._extract_json_from_response(response, '[', ']')
+                if json_str:
+                    data = json.loads(json_str)
+                    logger.debug(f"JSON 추출 성공, 항목 수: {len(data)}")
+                else:
+                    logger.warning("JSON 추출 실패 - 빈 배열 반환")
+                    return []
+            else:
+                logger.warning(f"예상치 못한 응답 타입: {type(response)}")
+                return []
+                
+            concert_infos = []
+            for i, item in enumerate(data):
+                if isinstance(item, dict):
+                    # content가 비어있거나 너무 짧은 경우 해당 항목 제외
+                    content = item.get('content', '')
+                    category = item.get('category', 'Unknown')
+                    
+                    logger.debug(f"항목 {i+1} 검사: category='{category}', content 길이={len(str(content))}")
+                    
+                    # 빈 content나 무의미한 내용 필터링
+                    if not content or not str(content).strip():
+                        logger.debug(f"concert_info content가 비어있어 제외: category='{category}'")
+                        continue
                         
-                        # 빈 content나 무의미한 내용 필터링
-                        if not content or not content.strip():
-                            logger.debug(f"concert_info content가 비어있어 제외: category='{category}'")
-                            continue
-                            
-                        content = content.strip()
+                    content = str(content).strip()
+                    
+                    # 너무 짧은 내용만 제외 (기준 완화: 10자 → 5자)
+                    if len(content) < 5:
+                        logger.debug(f"concert_info content가 너무 짧아 제외: category='{category}', content='{content[:20]}...'")
+                        continue
                         
-                        # 너무 짧거나 무의미한 내용 제외
-                        if len(content) < 10:
-                            logger.debug(f"concert_info content가 너무 짧아 제외: category='{category}', content='{content[:20]}...'")
-                            continue
-                            
-                        # 무의미한 응답 필터링
-                        meaningless_phrases = [
-                            "정보를 찾을 수 없습니다",
-                            "확인할 수 없습니다", 
-                            "알 수 없습니다",
-                            "정보가 없습니다",
-                            "찾을 수 없습니다",
-                            "정보를 제공할 수 없습니다"
-                        ]
+                    # 무의미한 응답 필터링 (기준 완화)
+                    meaningless_phrases = [
+                        "정보를 찾을 수 없습니다",
+                        "찾을 수 없습니다"
+                    ]
+                    
+                    # 완전히 무의미한 내용만 제외 (부분 매칭에서 전체 매칭으로 완화)
+                    is_meaningless = any(content.strip() == phrase for phrase in meaningless_phrases)
+                    if is_meaningless:
+                        logger.debug(f"concert_info 무의미한 content로 제외: category='{category}'")
+                        continue
                         
-                        if any(phrase in content for phrase in meaningless_phrases):
-                            logger.debug(f"concert_info 무의미한 content로 제외: category='{category}'")
-                            continue
-                            
-                        # content를 해요체로 변환
-                        content = self._normalize_tone(content)
-                        item['content'] = content
-                        concert_infos.append(ConcertInfo(**item))
-                return concert_infos
-        except:
-            pass
+                    # Google Search 관련 텍스트 제거
+                    content = self._remove_search_artifacts(content)
+                    # content를 해요체로 변하
+                    content = self._normalize_tone(content)
+                    item['content'] = content
+                    logger.debug(f"concert_info 항목 추가: category='{category}'")
+                    concert_infos.append(ConcertInfo(**item))
+            
+            logger.info(f"concert_info 파싱 완료: {len(concert_infos)}개 항목 추가됨")
+            return concert_infos
+            
+        except Exception as e:
+            logger.error(f"concert_info 파싱 중 오류: {e}")
+            logger.debug(f"오류 발생 시 응답: {response}")
         
         return []
     
@@ -1284,7 +1384,7 @@ JSON만 반환하세요."""
             pass
         
         return Artist(
-            artist=f"{artist_name} (아티스트명)" if "(" not in artist_name else artist_name,
+            artist=artist_name,
             debut_date="",
             category="",
             detail="",
@@ -1304,6 +1404,33 @@ JSON만 반환하세요."""
             '공연완료': '공연완료'
         }
         return status_mapping.get(status, '알 수 없음')
+    
+    def _remove_search_artifacts(self, text: str) -> str:
+        """Google Search 관련 텍스트 및 마크다운 제거"""
+        import re
+        if not text:
+            return text
+        
+        # Google Search 관련 문구 제거
+        search_patterns = [
+            r'Google Search를 통해[^.]*\.',
+            r'검색하여 정리했[^.]*\.',
+            r'검색 결과[^.]*\.',
+            r'정보를 찾[^.]*\.',
+            r'\*\*[^*]+\*\*',  # 마크다운 볼드 제거
+            r'\*[^*]+\*',  # 마크다운 이탤릭 제거
+            r'^---+$',  # 구분선 제거
+        ]
+        
+        cleaned_text = text
+        for pattern in search_patterns:
+            cleaned_text = re.sub(pattern, '', cleaned_text, flags=re.MULTILINE | re.IGNORECASE)
+        
+        # 연속된 공백 및 줄바꿈 정리
+        cleaned_text = re.sub(r'\n\s*\n', '\n', cleaned_text)
+        cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
+        
+        return cleaned_text
     
     def _remove_sources(self, text: str) -> str:
         """출처 표시 제거"""
@@ -1358,6 +1485,13 @@ JSON만 반환하세요."""
         normalized_text = text
         for old_pattern, new_pattern in replacements:
             normalized_text = re.sub(old_pattern, new_pattern, normalized_text)
+        
+        # ~니어요로 끝나는 이상한 어미를 ~다로 수정
+        # 예: 했답니어요 → 했답니다, 그렇답니어요 → 그렇답니다
+        normalized_text = re.sub(r'([가-힣]+)니어요([\.!?]?)', r'\1니다\2', normalized_text)
+        
+        # 추가로 ~어니어요 패턴도 처리
+        normalized_text = re.sub(r'([가-힣]+)어니어요([\.!?]?)', r'\1었습니다\2', normalized_text)
         
         return normalized_text
     

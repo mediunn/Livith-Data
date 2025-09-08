@@ -1,6 +1,6 @@
 """
 Google AI Studio (Gemini) API 클라이언트
-Gemini 2.0 Flash with Google Search grounding 구현
+Gemini 2.5 pro with Google Search grounding 구현
 """
 import google.generativeai as genai
 from google.generativeai import types
@@ -36,12 +36,12 @@ class GeminiAPI:
         # 일반 모델 (검색 없이)
         self.model = genai.GenerativeModel('gemini-2.5-flash')
         
-        # 기본 생성 설정
+        # 기본 생성 설정 (500 에러 방지를 위해 보수적으로 설정)
         self.generation_config = {
-            'temperature': 0.9,
-            'top_p': 0.95,
-            'top_k': 40,
-            'max_output_tokens': 8192,
+            'temperature': 0.7,  # 0.9 → 0.7로 낮춤
+            'top_p': 0.8,       # 0.95 → 0.8로 낮춤
+            'top_k': 20,        # 40 → 20로 낮춤
+            'max_output_tokens': 4096,  # 8192 → 4096로 낮춤
         }
         
         # 안전 설정 (콘서트 정보는 안전한 컨텐츠)
@@ -150,11 +150,21 @@ Google Search를 사용하여 다음을 검색해주세요:
                     safety_settings=self.safety_settings
                 )
                 
-                if response.text:
+                # 응답 텍스트 추출 (안전한 방식)
+                try:
+                    response_text = response.text
+                except AttributeError:
+                    # response.text가 작동하지 않는 경우 parts 사용
+                    if response.candidates and response.candidates[0].content.parts:
+                        response_text = ''.join(part.text for part in response.candidates[0].content.parts if hasattr(part, 'text'))
+                    else:
+                        response_text = None
+                
+                if response_text:
                     # 검색 소스 정보 로깅 (있는 경우)
                     if hasattr(response, 'grounding_metadata'):
                         logger.info(f"Google Search 소스: {response.grounding_metadata}")
-                    return response.text
+                    return response_text
                 else:
                     logger.warning(f"빈 응답 (시도 {attempt + 1})")
                     if attempt < Config.MAX_RETRIES - 1:
@@ -205,21 +215,39 @@ Google Search를 사용하여 다음을 검색해주세요:
                 # Google Search를 활용한 쿼리
                 response = self.query(json_prompt, use_search=use_search)
                 
-                # 응답에서 JSON 부분만 추출 (마크다운 제거)
+                # 응답에서 JSON 부분만 추출 (개선된 처리)
                 cleaned_response = response.strip()
-                if cleaned_response.startswith("```"):
-                    # 마크다운 코드 블록 제거
-                    lines = cleaned_response.split('\n')
-                    json_lines = []
-                    in_json = False
-                    for line in lines:
-                        if line.strip().startswith("```"):
-                            in_json = not in_json
-                            continue
-                        if in_json or (not line.strip().startswith("```")):
-                            if not line.strip().startswith("```"):
-                                json_lines.append(line)
-                    cleaned_response = '\n'.join(json_lines)
+                
+                # 마크다운 코드 블록 제거
+                if "```" in cleaned_response:
+                    # ```json 또는 ``` 뒤의 내용을 찾기
+                    if "```json" in cleaned_response:
+                        start_marker = "```json"
+                    else:
+                        start_marker = "```"
+                    
+                    start_idx = cleaned_response.find(start_marker) + len(start_marker)
+                    end_idx = cleaned_response.find("```", start_idx)
+                    
+                    if end_idx != -1:
+                        cleaned_response = cleaned_response[start_idx:end_idx].strip()
+                    else:
+                        # 끝 마커가 없는 경우, 시작 마커 이후 모든 내용
+                        cleaned_response = cleaned_response[start_idx:].strip()
+                
+                # 잘못된 문자 정리
+                cleaned_response = cleaned_response.replace('\\n', '\n').replace('\\"', '"')
+                
+                # 문자열이 완전하지 않은 경우 보완 시도
+                if cleaned_response and not cleaned_response.endswith((']', '}')):
+                    if cleaned_response.startswith('[') and not cleaned_response.endswith(']'):
+                        # 배열이 열려있으면 닫아줌
+                        cleaned_response += ']'
+                    elif cleaned_response.startswith('{') and not cleaned_response.endswith('}'):
+                        # 객체가 열려있으면 닫아줌
+                        cleaned_response += '}'
+                
+                logger.debug(f"정리된 JSON: {cleaned_response[:500]}...")
                 
                 # JSON 파싱
                 data = json.loads(cleaned_response)

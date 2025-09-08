@@ -21,8 +21,14 @@ pip install -r requirements.txt
 `.env` 파일에 API 키들을 설정해주세요:
 
 ```env
+# AI API 키
 GEMINI_API_KEY=your_gemini_api_key_here
 KOPIS_API_KEY=your_kopis_api_key_here
+
+# 가사 API 키 (선택사항)
+MUSIXMATCH_API_KEY=your_musixmatch_api_key_here
+
+# AI 설정
 USE_GEMINI_API=true           # Gemini 사용 (기본값)
 GEMINI_USE_SEARCH=true        # Google Search grounding 사용
 GEMINI_MODEL_VERSION=2.0      # Gemini 2.0 사용
@@ -48,6 +54,9 @@ GEMINI_MODEL_VERSION=2.0      # Gemini 2.0 사용
 │   ├── kopis_api.py          # KOPIS API 연동
 │   ├── gemini_api.py         # Gemini API 연동
 │   ├── perplexity_api.py     # Perplexity API 연동
+│   ├── lyrics_updater.py     # 가사 업데이트 모듈
+│   ├── lyrics_translator.py  # 가사 번역/발음 변환 모듈
+│   ├── musixmatch_lyrics_api.py # Musixmatch API 연동
 │   ├── artist_name_mapper.py # 아티스트명 매핑 유틸리티
 │   ├── artist_matcher.py     # 아티스트 매칭 로직
 │   ├── update_concert_status.py # 콘서트 상태 업데이트
@@ -67,7 +76,11 @@ GEMINI_MODEL_VERSION=2.0      # Gemini 2.0 사용
 │   ├── fix_data.py          # ⭐ 데이터 수정 도구 (메인)
 │   ├── update_concerts_sorting.py # 콘서트 정렬 업데이트
 │   ├── fix_concerts_data.py # 콘서트 데이터 수정
-│   ├── update_lyrics.py     # 가사 정보 업데이트
+│   ├── update_lyrics.py     # 가사 정보 업데이트 (자동)
+│   ├── manual_lyrics_update.py # 가사 정보 수동 업데이트
+│   ├── artist_lyrics_update.py # 아티스트별 가사 업데이트
+│   ├── translate_lyrics.py  # 가사 번역 및 발음 변환
+│   ├── merge_songs_to_setlist.py # songs.csv → setlist_songs.csv 병합
 │   ├── check_connection_info.py # MySQL 연결 테스트
 │   └── 📂 deprecated/        # 분석용/임시 스크립트들
 │
@@ -161,7 +174,55 @@ python3 scripts/update_concerts_sorting.py
 python3 scripts/fix_concerts_data.py
 ```
 
-### 4. 🧪 테스트 및 검증
+### 4. 🎵 가사 데이터 관리
+
+#### 가사 수집
+```bash
+# 모든 songs.csv 파일의 가사 자동 업데이트 (원어 아티스트명으로 검색)
+python3 scripts/update_lyrics.py
+
+# 특정 곡의 가사 수동 업데이트 (아티스트명 직접 지정)
+python3 scripts/manual_lyrics_update.py <CSV파일경로> <곡제목> <아티스트명>
+# 예시: python3 scripts/manual_lyrics_update.py output/main_output/songs.csv "I Feel Good" "Pink Sweat$"
+
+# 특정 아티스트의 모든 곡 가사 업데이트
+python3 scripts/artist_lyrics_update.py <CSV파일경로> <아티스트명> [검색용아티스트명]
+# 예시 1: python3 scripts/artist_lyrics_update.py output/main_output/songs.csv "Pink Sweat$ (핑크스웨츠)"
+# 예시 2: python3 scripts/artist_lyrics_update.py output/main_output/songs.csv "Pink Sweat$ (핑크스웨츠)" "Pink Sweat$"
+```
+
+#### 가사 번역 및 발음 변환
+```bash
+# 모든 가사를 한국어 번역 + 발음 변환
+python3 scripts/translate_lyrics.py output/main_output/songs.csv both
+
+# 한국어 번역만
+python3 scripts/translate_lyrics.py output/main_output/songs.csv translation
+
+# 발음 변환만
+python3 scripts/translate_lyrics.py output/main_output/songs.csv pronunciation
+
+# 테스트용 (최대 5곡만 처리)
+python3 scripts/translate_lyrics.py output/main_output/songs.csv both 5
+```
+
+**🎯 가사 관리 기능:**
+- 🔍 **자동 검색**: Musixmatch API로 가사 자동 검색 및 유사도 검증
+- 🎤 **수동 검색**: 아티스트명을 직접 입력하여 정확한 가사 수집
+- 🌏 **번역**: Gemini AI로 자연스러운 한국어 번역
+- 🗣️ **발음**: 영어 가사의 한국어 발음 표기
+- 💾 **안전 저장**: 각 곡 처리 후 즉시 저장, 원본 가사 절대 손실 방지
+- 📂 **자동 백업**: 처리 전 타임스탬프 백업 파일 자동 생성
+
+### 5. 📊 데이터 통합 관리
+
+#### songs.csv와 setlist_songs.csv 데이터 병합
+```bash
+# songs.csv 데이터를 setlist_songs.csv로 병합 (setlist_songs 우선)
+python3 scripts/merge_songs_to_setlist.py
+```
+
+### 6. 🧪 테스트 및 검증
 
 #### 환경 모드 설정
 ```bash
@@ -193,7 +254,8 @@ unset OUTPUT_MODE
 | `concerts.csv` | 콘서트 기본 정보 | artist, title, start_date, status, label, introduction |
 | `artists.csv` | 아티스트 정보 | artist, birth_date, debut_date, nationality, group_type |
 | `setlists.csv` | 셋리스트 정보 | artist_name, concert_title, type, song_count |
-| `songs.csv` | 곡 정보 | title, artist, album, release_year |
+| `setlist_songs.csv` | 셋리스트 곡 정보 | title, artist, setlist_id, order |
+| `songs.csv` | 곡 정보 | title, artist, lyrics, pronunciation, translation, musixmatch_url |
 | `cultures.csv` | 팬 문화 정보 | artist_name, concert_title, title, content |
 | `schedule.csv` | 일정 정보 | concert_title, category, scheduled_at |
 | `md.csv` | 굿즈 정보 | artist_name, concert_title, item_name, price |
@@ -219,6 +281,7 @@ GEMINI_MODEL_VERSION=2.0     # Gemini 2.0 Flash 사용
 ### API 키 설정
 - **KOPIS API**: [KOPIS 개발자 센터](https://www.kopis.or.kr/por/cs/openapi/openApiList.do)
 - **Gemini API**: [Google AI Studio](https://aistudio.google.com/app/apikey)
+- **Musixmatch API**: [Musixmatch Developer](https://developer.musixmatch.com/) (가사 수집용)
 - **Perplexity API**: [Perplexity API](https://docs.perplexity.ai/)
 
 ## 🔍 데이터 품질 관리

@@ -28,9 +28,9 @@ class EnhancedCSVManager:
         all_songs = []
         all_cultures = []
         all_schedules = []
-        all_merchandise = []
         all_concert_info = []
         all_artists = []
+        all_concert_genres = []
         
         for data in collected_data:
             if data['concert']:
@@ -41,10 +41,14 @@ class EnhancedCSVManager:
             all_songs.extend(data['songs'])
             all_cultures.extend(data['cultures'])
             all_schedules.extend(data['schedules'])
-            all_merchandise.extend(data['merchandise'])
             all_concert_info.extend(data['concert_info'])
+            all_concert_genres.extend(data['concert_genres'])
+            logger.info(f"콘서트 장르 데이터 추가됨: {len(data['concert_genres'])}개")
             if data['artist']:
                 all_artists.append(data['artist'])
+                logger.info(f"아티스트 데이터 추가됨: {data['artist'].artist}")
+            else:
+                logger.warning(f"아티스트 데이터가 None입니다.")
         
         # 콘서트 데이터 정렬
         if all_concerts:
@@ -89,16 +93,31 @@ class EnhancedCSVManager:
             # 전체 데이터로 콘서트 저장 (overwrite)
             EnhancedCSVManager._save_to_csv(sorted_concerts, "concerts.csv", "콘서트", mode="overwrite")
         
-        # 나머지 데이터는 append 모드로 저장
-        EnhancedCSVManager._append_to_csv(all_setlists, "setlists.csv", "셋리스트")
-        EnhancedCSVManager._append_to_csv(all_concert_setlists, "concert_setlists.csv", "콘서트-셋리스트")
-        EnhancedCSVManager._append_to_csv(all_setlist_songs, "setlist_songs.csv", "셋리스트 곡")
-        EnhancedCSVManager._append_to_csv(all_songs, "songs.csv", "곡")
-        EnhancedCSVManager._append_to_csv(all_cultures, "cultures.csv", "문화")
-        EnhancedCSVManager._append_to_csv(all_schedules, "schedule.csv", "스케줄")
-        EnhancedCSVManager._append_to_csv(all_merchandise, "md.csv", "MD")
-        EnhancedCSVManager._append_to_csv(all_concert_info, "concert_info.csv", "콘서트 정보")
-        EnhancedCSVManager._append_to_csv(all_artists, "artists.csv", "아티스트")
+        # 테스트 모드에서는 모든 데이터를 overwrite, 프로덕션에서는 append
+        save_mode = "overwrite" if Config.OUTPUT_DIR == Config.TEST_OUTPUT_DIR else "append"
+        
+        if save_mode == "overwrite":
+            # 테스트 모드: 전체 데이터 overwrite
+            EnhancedCSVManager._save_to_csv(all_setlists, "setlists.csv", "셋리스트", mode="overwrite")
+            EnhancedCSVManager._save_to_csv(all_concert_setlists, "concert_setlists.csv", "콘서트-셋리스트", mode="overwrite")
+            EnhancedCSVManager._save_to_csv(all_setlist_songs, "setlist_songs.csv", "셋리스트 곡", mode="overwrite")
+            EnhancedCSVManager._save_to_csv(all_songs, "songs.csv", "곡", mode="overwrite")
+            EnhancedCSVManager._save_to_csv(all_cultures, "cultures.csv", "문화", mode="overwrite")
+            EnhancedCSVManager._save_to_csv(all_schedules, "schedule.csv", "스케줄", mode="overwrite")
+            EnhancedCSVManager._save_to_csv(all_concert_info, "concert_info.csv", "콘서트 정보", mode="overwrite")
+            EnhancedCSVManager._save_to_csv(all_concert_genres, "concert_genres.csv", "콘서트 장르", mode="overwrite")
+            EnhancedCSVManager._save_to_csv(all_artists, "artists.csv", "아티스트", mode="overwrite")
+        else:
+            # 프로덕션 모드: append로 저장 (기존 방식)
+            EnhancedCSVManager._append_to_csv(all_setlists, "setlists.csv", "셋리스트")
+            EnhancedCSVManager._append_to_csv(all_concert_setlists, "concert_setlists.csv", "콘서트-셋리스트")
+            EnhancedCSVManager._append_to_csv(all_setlist_songs, "setlist_songs.csv", "셋리스트 곡")
+            EnhancedCSVManager._append_to_csv(all_songs, "songs.csv", "곡")
+            EnhancedCSVManager._append_to_csv(all_cultures, "cultures.csv", "문화")
+            EnhancedCSVManager._append_to_csv(all_schedules, "schedule.csv", "스케줄")
+            EnhancedCSVManager._append_to_csv(all_concert_info, "concert_info.csv", "콘서트 정보")
+            EnhancedCSVManager._append_to_csv(all_concert_genres, "concert_genres.csv", "콘서트 장르")
+            EnhancedCSVManager._append_to_csv(all_artists, "artists.csv", "아티스트")
     
     @staticmethod
     def _load_existing_data(filename: str) -> List[Concert]:
@@ -138,7 +157,26 @@ class EnhancedCSVManager:
     def _save_to_csv(data: List, filename: str, description: str, mode: str = "overwrite"):
         """CSV 저장 공통 메서드 - 데이터 모델 필드만 저장"""
         if not data:
-            logger.warning(f"{description} 데이터가 없습니다.")
+            logger.warning(f"{description} 데이터가 없습니다. 적절한 헤더로 빈 파일 생성.")
+            filepath = os.path.join(Config.OUTPUT_DIR, filename)
+            
+            # 파일별 헤더 정의
+            headers_map = {
+                'artists.csv': ['artist', 'debut_date', 'category', 'detail', 'instagram_url', 'keywords', 'img_url'],
+                'concerts.csv': ['artist', 'code', 'title', 'start_date', 'end_date', 'status', 'poster', 'ticket_site', 'ticket_url', 'venue', 'label', 'introduction'],
+                'songs.csv': ['title', 'artist', 'lyrics', 'pronunciation', 'translation', 'youtube_id'],
+                'setlists.csv': ['title', 'start_date', 'end_date', 'img_url', 'artist', 'venue'],
+                'setlist_songs.csv': ['setlist_title', 'song_title', 'setlist_date', 'order_index', 'fanchant', 'fanchant_point'],
+                'concert_setlists.csv': ['concert_title', 'setlist_title', 'type', 'status'],
+                'cultures.csv': ['concert_title', 'title', 'content', 'img_url'],
+                'schedule.csv': ['concert_title', 'category', 'scheduled_at'],
+                'concert_info.csv': ['concert_title', 'category', 'content', 'img_url'],
+                'concert_genres.csv': ['concert_id', 'concert_title', 'genre_id', 'name'],
+            }
+            
+            headers = headers_map.get(filename, [])
+            df = pd.DataFrame(columns=headers)
+            df.to_csv(filepath, index=False, encoding='utf-8-sig')
             return
         
         filepath = os.path.join(Config.OUTPUT_DIR, filename)
