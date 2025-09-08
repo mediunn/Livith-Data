@@ -8,6 +8,30 @@
 
 ## 🚀 설치 방법
 
+### Windows (PowerShell)
+```powershell
+git clone https://github.com/mediunn/Livith-Data
+cd Livith-Data
+python -m venv venv
+venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+**PowerShell 실행 정책 오류 시:**
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+### Windows (cmd)
+```cmd
+git clone https://github.com/mediunn/Livith-Data
+cd Livith-Data
+python -m venv venv
+venv\Scripts\activate.bat
+pip install -r requirements.txt
+```
+
+### macOS/Linux
 ```bash
 git clone https://github.com/mediunn/Livith-Data
 cd Livith-Data
@@ -109,7 +133,13 @@ GEMINI_MODEL_VERSION=2.0      # Gemini 2.0 사용
 
 #### 전체 파이프라인 실행
 ```bash
-# 모든 단계 순차 실행
+# Windows
+python src/main.py
+
+# 또는 통합 스테이지 실행기 사용
+python -m src.stages
+
+# macOS/Linux  
 python3 src/main.py
 
 # 또는 통합 스테이지 실행기 사용
@@ -119,38 +149,56 @@ python3 -m src.stages
 #### 단계별 실행
 ```bash
 # 특정 단계만 실행
-python3 src/main.py --stage 1    # KOPIS 데이터 수집
-python3 src/main.py --stage 2    # 기본 정보 수집
-python3 src/main.py --stage 3    # 상세 정보 수집
-python3 src/main.py --stage 4    # 굿즈 정보 수집
-python3 src/main.py --stage 5    # 아티스트 매칭
+python src/main.py --stage 1    # KOPIS 데이터 수집 (Windows)
+python src/main.py --stage 2    # 기본 정보 수집 (Windows)
+python src/main.py --stage 3    # 상세 정보 수집 (Windows)
+python src/main.py --stage 4    # 굿즈 정보 수집 (Windows)
+python src/main.py --stage 5    # 아티스트 매칭 (Windows)
+
+# macOS/Linux에서는 python3 사용
+python3 src/main.py --stage 1   # KOPIS 데이터 수집
 
 # 범위 지정 실행
-python3 src/main.py --from 2 --to 4  # 2~4단계만 실행
-python3 src/main.py --from 3         # 3단계부터 끝까지
+python src/main.py --from 2 --to 4  # 2~4단계만 실행 (Windows)
+python src/main.py --from 3         # 3단계부터 끝까지 (Windows)
 ```
 
 #### 개별 스크립트 실행
 ```bash
-python3 src/stage1_fetch_kopis.py     # KOPIS API 데이터 수집
-python3 src/stage2_collect_basic.py   # 기본 콘서트 정보 수집
+# Windows
+python src/stage1_fetch_kopis.py     # KOPIS API 데이터 수집
+python src/stage2_collect_basic.py   # 기본 콘서트 정보 수집
+python src/stage3_collect_detailed.py # 상세 데이터 수집
+python src/stage4_collect_merchandise.py # 굿즈 정보 수집
+python src/stage5_match_artists.py   # 아티스트명 매칭
+
+# macOS/Linux
+python3 src/stage1_fetch_kopis.py    # KOPIS API 데이터 수집
+python3 src/stage2_collect_basic.py  # 기본 콘서트 정보 수집
 python3 src/stage3_collect_detailed.py # 상세 데이터 수집
 python3 src/stage4_collect_merchandise.py # 굿즈 정보 수집
-python3 src/stage5_match_artists.py   # 아티스트명 매칭
+python3 src/stage5_match_artists.py  # 아티스트명 매칭
 ```
 
 ### 2. 🔧 데이터 수정 도구
 
 #### 데이터 수정 및 관리
 ```bash
-# 대화형 데이터 수정 도구
-python3 scripts/fix_data.py --interactive
+# Windows
+python scripts/fix_data.py --interactive
 
 # 아티스트명/콘서트명 검색
-python3 scripts/fix_data.py --search "JVKE" --type artist
-python3 scripts/fix_data.py --search "콘서트명" --type concert
+python scripts/fix_data.py --search "JVKE" --type artist
+python scripts/fix_data.py --search "콘서트명" --type concert
 
-# 테스트 모드 (안전한 테스트)
+# 테스트 모드 (Windows PowerShell)
+$env:OUTPUT_MODE="test"; python scripts/fix_data.py --interactive
+
+# macOS/Linux
+python3 scripts/fix_data.py --interactive
+python3 scripts/fix_data.py --search "JVKE" --type artist
+
+# 테스트 모드 (macOS/Linux)
 OUTPUT_MODE=test python3 scripts/fix_data.py --interactive
 ```
 
@@ -164,13 +212,14 @@ OUTPUT_MODE=test python3 scripts/fix_data.py --interactive
 
 #### MySQL 데이터 업로드
 ```bash
-# CSV 파일들을 MySQL에 업로드
+# Windows
+python database/upsert_csv_to_mysql.py
+python scripts/update_concerts_sorting.py
+python scripts/fix_concerts_data.py
+
+# macOS/Linux
 python3 database/upsert_csv_to_mysql.py
-
-# 콘서트 정렬 상태 업데이트
 python3 scripts/update_concerts_sorting.py
-
-# 콘서트 데이터 수정
 python3 scripts/fix_concerts_data.py
 ```
 
@@ -178,31 +227,35 @@ python3 scripts/fix_concerts_data.py
 
 #### 가사 수집
 ```bash
-# 모든 songs.csv 파일의 가사 자동 업데이트 (원어 아티스트명으로 검색)
-python3 scripts/update_lyrics.py
+# Windows
+python scripts/update_lyrics.py
 
 # 특정 곡의 가사 수동 업데이트 (아티스트명 직접 지정)
-python3 scripts/manual_lyrics_update.py <CSV파일경로> <곡제목> <아티스트명>
-# 예시: python3 scripts/manual_lyrics_update.py output/main_output/songs.csv "I Feel Good" "Pink Sweat$"
+python scripts/manual_lyrics_update.py <CSV파일경로> <곡제목> <아티스트명>
+# 예시: python scripts/manual_lyrics_update.py output/main_output/songs.csv "I Feel Good" "Pink Sweat$"
 
 # 특정 아티스트의 모든 곡 가사 업데이트
-python3 scripts/artist_lyrics_update.py <CSV파일경로> <아티스트명> [검색용아티스트명]
-# 예시 1: python3 scripts/artist_lyrics_update.py output/main_output/songs.csv "Pink Sweat$ (핑크스웨츠)"
-# 예시 2: python3 scripts/artist_lyrics_update.py output/main_output/songs.csv "Pink Sweat$ (핑크스웨츠)" "Pink Sweat$"
+python scripts/artist_lyrics_update.py <CSV파일경로> <아티스트명> [검색용아티스트명]
+# 예시: python scripts/artist_lyrics_update.py output/main_output/songs.csv "Pink Sweat$ (핑크스웨츠)" "Pink Sweat$"
+
+# macOS/Linux
+python3 scripts/update_lyrics.py
+python3 scripts/manual_lyrics_update.py output/main_output/songs.csv "I Feel Good" "Pink Sweat$"
+python3 scripts/artist_lyrics_update.py output/main_output/songs.csv "Pink Sweat$ (핑크스웨츠)" "Pink Sweat$"
 ```
 
 #### 가사 번역 및 발음 변환
 ```bash
-# 모든 가사를 한국어 번역 + 발음 변환
+# Windows
+python scripts/translate_lyrics.py output/main_output/songs.csv both
+python scripts/translate_lyrics.py output/main_output/songs.csv translation
+python scripts/translate_lyrics.py output/main_output/songs.csv pronunciation
+python scripts/translate_lyrics.py output/main_output/songs.csv both 5
+
+# macOS/Linux
 python3 scripts/translate_lyrics.py output/main_output/songs.csv both
-
-# 한국어 번역만
 python3 scripts/translate_lyrics.py output/main_output/songs.csv translation
-
-# 발음 변환만
 python3 scripts/translate_lyrics.py output/main_output/songs.csv pronunciation
-
-# 테스트용 (최대 5곡만 처리)
 python3 scripts/translate_lyrics.py output/main_output/songs.csv both 5
 ```
 
@@ -218,7 +271,10 @@ python3 scripts/translate_lyrics.py output/main_output/songs.csv both 5
 
 #### songs.csv와 setlist_songs.csv 데이터 병합
 ```bash
-# songs.csv 데이터를 setlist_songs.csv로 병합 (setlist_songs 우선)
+# Windows
+python scripts/merge_songs_to_setlist.py
+
+# macOS/Linux
 python3 scripts/merge_songs_to_setlist.py
 ```
 
@@ -226,13 +282,20 @@ python3 scripts/merge_songs_to_setlist.py
 
 #### 환경 모드 설정
 ```bash
-# 테스트 모드 (output/test_output 사용)
-export OUTPUT_MODE=test
+# Windows PowerShell
+$env:OUTPUT_MODE="test"        # 테스트 모드
+$env:OUTPUT_MODE="production"  # 프로덕션 모드
+Remove-Item env:OUTPUT_MODE    # 환경 변수 제거
 
-# 프로덕션 모드 (output/main_output 사용)
-export OUTPUT_MODE=production
-# 또는
-unset OUTPUT_MODE
+# Windows cmd
+set OUTPUT_MODE=test
+set OUTPUT_MODE=production
+set OUTPUT_MODE=
+
+# macOS/Linux
+export OUTPUT_MODE=test        # 테스트 모드
+export OUTPUT_MODE=production  # 프로덕션 모드
+unset OUTPUT_MODE             # 환경 변수 제거
 ```
 
 ## 📊 데이터 수집 단계
@@ -316,13 +379,20 @@ GEMINI_MODEL_VERSION=2.0     # Gemini 2.0 Flash 사용
 # .env 파일 확인
 cat .env
 
-# API 키 유효성 테스트
+# Windows
+python -c "from src.gemini_api import GeminiAPI; api = GeminiAPI(); print('API 연결 성공')"
+
+# macOS/Linux
 python3 -c "from src.gemini_api import GeminiAPI; api = GeminiAPI(); print('API 연결 성공')"
 ```
 
 **2. 데이터 수정 필요**
 ```bash
-# 잘못된 아티스트명 수정
+# Windows
+python scripts/fix_data.py --search "잘못된이름" --type artist
+python scripts/fix_data.py --interactive
+
+# macOS/Linux
 python3 scripts/fix_data.py --search "잘못된이름" --type artist
 python3 scripts/fix_data.py --interactive
 ```
@@ -332,7 +402,10 @@ python3 scripts/fix_data.py --interactive
 # SSH 터널 상태 확인
 ps aux | grep ssh
 
-# MySQL 연결 테스트
+# Windows
+python scripts/check_connection_info.py
+
+# macOS/Linux
 python3 scripts/check_connection_info.py
 ```
 
@@ -345,13 +418,17 @@ python3 scripts/check_connection_info.py
 
 ### 디버그 모드
 ```bash
-# 상세 로그 출력
-python3 src/main.py --verbose
+# Windows
+python src/main.py --verbose
+python src/stage3_collect_detailed.py --debug
 
-# 특정 단계 디버깅
+# macOS/Linux
+python3 src/main.py --verbose
 python3 src/stage3_collect_detailed.py --debug
 ```
 
 ---
 
-> ⚡ **빠른 시작**: `python3 src/main.py`로 전체 파이프라인을 실행하거나, `python3 scripts/fix_data.py --interactive`로 데이터를 수정하세요!
+> ⚡ **빠른 시작**: 
+> - **Windows**: `python src/main.py` 또는 `python scripts/fix_data.py --interactive`
+> - **macOS/Linux**: `python3 src/main.py` 또는 `python3 scripts/fix_data.py --interactive`
