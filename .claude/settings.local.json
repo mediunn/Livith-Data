@@ -11,7 +11,10 @@
       "Bash(find:*)",
       "Bash(tree:*)",
       "Bash(git add:*)",
-      "Bash(pip3 install:*)"
+      "Bash(pip3 install:*)",
+      "Bash(chmod:*)",
+      "Bash(git commit:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
