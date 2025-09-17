@@ -7,7 +7,10 @@
       "Bash(python:*)",
       "Bash(pip install:*)",
       "Bash(env)",
-      "Read(//var/folders/sn/j4phkpq534n42d5g_y45kydh0000gn/T/TemporaryItems/NSIRD_screencaptureui_N4vwPx/**)"
+      "Read(//var/folders/sn/j4phkpq534n42d5g_y45kydh0000gn/T/TemporaryItems/NSIRD_screencaptureui_N4vwPx/**)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

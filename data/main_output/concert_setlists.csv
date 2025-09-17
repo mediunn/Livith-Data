@@ -1,0 +1,32 @@
+id,concert_id,setlist_id,type,status,created_at,updated_at,concert_title,setlist_title
+558,8,448,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,제이크 밀러 첫 단독 내한공연 JAKE MILLER BALANCE TOUR,제이크 밀러 첫 단독 내한공연 JAKE MILLER BALANCE TOUR 예상 셋리스트
+559,10,461,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,Gen Hoshino presents MAD HOPE Asia Tour in SEOUL,Gen Hoshino presents MAD HOPE Asia Tour in SEOUL 예상 셋리스트
+560,11,438,PAST,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,MADKID LIVE TOUR: MAZE MUSEUM [서울 (앵콜) ],MADKID LIVE TOUR: MAZE MUSEUM [서울 (앵콜) ] 예상 셋리스트
+561,12,460,PAST,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,크리스토퍼 내한공연 CHRISTOPHER LIVE [서울],크리스토퍼 내한공연 CHRISTOPHER LIVE [서울] 예상 셋리스트
+562,13,456,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,Minami Earthtication [서울],Minami Earthtication [서울] 예상 셋리스트
+563,14,437,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,ARGY 내한 콘서트 1st show in korea,ARGY 내한 콘서트 1st show in korea 예상 셋리스트
+564,15,453,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,Jacky Cheung 60+ Concert Tour [인천],Jacky Cheung 60+ Concert Tour [인천] 예상 셋리스트
+565,16,463,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,"타일러, 더 크리에이터 내한공연 [고양]","타일러, 더 크리에이터 내한공연 [고양] 예상 셋리스트"
+566,17,447,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,toconoma ISLAND World Tour [서울],toconoma ISLAND World Tour [서울] 예상 셋리스트
+567,19,436,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,에릭 마틴 내한공연,에릭 마틴 내한공연 예상 셋리스트
+568,20,466,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,"Hitsujibungaku (히츠지분가쿠) Asia Tour: Right now, right here. [서울]","Hitsujibungaku (히츠지분가쿠) Asia Tour: Right now, right here. [서울] 예상 셋리스트"
+569,21,455,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,Daoko THE YOU ZIZAI ASIA TOUR [서울],Daoko THE YOU ZIZAI ASIA TOUR [서울] 예상 셋리스트
+570,22,464,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,SEKAI NO OWARI ASIA TOUR: Phoenix in Seoul,SEKAI NO OWARI ASIA TOUR: Phoenix in Seoul 예상 셋리스트
+571,23,458,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,My Dying Bride 내한공연,My Dying Bride 내한공연 예상 셋리스트
+572,24,441,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,PURA LANA #2 John Carroll Kirby [제주],PURA LANA #2 John Carroll Kirby [제주] 예상 셋리스트
+573,25,450,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,뮤즈 내한공연 (MUSE LIVE IN KOREA),뮤즈 내한공연 (MUSE LIVE IN KOREA) 예상 셋리스트
+574,26,452,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,ASCA ASIA TOUR [서울],ASCA ASIA TOUR [서울] 예상 셋리스트
+575,27,454,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,"SCANDAL TOUR: LOVE, SPARK, JOY! [서울]","SCANDAL TOUR: LOVE, SPARK, JOY! [서울] 예상 셋리스트"
+576,28,434,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,핑크스웨츠 내한공연: Pink Sweat $ Live in Seoul,핑크스웨츠 내한공연: Pink Sweat $ Live in Seoul 예상 셋리스트
+577,29,443,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,toe New Album Release Tour: NOW WE SEE THE LIGHT [서울],toe New Album Release Tour: NOW WE SEE THE LIGHT [서울] 예상 셋리스트
+578,30,444,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,JORDANN ASIA TOUR IN SEOUL,JORDANN ASIA TOUR IN SEOUL 예상 셋리스트
+579,31,449,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,톰 그래넌 내한공연 GRENNAN'25,톰 그래넌 내한공연 GRENNAN'25 예상 셋리스트
+580,32,451,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,녹황색사회 아시아 투어,녹황색사회 아시아 투어 예상 셋리스트
+581,33,457,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,Novelbright LIVE TOUR [서울],Novelbright LIVE TOUR [서울] 예상 셋리스트
+582,34,459,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,yama Asia Tour: 호시탐탐 [서울],yama Asia Tour: 호시탐탐 [서울] 예상 셋리스트
+583,35,435,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,"SAKIYAMA SOUSHI 연주이야기 투어, DIARY","SAKIYAMA SOUSHI 연주이야기 투어, DIARY 예상 셋리스트"
+584,36,440,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,TOMIOKA AI ASIA TOUR [서울],TOMIOKA AI ASIA TOUR [서울] 예상 셋리스트
+585,37,439,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,오아시스 내한공연 [고양],오아시스 내한공연 [고양] 예상 셋리스트
+586,38,445,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,"NEMOPHILA Live, MVXS 5 [서울]","NEMOPHILA Live, MVXS 5 [서울] 예상 셋리스트"
+587,39,462,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,Konomi Suzuki Asia Tour [서울],Konomi Suzuki Asia Tour [서울] 예상 셋리스트
+588,40,465,EXPECTED,,2025-09-10 14:39:43.467,2025-09-10 14:39:43.467,트래비스 스캇 첫 단독 내한공연 [고양],트래비스 스캇 첫 단독 내한공연 [고양] 예상 셋리스트

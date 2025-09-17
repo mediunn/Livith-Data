@@ -1,0 +1,232 @@
+id,artist_name,concert_title,type,song_count
+33,,,,0
+99,,,,0
+132,,,,0
+42,,,,0
+43,,,,0
+108,,,,0
+109,,,,0
+141,,,,0
+142,,,,0
+48,,,,0
+114,,,,0
+147,,,,0
+56,,,,0
+58,,,,0
+122,,,,0
+124,,,,0
+155,,,,0
+157,,,,0
+50,,,,0
+116,,,,0
+149,,,,0
+34,,,,0
+100,,,,0
+133,,,,0
+41,,,,0
+74,,,,0
+107,,,,0
+140,,,,0
+173,,,,16
+206,,,,16
+239,,,,16
+39,,,,0
+105,,,,0
+138,,,,0
+38,,,,0
+104,,,,0
+137,,,,0
+44,,,,0
+61,,,,0
+64,,,,0
+110,,,,0
+127,,,,0
+130,,,,0
+143,,,,0
+160,,,,0
+163,,,,0
+37,,,,0
+59,,,,0
+103,,,,0
+125,,,,0
+136,,,,0
+158,,,,0
+55,,,,0
+121,,,,0
+154,,,,0
+36,,,,0
+52,,,,0
+60,,,,0
+102,,,,0
+118,,,,0
+126,,,,0
+135,,,,0
+151,,,,0
+159,,,,0
+62,,,,0
+128,,,,0
+161,,,,0
+46,,,,0
+112,,,,0
+145,,,,0
+35,,,,0
+101,,,,0
+134,,,,0
+45,,,,0
+65,,,,0
+78,,,,0
+111,,,,0
+131,,,,0
+144,,,,0
+164,,,,0
+177,,,,18
+210,,,,18
+243,,,,18
+54,,,,0
+120,,,,0
+153,,,,0
+63,,,,0
+129,,,,0
+162,,,,0
+57,,,,0
+123,,,,0
+156,,,,0
+40,,,,0
+47,,,,0
+49,,,,0
+51,,,,0
+53,,,,0
+106,,,,0
+113,,,,0
+115,,,,0
+117,,,,0
+119,,,,0
+139,,,,0
+146,,,,0
+148,,,,0
+150,,,,0
+152,,,,0
+69,ARGY (아르지),ARGY 내한 콘서트 1st show in korea,EXPECTED,0
+168,ARGY (아르지),ARGY 내한 콘서트 1st show in korea,EXPECTED,17
+201,ARGY (아르지),ARGY 내한 콘서트 1st show in korea,EXPECTED,17
+234,ARGY (아르지),ARGY 내한 콘서트 1st show in korea,EXPECTED,17
+84,ASCA (아스카),ASCA ASIA TOUR [서울],EXPECTED,0
+183,ASCA (아스카),ASCA ASIA TOUR [서울],EXPECTED,16
+216,ASCA (아스카),ASCA ASIA TOUR [서울],EXPECTED,16
+249,ASCA (아스카),ASCA ASIA TOUR [서울],EXPECTED,16
+92,CHRISTOPHER (크리스토퍼),크리스토퍼 내한공연 CHRISTOPHER LIVE [서울],EXPECTED,0
+191,CHRISTOPHER (크리스토퍼),크리스토퍼 내한공연 CHRISTOPHER LIVE [서울],EXPECTED,19
+224,CHRISTOPHER (크리스토퍼),크리스토퍼 내한공연 CHRISTOPHER LIVE [서울],EXPECTED,19
+257,CHRISTOPHER (크리스토퍼),크리스토퍼 내한공연 CHRISTOPHER LIVE [서울],EXPECTED,19
+87,Daoko (다오코),Daoko THE YOU ZIZAI ASIA TOUR [서울],EXPECTED,0
+186,Daoko (다오코),Daoko THE YOU ZIZAI ASIA TOUR [서울],EXPECTED,21
+219,Daoko (다오코),Daoko THE YOU ZIZAI ASIA TOUR [서울],EXPECTED,21
+252,Daoko (다오코),Daoko THE YOU ZIZAI ASIA TOUR [서울],EXPECTED,21
+68,Eric Martin (에릭 마틴),에릭 마틴 내한공연,EXPECTED,0
+167,Eric Martin (에릭 마틴),에릭 마틴 내한공연,EXPECTED,17
+200,Eric Martin (에릭 마틴),에릭 마틴 내한공연,EXPECTED,17
+233,Eric Martin (에릭 마틴),에릭 마틴 내한공연,EXPECTED,17
+93,Gen Hoshino (호시노 겐),Gen Hoshino presents MAD HOPE Asia Tour in SEOUL,EXPECTED,0
+192,Gen Hoshino (호시노 겐),Gen Hoshino presents MAD HOPE Asia Tour in SEOUL,EXPECTED,17
+225,Gen Hoshino (호시노 겐),Gen Hoshino presents MAD HOPE Asia Tour in SEOUL,EXPECTED,17
+258,Gen Hoshino (호시노 겐),Gen Hoshino presents MAD HOPE Asia Tour in SEOUL,EXPECTED,17
+98,Hitsujibungaku (히츠지분가쿠),"Hitsujibungaku (히츠지분가쿠) Asia Tour: Right now, right here. [서울]",EXPECTED,0
+197,Hitsujibungaku (히츠지분가쿠),"Hitsujibungaku (히츠지분가쿠) Asia Tour: Right now, right here. [서울]",EXPECTED,19
+230,Hitsujibungaku (히츠지분가쿠),"Hitsujibungaku (히츠지분가쿠) Asia Tour: Right now, right here. [서울]",EXPECTED,19
+263,Hitsujibungaku (히츠지분가쿠),"Hitsujibungaku (히츠지분가쿠) Asia Tour: Right now, right here. [서울]",EXPECTED,19
+85,Jacky Cheung (장학우),Jacky Cheung 60+ Concert Tour [인천],EXPECTED,0
+184,Jacky Cheung (장학우),Jacky Cheung 60+ Concert Tour [인천],EXPECTED,19
+217,Jacky Cheung (장학우),Jacky Cheung 60+ Concert Tour [인천],EXPECTED,19
+250,Jacky Cheung (장학우),Jacky Cheung 60+ Concert Tour [인천],EXPECTED,19
+80,JAKE MILLER (제이크 밀러),제이크 밀러 첫 단독 내한공연 JAKE MILLER BALANCE TOUR,EXPECTED,0
+179,JAKE MILLER (제이크 밀러),제이크 밀러 첫 단독 내한공연 JAKE MILLER BALANCE TOUR,EXPECTED,25
+212,JAKE MILLER (제이크 밀러),제이크 밀러 첫 단독 내한공연 JAKE MILLER BALANCE TOUR,EXPECTED,25
+245,JAKE MILLER (제이크 밀러),제이크 밀러 첫 단독 내한공연 JAKE MILLER BALANCE TOUR,EXPECTED,25
+205,John Carroll Kirby (존 캐럴 커비),PURA LANA #2 John Carroll Kirby [제주],EXPECTED,17
+238,John Carroll Kirby (존 캐럴 커비),PURA LANA #2 John Carroll Kirby [제주],EXPECTED,17
+73,John Carroll Kirby (존 캐럴 커비),PURA LANA #2 John Carroll Kirby [제주],EXPECTED,0
+172,John Carroll Kirby (존 캐럴 커비),PURA LANA #2 John Carroll Kirby [제주],EXPECTED,17
+76,JORDANN (조던),JORDANN ASIA TOUR IN SEOUL,EXPECTED,0
+175,JORDANN (조던),JORDANN ASIA TOUR IN SEOUL,EXPECTED,17
+208,JORDANN (조던),JORDANN ASIA TOUR IN SEOUL,EXPECTED,17
+241,JORDANN (조던),JORDANN ASIA TOUR IN SEOUL,EXPECTED,17
+94,Konomi Suzuki (코노미 스즈키),Konomi Suzuki Asia Tour [서울],EXPECTED,0
+193,Konomi Suzuki (코노미 스즈키),Konomi Suzuki Asia Tour [서울],EXPECTED,21
+226,Konomi Suzuki (코노미 스즈키),Konomi Suzuki Asia Tour [서울],EXPECTED,21
+259,Konomi Suzuki (코노미 스즈키),Konomi Suzuki Asia Tour [서울],EXPECTED,21
+70,MADKID (매드키드),MADKID LIVE TOUR: MAZE MUSEUM [서울 (앵콜) ],EXPECTED,0
+169,MADKID (매드키드),MADKID LIVE TOUR: MAZE MUSEUM [서울 (앵콜) ],EXPECTED,19
+202,MADKID (매드키드),MADKID LIVE TOUR: MAZE MUSEUM [서울 (앵콜) ],EXPECTED,19
+235,MADKID (매드키드),MADKID LIVE TOUR: MAZE MUSEUM [서울 (앵콜) ],EXPECTED,19
+88,Minami (미나미),Minami Earthtication [서울],EXPECTED,0
+187,Minami (미나미),Minami Earthtication [서울],EXPECTED,16
+220,Minami (미나미),Minami Earthtication [서울],EXPECTED,16
+253,Minami (미나미),Minami Earthtication [서울],EXPECTED,16
+82,MUSE (뮤즈),뮤즈 내한공연 (MUSE LIVE IN KOREA),EXPECTED,0
+181,MUSE (뮤즈),뮤즈 내한공연 (MUSE LIVE IN KOREA),EXPECTED,18
+214,MUSE (뮤즈),뮤즈 내한공연 (MUSE LIVE IN KOREA),EXPECTED,18
+247,MUSE (뮤즈),뮤즈 내한공연 (MUSE LIVE IN KOREA),EXPECTED,18
+90,My Dying Bride (마이 다잉 브라이드),My Dying Bride 내한공연,EXPECTED,0
+189,My Dying Bride (마이 다잉 브라이드),My Dying Bride 내한공연,EXPECTED,16
+222,My Dying Bride (마이 다잉 브라이드),My Dying Bride 내한공연,EXPECTED,16
+255,My Dying Bride (마이 다잉 브라이드),My Dying Bride 내한공연,EXPECTED,16
+77,NEMOPHILA (네모필라),"NEMOPHILA Live, MVXS 5 [서울]",EXPECTED,0
+176,NEMOPHILA (네모필라),"NEMOPHILA Live, MVXS 5 [서울]",EXPECTED,16
+209,NEMOPHILA (네모필라),"NEMOPHILA Live, MVXS 5 [서울]",EXPECTED,16
+242,NEMOPHILA (네모필라),"NEMOPHILA Live, MVXS 5 [서울]",EXPECTED,16
+89,Novelbright (노벨브라이트),Novelbright LIVE TOUR [서울],EXPECTED,0
+188,Novelbright (노벨브라이트),Novelbright LIVE TOUR [서울],EXPECTED,17
+221,Novelbright (노벨브라이트),Novelbright LIVE TOUR [서울],EXPECTED,17
+254,Novelbright (노벨브라이트),Novelbright LIVE TOUR [서울],EXPECTED,17
+71,Oasis (오아시스),오아시스 내한공연 [고양],EXPECTED,0
+170,Oasis (오아시스),오아시스 내한공연 [고양],EXPECTED,19
+203,Oasis (오아시스),오아시스 내한공연 [고양],EXPECTED,19
+236,Oasis (오아시스),오아시스 내한공연 [고양],EXPECTED,19
+66,Pink Sweat$ (핑크스웨츠),핑크스웨츠 내한공연: Pink Sweat $ Live in Seoul,EXPECTED,0
+165,Pink Sweat$ (핑크스웨츠),핑크스웨츠 내한공연: Pink Sweat $ Live in Seoul,EXPECTED,18
+198,Pink Sweat$ (핑크스웨츠),핑크스웨츠 내한공연: Pink Sweat $ Live in Seoul,EXPECTED,18
+231,Pink Sweat$ (핑크스웨츠),핑크스웨츠 내한공연: Pink Sweat $ Live in Seoul,EXPECTED,18
+83,Ryokuoushoku Shakai (녹황색사회),녹황색사회 아시아 투어,EXPECTED,0
+182,Ryokuoushoku Shakai (녹황색사회),녹황색사회 아시아 투어,EXPECTED,18
+215,Ryokuoushoku Shakai (녹황색사회),녹황색사회 아시아 투어,EXPECTED,18
+248,Ryokuoushoku Shakai (녹황색사회),녹황색사회 아시아 투어,EXPECTED,18
+67,SAKIYAMA SOUSHI (사키야마 소우시),"SAKIYAMA SOUSHI 연주이야기 투어, DIARY",EXPECTED,0
+166,SAKIYAMA SOUSHI (사키야마 소우시),"SAKIYAMA SOUSHI 연주이야기 투어, DIARY",EXPECTED,17
+199,SAKIYAMA SOUSHI (사키야마 소우시),"SAKIYAMA SOUSHI 연주이야기 투어, DIARY",EXPECTED,17
+232,SAKIYAMA SOUSHI (사키야마 소우시),"SAKIYAMA SOUSHI 연주이야기 투어, DIARY",EXPECTED,17
+185,SCANDAL (스캔들),"SCANDAL TOUR: LOVE, SPARK, JOY! [서울]",EXPECTED,18
+218,SCANDAL (스캔들),"SCANDAL TOUR: LOVE, SPARK, JOY! [서울]",EXPECTED,18
+251,SCANDAL (스캔들),"SCANDAL TOUR: LOVE, SPARK, JOY! [서울]",EXPECTED,18
+86,SCANDAL (스캔들),"SCANDAL TOUR: LOVE, SPARK, JOY! [서울]",EXPECTED,0
+96,SEKAI NO OWARI (세카이 노 오와리),SEKAI NO OWARI ASIA TOUR: Phoenix in Seoul,EXPECTED,0
+195,SEKAI NO OWARI (세카이 노 오와리),SEKAI NO OWARI ASIA TOUR: Phoenix in Seoul,EXPECTED,17
+228,SEKAI NO OWARI (세카이 노 오와리),SEKAI NO OWARI ASIA TOUR: Phoenix in Seoul,EXPECTED,17
+261,SEKAI NO OWARI (세카이 노 오와리),SEKAI NO OWARI ASIA TOUR: Phoenix in Seoul,EXPECTED,17
+79,toconoma (토코노마),toconoma ISLAND World Tour [서울],EXPECTED,0
+178,toconoma (토코노마),toconoma ISLAND World Tour [서울],EXPECTED,16
+211,toconoma (토코노마),toconoma ISLAND World Tour [서울],EXPECTED,16
+244,toconoma (토코노마),toconoma ISLAND World Tour [서울],EXPECTED,16
+75,toe (토),toe New Album Release Tour: NOW WE SEE THE LIGHT [서울],EXPECTED,0
+174,toe (토),toe New Album Release Tour: NOW WE SEE THE LIGHT [서울],EXPECTED,17
+207,toe (토),toe New Album Release Tour: NOW WE SEE THE LIGHT [서울],EXPECTED,17
+240,toe (토),toe New Album Release Tour: NOW WE SEE THE LIGHT [서울],EXPECTED,17
+81,Tom Grennan (톰 그래넌),톰 그래넌 내한공연 GRENNAN'25,EXPECTED,0
+180,Tom Grennan (톰 그래넌),톰 그래넌 내한공연 GRENNAN'25,EXPECTED,18
+213,Tom Grennan (톰 그래넌),톰 그래넌 내한공연 GRENNAN'25,EXPECTED,18
+246,Tom Grennan (톰 그래넌),톰 그래넌 내한공연 GRENNAN'25,EXPECTED,18
+72,TOMIOKA AI (토미오카 아이),TOMIOKA AI ASIA TOUR [서울],EXPECTED,0
+171,TOMIOKA AI (토미오카 아이),TOMIOKA AI ASIA TOUR [서울],EXPECTED,17
+204,TOMIOKA AI (토미오카 아이),TOMIOKA AI ASIA TOUR [서울],EXPECTED,17
+237,TOMIOKA AI (토미오카 아이),TOMIOKA AI ASIA TOUR [서울],EXPECTED,17
+97,Travis Scott (트래비스 스캇),트래비스 스캇 첫 단독 내한공연 [고양],EXPECTED,0
+196,Travis Scott (트래비스 스캇),트래비스 스캇 첫 단독 내한공연 [고양],EXPECTED,17
+229,Travis Scott (트래비스 스캇),트래비스 스캇 첫 단독 내한공연 [고양],EXPECTED,17
+262,Travis Scott (트래비스 스캇),트래비스 스캇 첫 단독 내한공연 [고양],EXPECTED,17
+95,"Tyler, The Creator (타일러, 더 크리에이터)","타일러, 더 크리에이터 내한공연 [고양]",PAST,0
+194,"Tyler, The Creator (타일러, 더 크리에이터)","타일러, 더 크리에이터 내한공연 [고양]",EXPECTED,18
+227,"Tyler, The Creator (타일러, 더 크리에이터)","타일러, 더 크리에이터 내한공연 [고양]",EXPECTED,18
+260,"Tyler, The Creator (타일러, 더 크리에이터)","타일러, 더 크리에이터 내한공연 [고양]",EXPECTED,18
+91,yama (야마),yama Asia Tour: 호시탐탐 [서울],EXPECTED,0
+190,yama (야마),yama Asia Tour: 호시탐탐 [서울],EXPECTED,17
+223,yama (야마),yama Asia Tour: 호시탐탐 [서울],EXPECTED,17
+256,yama (야마),yama Asia Tour: 호시탐탐 [서울],EXPECTED,17
