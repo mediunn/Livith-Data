@@ -26,10 +26,10 @@ class DataPipeline:
     """단순화된 데이터 수집 파이프라인"""
     
     def __init__(self):
-        self.kopis_api = KopisAPI()
-        self.api_client = APIClient()
+        self.kopis_api = KopisAPI(Config.KOPIS_API_KEY)
+        self.api_client = APIClient(Config.GEMINI_API_KEY if Config.USE_GEMINI_API else Config.PERPLEXITY_API_KEY)
         self.data_collector = DataCollector(self.api_client)
-        self.writer = SafeWriter(str(Config.BACKUP_DIR))
+        self.writer = SafeWriter
     
     def run_full_pipeline(self, full_mode: bool = False) -> bool:
         """전체 파이프라인 실행"""
@@ -82,25 +82,19 @@ class DataPipeline:
         print("📡 KOPIS 데이터 수집 중...")
         
         try:
-            # 날짜 범위 설정
-            if full_mode:
-                # 전체 모드: 더 넓은 범위
-                date_range = self.kopis_api.get_extended_date_range()
-            else:
-                # 증분 모드: 최근 데이터만
-                date_range = self.kopis_api.get_incremental_date_range()
+            # 전체 공연 코드 수집
+            concert_codes = self.kopis_api.fetch_all_concerts()
+            print(f"📊 총 {len(concert_codes)}개 공연 코드 수집")
             
-            # 데이터 수집
-            concerts = []
-            for start_date, end_date in date_range:
-                batch = self.kopis_api.fetch_concerts(start_date, end_date)
-                concerts.extend(batch)
+            # 내한공연 필터링 (테스트 모드에서는 최대 10개만)
+            max_concerts = 10 if not full_mode else None
+            concerts = self.kopis_api.fetch_concert_details(
+                concert_codes, 
+                max_found=max_concerts
+            )
             
-            # 필터링 (내한공연만)
-            filtered = self.kopis_api.filter_foreign_concerts(concerts)
-            
-            print(f"📊 수집 결과: {len(concerts)} → {len(filtered)} (필터링 후)")
-            return filtered
+            print(f"📊 수집 결과: {len(concerts)}개 내한공연 발견")
+            return concerts
             
         except Exception as e:
             logger.error(f"KOPIS 데이터 수집 실패: {e}")
@@ -169,13 +163,11 @@ class DataPipeline:
             artists_df = pd.DataFrame([artist.__dict__ for artist in artists])
             
             # CSV 저장
-            concerts_path = Config.OUTPUT_DIR / "concerts.csv"
-            artists_path = Config.OUTPUT_DIR / "artists.csv"
             
-            self.writer.write_csv(concerts_df, str(concerts_path))
-            self.writer.write_csv(artists_df, str(artists_path))
+            self.writer.save_dataframe(concerts_df, "concerts.csv", backup_if_main=False)
+            self.writer.save_dataframe(artists_df, "artists.csv", backup_if_main=False)
             
-            print(f"✅ 데이터 저장 완료: {concerts_path.parent}")
+            print(f"✅ 데이터 저장 완료: {Config.OUTPUT_DIR}")
             
         except Exception as e:
             logger.error(f"데이터 저장 실패: {e}")
