@@ -39,7 +39,7 @@ Livith-Data/
 #### Windows
 ```cmd
 # 저장소 클론
-git clone https://github.com/your-org/livith-data.git
+git clone https://github.com/mediunn/livith-data.git
 cd livith-data
 
 # 자동 설치 실행
@@ -49,7 +49,7 @@ setup\install.bat
 #### macOS/Linux
 ```bash
 # 저장소 클론
-git clone https://github.com/your-org/livith-data.git
+git clone https://github.com/mediunn/livith-data.git
 cd livith-data
 
 # 자동 설치 실행
