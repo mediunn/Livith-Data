@@ -8,6 +8,15 @@
 
 ```
 Livith-Data/
+├── setup/              # 설치 및 설정 파일
+│   ├── install.sh      # macOS/Linux 설치 스크립트
+│   ├── install.bat     # Windows 설치 스크립트
+│   ├── activate.sh     # 가상환경 활성화 스크립트
+│   ├── requirements.txt # Python 의존성
+│   └── pyproject.toml  # 프로젝트 설정
+├── scripts/            # 개발 도구 및 설정
+│   ├── .claude/        # Claude Code 설정
+│   └── .github/        # GitHub 설정 (이슈, PR 템플릿)
 ├── core/               # 핵심 시스템
 │   ├── pipeline/       # 메인 데이터 수집 파이프라인
 │   └── apis/          # API 모듈 (Gemini, KOPIS 등)
@@ -18,7 +27,9 @@ Livith-Data/
 ├── lib/               # 공통 라이브러리
 ├── data/              # 데이터 파일
 ├── logs/              # 로그 파일
-└── test/              # 테스트
+├── .env               # 환경 변수 설정
+├── .gitignore         # Git 제외 파일
+└── README.md          # 프로젝트 문서
 ```
 
 ## 🚀 빠른 시작
@@ -32,7 +43,7 @@ git clone https://github.com/your-org/livith-data.git
 cd livith-data
 
 # 자동 설치 실행
-install.bat
+setup\install.bat
 ```
 
 #### macOS/Linux
@@ -42,8 +53,8 @@ git clone https://github.com/your-org/livith-data.git
 cd livith-data
 
 # 자동 설치 실행
-chmod +x install.sh
-./install.sh
+chmod +x setup/install.sh
+setup/install.sh
 ```
 
 ### 수동 설치
@@ -65,7 +76,7 @@ venv\Scripts\activate
 source venv/bin/activate
 
 # 패키지 설치
-pip install -e .
+pip install -r setup/requirements.txt
 ```
 
 #### 3. 환경 설정
