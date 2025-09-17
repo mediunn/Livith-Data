@@ -1,2 +1,11 @@
-﻿artist,code,title,start_date,end_date,status,poster,ticket_site,ticket_url,venue,label,introduction
-Gen Hoshino (호시노 겐),PF267180,Gen Hoshino presents MAD HOPE Asia Tour in SEOUL,2025-09-13,2025-09-13,UPCOMING,,,,올림픽공원,,"일본을 대표하는 싱어송라이터이자 배우, 작가로 활발하게 활동하는 만능 엔터테이너 호시노 겐입니다! 특유의 따뜻하면서도 개성 넘치는 음악으로 많은 사랑을 받고 있어요. 특히 드라마 '도망치는 건 부끄럽지만 도움이 된다'에 출연하며 OST '恋 (Koi)'를 직접 불러 '코이 댄스' 열풍을 일으켰죠. 한국에서도 드라마와 노래가 큰 인기를 얻으며 그의 매력에 빠진 팬들이 많답니다. 팝, 소울, R&B를 넘나드는 폭넓은 음악 스펙트럼과 진솔한 가사로 듣는 이들에게 깊은 울림을 선사하는 아티스트예요."
+﻿id,artist,title,start_date,end_date,status,label,introduction,img_url,code,ticket_site,ticket_url,venue,created_at,updated_at
+,"빈센트 헤링, 에릭 알렉산더, 허지희, 김대호",더 배틀: 빈센트 헤링 & 에릭 알렉산더 [전주],2025-09-14,2025-09-14,UNKNOWN,,,,PF271079,,,더바인홀 (더바인홀),,
+,"이가라시 고쥬, 코마츠 리나, 아오키 렌타로, 사이카 와타루, 타지마 카오루",폼파돌스 (PompadollS) 라이브 [서울],2025-09-28,2025-09-28,UNKNOWN,,,,PF270018,,,롤링홀 (롤링홀),,
+,타일러 그레고리 오콘마,"타일러, 더 크리에이터 내한공연 [고양]",2025-09-13,2025-09-14,UNKNOWN,,,,PF260472,,,킨텍스 (제2전시장 10홀),,
+, ,"baby selects, Rich Amiri (리치 아미리) 서울 공연",2025-10-04,2025-10-04,UNKNOWN,,,,PF274012,,,롤링홀 (롤링홀),,
+, ,"Alexandros, Provoke Tour Live [서울]",2025-08-23,2025-08-23,UNKNOWN,,,,PF269855,,,노들섬 (라이브하우스),,
+,"토미 엠마뉴엘, 정성하",Tommy Emmanuel 내한공연,2025-09-19,2025-09-19,UNKNOWN,,,,PF268899,,,스카이아트홀 (스카이아트홀),,
+,이치카 후쿠이,Ichika Nito The Moon’s Elbow Tour in SEOUL,2025-10-23,2025-10-23,UNKNOWN,,,,PF273410,,,예스24 라이브홀 (구. 악스코리아) (예스24 라이브홀 (구. 악스코리아)),,
+,크리스토퍼 룬드 니센,크리스토퍼 내한공연 CHRISTOPHER LIVE [서울],2025-09-06,2025-09-06,UNKNOWN,,,,PF268047,,,올림픽공원 (KSPO DOME(체조경기장)),,
+,라잔 실바 등,Glass Beams: First Show in Seoul,2025-10-16,2025-10-16,UNKNOWN,,,,PF273511,,,스카이아트홀 (스카이아트홀),,
+, ,Novelbright LIVE TOUR [서울],2025-10-11,2025-10-11,UNKNOWN,,,,PF271282,,,잠실학생체육관 (본관),,

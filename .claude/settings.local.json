@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(setup/install.sh:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(git rebase:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []
