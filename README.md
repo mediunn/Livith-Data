@@ -110,6 +110,7 @@ GEMINI_MODEL_VERSION=2.0      # Gemini 2.0 사용
 │
 ├── 📂 database/              # 💾 데이터베이스 관련
 │   ├── upsert_csv_to_mysql.py # CSV → MySQL 업로드
+│   ├── download_mysql_to_csv.py # MySQL → CSV 다운로드
 │   ├── simple_ssh_mysql.py  # SSH MySQL 연결
 │   ├── mysql_data_loader.py # MySQL 데이터 로더
 │   └── ssh_mysql_connection.py # SSH MySQL 연결 유틸
@@ -210,7 +211,7 @@ OUTPUT_MODE=test python3 scripts/fix_data.py --interactive
 
 ### 3. 💾 데이터베이스 관리
 
-#### MySQL 데이터 업로드
+#### MySQL 데이터 업로드 (CSV → MySQL)
 ```bash
 # Windows
 python database/upsert_csv_to_mysql.py
@@ -222,6 +223,21 @@ python3 database/upsert_csv_to_mysql.py
 python3 scripts/update_concerts_sorting.py
 python3 scripts/fix_concerts_data.py
 ```
+
+#### MySQL 데이터 다운로드 (MySQL → CSV)
+```bash
+# Windows
+python database/download_mysql_to_csv.py
+
+# macOS/Linux
+python3 database/download_mysql_to_csv.py
+```
+
+**🎯 데이터베이스 동기화 기능:**
+- 📤 **업로드**: CSV 파일을 MySQL 데이터베이스에 UPSERT
+- 📥 **다운로드**: MySQL 데이터를 CSV 파일로 덮어쓰기
+- 💾 **자동 백업**: 다운로드 시 기존 CSV 파일을 타임스탬프와 함께 백업
+- 🔄 **완전 동기화**: DB의 최신 데이터로 로컬 CSV 파일 갱신
 
 ### 4. 🎵 가사 데이터 관리
 

@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(python3:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(source:*)",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(env)",
+      "Read(//var/folders/sn/j4phkpq534n42d5g_y45kydh0000gn/T/TemporaryItems/NSIRD_screencaptureui_N4vwPx/**)"
     ],
     "deny": [],
     "ask": []
