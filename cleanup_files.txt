@@ -1,0 +1,51 @@
+# 정리 대상 파일 목록
+
+## scripts/deprecated/ (이미 deprecated된 파일들)
+scripts/deprecated/analyze_setlists_artists.py
+scripts/deprecated/analyze_songs_mismatch.py
+scripts/deprecated/check_concert_data.py
+scripts/deprecated/check_concert_titles.py
+scripts/deprecated/compare_artist_files.py
+scripts/deprecated/fix_concerts_complete.py
+scripts/deprecated/fix_concerts_csv.py
+scripts/deprecated/fix_setlists_artists.py
+scripts/deprecated/fix_songs_artist_names.py
+scripts/deprecated/rebuild_songs.py
+scripts/deprecated/remove_yama.py
+scripts/deprecated/show_all_setlist_mismatches.py
+scripts/deprecated/show_schedule_mismatches.py
+scripts/deprecated/sort_concerts_by_matching.py
+scripts/deprecated/standardize_songs_artists_v2.py
+scripts/deprecated/standardize_songs_artists.py
+scripts/deprecated/test_csv_read.py
+scripts/deprecated/test_encoding.py
+scripts/deprecated/test_mysql_connection.py
+
+## database/ (중복 및 임시 업로드 스크립트)
+database/improved_upsert_csv_to_mysql.py (final_improved로 대체됨)
+database/simple_remaining_upload.py (임시 스크립트)
+database/fix_setlist_songs_upload.py (임시 수정용)
+database/final_setlist_songs_upload.py (임시 업로드용)
+database/upload_cleaned_data.py (일회성 업로드)
+database/fix_duplicates_and_download.py (일회성 수정)
+database/fix_setlist_songs_order_index.py (일회성 수정)
+database/check_setlist_songs_duplicates.py (일회성 체크)
+
+## scripts/ (테스트 및 일회성 수정 스크립트)
+scripts/test_ai_translation.py (테스트용)
+scripts/manual_test_translation.py (테스트용)
+scripts/fix_concert_info_manually.py (일회성 수정)
+scripts/fix_concert_info_truncation.py (일회성 수정)
+scripts/fix_setlist_songs_id_mapping.py (일회성 수정)
+scripts/fix_setlist_songs_song_id_from_mysql.py (일회성 수정)
+
+## 루트 디렉토리
+check_artists_table.py (일회성 체크)
+complete_translation.py (완료된 작업)
+test_direct_translation.py (테스트용)
+lyrics_update.log (로그파일 - logs 폴더로 이동 권장)
+
+## 기타 정리 권장 사항
+1. scripts/deprecated 폴더 전체 삭제 가능
+2. database/ 폴더의 임시 스크립트들은 백업 후 삭제
+3. 테스트 스크립트들은 test/ 폴더로 이동 또는 삭제
