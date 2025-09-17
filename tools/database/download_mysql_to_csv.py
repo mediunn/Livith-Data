@@ -18,8 +18,8 @@ class DownloadMySQLToCSV:
         self.ssh_process = None
         self.connection = None
         self.cursor = None
-        self.csv_base_path = '/Users/youz2me/Xcode/Livith-Data/output/main_output'
-        self.backup_path = '/Users/youz2me/Xcode/Livith-Data/output/backups'
+        self.csv_base_path = '/Users/youz2me/Xcode/Livith-Data/data/main_output'
+        self.backup_path = '/Users/youz2me/Xcode/Livith-Data/data/backups'
         
     def create_ssh_tunnel(self):
         """SSH 터널 생성"""

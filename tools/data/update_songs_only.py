@@ -17,7 +17,7 @@ class UpdateSongsOnly:
         self.ssh_process = None
         self.connection = None
         self.cursor = None
-        self.csv_file_path = '/Users/youz2me/Xcode/Livith-Data/output/main_output/songs.csv'
+        self.csv_file_path = '/Users/youz2me/Xcode/Livith-Data/data/main_output/songs.csv'
 
     def create_ssh_tunnel(self):
         """SSH 터널 생성"""

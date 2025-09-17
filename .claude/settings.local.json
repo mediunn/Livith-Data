@@ -10,7 +10,8 @@
       "Read(//var/folders/sn/j4phkpq534n42d5g_y45kydh0000gn/T/TemporaryItems/NSIRD_screencaptureui_N4vwPx/**)",
       "Bash(find:*)",
       "Bash(tree:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(pip3 install:*)"
     ],
     "deny": [],
     "ask": []

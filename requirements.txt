@@ -1,7 +1,7 @@
-requests==2.31.0
-pandas==2.1.3
-numpy==1.26.4
-python-dotenv==1.0.0
-lxml==4.9.3
-musixmatch==0.10
-google-generativeai==0.3.2
+requests>=2.32.0
+pandas>=2.3.0
+numpy>=2.3.0
+python-dotenv>=1.1.0
+lxml>=6.0.0
+google-generativeai>=0.8.0
+mysql-connector-python>=9.4.0
