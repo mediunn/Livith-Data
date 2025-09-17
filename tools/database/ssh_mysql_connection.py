@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+SSH 터널을 통해 MySQL 데이터베이스에 안전하게 연결하는 클래스
+"""
 import mysql.connector
 from mysql.connector import Error
 from sshtunnel import SSHTunnelForwarder

@@ -1,3 +1,6 @@
+"""
+향상된 데이터 수집기 - AI API를 활용한 콘서트 데이터 수집 및 처리
+"""
 import json
 import time
 import logging

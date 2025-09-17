@@ -1,3 +1,6 @@
+"""
+아티스트명 매칭 및 검증을 수행하는 모듈
+"""
 import pandas as pd
 import os
 import logging

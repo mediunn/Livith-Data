@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+CSV 파일을 MySQL 데이터베이스에 업서트(삽입/업데이트)하는 스크립트
+"""
 import subprocess
 import mysql.connector
 from mysql.connector import Error

@@ -1,3 +1,6 @@
+"""
+Perplexity AI API를 사용하여 데이터 수집 및 처리를 수행하는 API 클라이언트
+"""
 import requests
 import time
 import logging

@@ -1,3 +1,6 @@
+"""
+환경 변수 설정 및 API 키 관리를 위한 설정 파일
+"""
 import os
 from dotenv import load_dotenv
 

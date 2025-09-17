@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+MySQL 데이터베이스에서 데이터를 로드하고 처리하는 유틸리티
+"""
 import pandas as pd
 import mysql.connector
 from mysql.connector import Error

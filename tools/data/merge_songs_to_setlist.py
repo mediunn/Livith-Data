@@ -1,3 +1,6 @@
+"""
+songs 데이터를 setlist에 병합하는 유틸리티 스크립트
+"""
 import pandas as pd
 import os
 from datetime import datetime

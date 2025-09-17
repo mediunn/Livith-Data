@@ -1,3 +1,6 @@
+"""
+데이터베이스 테이블과 매핑되는 데이터 클래스 모델 정의
+"""
 from dataclasses import dataclass
 from typing import Optional, List
 from datetime import datetime

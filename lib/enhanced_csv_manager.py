@@ -1,3 +1,6 @@
+"""
+향상된 CSV 관리자 - 데이터 모델 기반 CSV 파일 생성 및 관리
+"""
 import pandas as pd
 import os
 import logging

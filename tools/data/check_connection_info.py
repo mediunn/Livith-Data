@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+네트워크 연결 상태 및 MySQL 데이터베이스 연결 정보를 확인하는 스크립트
+"""
 import socket
 import mysql.connector
 from mysql.connector import Error

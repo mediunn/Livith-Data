@@ -1,3 +1,6 @@
+"""
+KOPIS API를 사용하여 공연 정보를 수집하는 API 클라이언트
+"""
 import requests
 import xml.etree.ElementTree as ET
 import logging
