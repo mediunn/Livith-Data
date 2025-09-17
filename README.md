@@ -1,6 +1,8 @@
-# Livith Data Collection System
+## 📊 About Project
 
-한국 내한 콘서트 데이터 수집 및 관리 시스템
+![project](https://github.com/user-attachments/assets/c53dd5d8-d984-45b4-9993-cf635859a5ff)
+
+> 한국 내한 콘서트 데이터 수집 및 관리 시스템
 
 ## 📁 프로젝트 구조
 
@@ -18,6 +20,138 @@ Livith-Data/
 ├── logs/              # 로그 파일
 └── test/              # 테스트
 ```
+
+## 🚀 빠른 시작
+
+### 자동 설치 (권장)
+
+#### Windows
+```cmd
+# 저장소 클론
+git clone https://github.com/your-org/livith-data.git
+cd livith-data
+
+# 자동 설치 실행
+install.bat
+```
+
+#### macOS/Linux
+```bash
+# 저장소 클론
+git clone https://github.com/your-org/livith-data.git
+cd livith-data
+
+# 자동 설치 실행
+chmod +x install.sh
+./install.sh
+```
+
+### 수동 설치
+
+#### 1. 필수 요구사항
+- **Python 3.8 이상**
+- **pip** (Python 패키지 관리자)
+- **Git** (선택사항, SSH 기능용)
+
+#### 2. 의존성 설치
+```bash
+# 가상환경 생성
+python -m venv venv
+
+# 가상환경 활성화
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+# 패키지 설치
+pip install -e .
+```
+
+#### 3. 환경 설정
+```bash
+# .env 파일 생성
+cp .env.example .env
+
+# .env 파일에서 API 키와 데이터베이스 정보 설정
+```
+
+### 플랫폼별 특이사항
+
+#### Windows 사용자
+- **OpenSSH 설치 필요**: SSH 터널 기능 사용 시
+- **PowerShell 권장**: CMD보다 호환성이 좋음
+- **경로 설정**: SSH 키는 `C:\Users\YourName\.ssh\` 경로 사용
+
+#### macOS 사용자  
+- **Homebrew 권장**: Python 설치에 사용
+- **Xcode Command Line Tools**: Git 사용을 위해 필요
+
+#### Linux 사용자
+- **패키지 관리자**: apt, yum, dnf 등으로 Python3 설치
+- **SSH 클라이언트**: 대부분 기본 설치됨
+
+## 💻 컨벤션
+
+## Prefix (Tag)
+
+<div align="center">
+
+<table>
+  <thead>
+    <tr>
+      <th>Prefix</th>
+      <th>설명</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Feat</code></td>
+      <td>기능 구현</td>
+    </tr>
+    <tr>
+      <td><code>Add</code></td>
+      <td>파일(이미지, 폰트 등 포함) 추가</td>
+    </tr>
+    <tr>
+      <td><code>Delete</code></td>
+      <td>파일 삭제</td>
+    </tr>
+    <tr>
+      <td><code>Chore</code></td>
+      <td>이외 자잘한 수정</td>
+    </tr>
+    <tr>
+      <td><code>Refactor</code></td>
+      <td>코드의 비즈니스 로직 수정</td>
+    </tr>
+    <tr>
+      <td><code>Fix</code></td>
+      <td>버그 등의 기능 전체 수정</td>
+    </tr>
+    <tr>
+      <td><code>Setting</code></td>
+      <td>프로젝트 설정</td>
+    </tr>
+    <tr>
+      <td><code>Docs</code></td>
+      <td>문서 작성</td>
+    </tr>
+  </tbody>
+</table>
+
+</div>
+
+## Message
+
+> [Prefix] #이슈번호 - 메세지 내용  
+> 
+
+```markdown
+[Feat] #1 - 로그인 기능 구현
+```
+
+</div>
 
 ## 🚀 주요 실행 명령어
 
@@ -38,16 +172,16 @@ python core/pipeline/main.py --full
 
 ### 2. 데이터베이스 관리
 ```bash
-# CSV → MySQL 업로드
+# CSV → MySQL 업로드 (전체 테이블)
 python tools/database/upsert_csv_to_mysql.py
 
-# MySQL → CSV 다운로드
+# MySQL → CSV 다운로드 (전체 테이블)
 python tools/database/download_mysql_to_csv.py
 ```
 
 ### 3. 데이터 수정 및 관리
 ```bash
-# 대화형 데이터 수정 도구
+# 데이터 수정 도구
 python tools/data/fix_data.py
 
 # 가사 업데이트
@@ -70,13 +204,13 @@ python tools/data/update_songs_only.py
 ### 🔧 데이터베이스 관리
 | 스크립트 | 기능 설명 | 사용법 |
 |---------|----------|--------|
-| `tools/database/upsert_csv_to_mysql.py` | **CSV → MySQL 업로드** (전체) | `python tools/database/upsert_csv_to_mysql.py` |
-| `tools/database/download_mysql_to_csv.py` | **MySQL → CSV 다운로드** | `python tools/database/download_mysql_to_csv.py` |
+| `tools/database/upsert_csv_to_mysql.py` | **CSV → MySQL 업로드** (전체 테이블 자동) | `python tools/database/upsert_csv_to_mysql.py` |
+| `tools/database/download_mysql_to_csv.py` | **MySQL → CSV 다운로드** (전체 테이블 자동) | `python tools/database/download_mysql_to_csv.py` |
 
 ### 🛠 데이터 관리 도구
 | 스크립트 | 기능 설명 | 사용법 |
 |---------|----------|--------|
-| `tools/data/fix_data.py` | **대화형 데이터 수정 도구** | `python tools/data/fix_data.py` |
+| `tools/data/fix_data.py` | **데이터 수정 도구** | `python tools/data/fix_data.py` |
 | `tools/lyrics/update_lyrics.py` | **가사 자동 업데이트** | `python tools/lyrics/update_lyrics.py` |
 | `tools/lyrics/translate_lyrics.py` | **가사 번역 및 발음 변환** | `python tools/lyrics/translate_lyrics.py` |
 | `tools/data/update_songs_only.py` | **songs 테이블만 업데이트** | `python tools/data/update_songs_only.py` |
@@ -131,15 +265,15 @@ python core/pipeline/main.py
 
 ### 2. 데이터 수정이 필요한 경우
 ```bash
-python tools/data/fix_data.py --interactive
+python tools/data/fix_data.py
 ```
 
 ### 3. 데이터베이스 동기화
 ```bash
-# 로컬 → 서버 업로드
+# 로컬 CSV → 서버 MySQL 업로드 (자동으로 모든 테이블)
 python tools/database/upsert_csv_to_mysql.py
 
-# 서버 → 로컬 다운로드  
+# 서버 MySQL → 로컬 CSV 다운로드 (자동으로 모든 테이블)
 python tools/database/download_mysql_to_csv.py
 ```
 
@@ -149,12 +283,15 @@ python tools/database/download_mysql_to_csv.py
 python tools/lyrics/update_lyrics.py
 
 # 가사 번역
-python tools/lyrics/translate_lyrics.py data/main_output/songs.csv both
+python tools/lyrics/translate_lyrics.py
 ```
 
 ## 🔑 환경 설정
 
+### 기본 설정
 `.env` 파일에 필요한 API 키와 데이터베이스 정보를 설정하세요:
+
+#### 필수 API 키
 
 ```env
 # API Keys
@@ -184,9 +321,31 @@ SSH_KEY_PATH=path/to/key
 
 ## 🐛 문제 해결
 
-### SSH 터널 오류
-Windows에서 `os.setsid()` 관련 오류 발생 시 `tools/database/ssh_mysql_connection.py` 수정 필요
+### 플랫폼별 일반적인 문제
 
-### 데이터 인코딩 문제  
+#### Windows
+- **ModuleNotFoundError**: 가상환경이 활성화되지 않음 → `activate.bat` 실행
+- **SSH 연결 오류**: OpenSSH 미설치 → Windows 기능에서 OpenSSH 클라이언트 설치
+- **권한 오류**: PowerShell을 관리자 권한으로 실행
+
+#### macOS
+- **Command not found: python**: Python3 설치 필요 → `brew install python3`
+- **SSL 인증서 오류**: 인증서 업데이트 → `/Applications/Python\ 3.x/Install\ Certificates.command` 실행
+
+#### Linux
+- **python3-venv 패키지 없음**: 가상환경 패키지 설치 → `sudo apt install python3-venv`
+- **MySQL 연결 오류**: 개발 라이브러리 설치 → `sudo apt install libmysqlclient-dev`
+
+### 일반적인 오류
+
+#### SSH 터널 오류
+- **Windows**: `os.setsid()` 관련 → `lib/platform_utils.py`에서 자동 처리됨
+- **연결 실패**: SSH 키 권한 확인 → `chmod 400 ~/.ssh/your-key.pem`
+
+#### 데이터 인코딩 문제  
 - MySQL 연결 시 `charset='utf8mb4'` 설정 확인
 - CSV 저장 시 `encoding='utf-8-sig'` 사용
+
+#### API 관련 오류
+- **Rate Limit**: 요청 간격 조정 → `.env`에서 `REQUEST_DELAY` 증가
+- **API 키 오류**: `.env` 파일의 키 값 확인
