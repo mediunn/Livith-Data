@@ -20,6 +20,19 @@ class Config:
     KOPIS_API_KEY = os.getenv('KOPIS_API_KEY')
     MUSIXMATCH_API_KEY = os.getenv('MUSIXMATCH_API_KEY')
     
+    # SSH 설정
+    LIVITH_SSH_KEY_PATH = os.getenv('LIVITH_SSH_KEY_PATH')
+    DB_SSH_HOST = os.getenv('DB_SSH_HOST')
+    DB_SSH_PORT = int(os.getenv('DB_SSH_PORT', 22))
+    DB_SSH_USER = os.getenv('DB_SSH_USER')
+    
+    # 데이터베이스 설정
+    DB_HOST = os.getenv('DB_HOST', 'localhost')
+    DB_PORT = int(os.getenv('DB_PORT', 3306))
+    DB_USER = os.getenv('DB_USER')
+    DB_PASSWORD = os.getenv('DB_PASSWORD')
+    DB_NAME = os.getenv('DB_NAME')
+    
     # API 설정
     USE_GEMINI_API = os.getenv('USE_GEMINI_API', 'true').lower() == 'true'
     GEMINI_USE_SEARCH = os.getenv('GEMINI_USE_SEARCH', 'true').lower() == 'true'
@@ -76,3 +89,34 @@ class Config:
             raise ValueError(f"필수 환경변수가 누락됨: {', '.join(required)}")
         
         return True
+    
+    @classmethod
+    def get_ssh_key_path(cls):
+        """SSH 키 경로 가져오기"""
+        if not cls.LIVITH_SSH_KEY_PATH:
+            raise ValueError(
+                "LIVITH_SSH_KEY_PATH 환경변수가 설정되지 않았습니다. "
+                ".env.template 파일을 .env로 복사하고 경로를 설정해주세요."
+            )
+        
+        path = Path(cls.LIVITH_SSH_KEY_PATH).expanduser().resolve()
+        
+        if not path.exists():
+            raise FileNotFoundError(f"SSH 키 파일을 찾을 수 없습니다: {path}")
+        
+        return str(path)
+    
+    @classmethod
+    def get_db_config(cls):
+        """데이터베이스 설정 가져오기"""
+        return {
+            'ssh_host': cls.DB_SSH_HOST,
+            'ssh_port': cls.DB_SSH_PORT,
+            'ssh_user': cls.DB_SSH_USER,
+            'key_path': cls.get_ssh_key_path(),
+            'db_host': cls.DB_HOST,
+            'db_port': cls.DB_PORT,
+            'db_user': cls.DB_USER,
+            'db_password': cls.DB_PASSWORD,
+            'db_name': cls.DB_NAME
+        }

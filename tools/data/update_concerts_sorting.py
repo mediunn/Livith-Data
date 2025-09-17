@@ -7,13 +7,17 @@ from mysql.connector import Error
 import time
 import signal
 import os
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from lib.config import Config
 
 class ConcertsSortingUpdater:
     def __init__(self):
         self.ssh_process = None
         self.connection = None
         self.cursor = None
-        self.csv_path = '/Users/youz2me/Xcode/Livith-Data/output/concerts.csv'
+        self.csv_path = str(Config.OUTPUT_DIR / 'concerts.csv')
 
     def analyze_current_data(self):
         """현재 CSV 데이터 분석"""
@@ -175,7 +179,7 @@ class ConcertsSortingUpdater:
             
             ssh_command = [
                 'ssh',
-                '-i', '/Users/youz2me/Downloads/livith-key.pem',
+                '-i', Config.get_ssh_key_path(),
                 '-L', '3307:livithdb.c142i2022qs5.ap-northeast-2.rds.amazonaws.com:3306',
                 '-N',
                 '-o', 'StrictHostKeyChecking=no',

@@ -41,6 +41,10 @@ import argparse
 from datetime import datetime
 from typing import Dict, List, Optional
 import json
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from lib.config import Config
 
 class DataFixer:
     def __init__(self):
@@ -49,9 +53,9 @@ class DataFixer:
         self.cursor = None
         # 출력 디렉토리 설정 (환경변수로 제어 가능)
         if os.environ.get('OUTPUT_MODE') == 'test':
-            self.output_dir = '/Users/youz2me/Xcode/Livith-Data/output/test_output'
+            self.output_dir = str(Config.TEST_OUTPUT_DIR)
         else:
-            self.output_dir = '/Users/youz2me/Xcode/Livith-Data/output/main_output'
+            self.output_dir = str(Config.OUTPUT_DIR)
         
         # CSV 파일들과 관련 컬럼 매핑
         self.csv_mappings = {
@@ -270,7 +274,7 @@ class DataFixer:
             
             ssh_command = [
                 'ssh',
-                '-i', '/Users/youz2me/Downloads/livith-key.pem',
+                '-i', Config.get_ssh_key_path(),
                 '-L', '3307:livithdb.c142i2022qs5.ap-northeast-2.rds.amazonaws.com:3306',
                 '-N',
                 '-o', 'StrictHostKeyChecking=no',

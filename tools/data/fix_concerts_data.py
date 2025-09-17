@@ -7,6 +7,10 @@ import time
 import signal
 import os
 from datetime import datetime
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from lib.config import Config
 
 class ConcertDataFixer:
     def __init__(self):
@@ -21,7 +25,7 @@ class ConcertDataFixer:
             
             ssh_command = [
                 'ssh',
-                '-i', '/Users/youz2me/Downloads/livith-key.pem',
+                '-i', Config.get_ssh_key_path(),
                 '-L', '3307:livithdb.c142i2022qs5.ap-northeast-2.rds.amazonaws.com:3306',
                 '-N',
                 '-o', 'StrictHostKeyChecking=no',
@@ -87,7 +91,7 @@ class ConcertDataFixer:
             
             # CSV 파일 읽기
             print("📁 concerts.csv 로드 중...")
-            csv_path = '/Users/youz2me/Xcode/Livith-Data/output/concerts.csv'
+            csv_path = str(Config.OUTPUT_DIR / 'concerts.csv')
             df = pd.read_csv(csv_path, encoding='utf-8')
             
             # NaN 값을 빈 문자열로 치환

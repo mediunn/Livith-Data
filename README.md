@@ -81,10 +81,11 @@ pip install -r setup/requirements.txt
 
 #### 3. 환경 설정
 ```bash
-# .env 파일 생성
-cp .env.example .env
+# .env 파일 생성 (템플릿 복사)
+cp .env.template .env
 
-# .env 파일에서 API 키와 데이터베이스 정보 설정
+# .env 파일에서 API 키와 SSH 키 경로 설정
+# 특히 LIVITH_SSH_KEY_PATH를 각자의 환경에 맞게 수정
 ```
 
 ### 플랫폼별 특이사항
@@ -300,27 +301,59 @@ python tools/lyrics/translate_lyrics.py
 ## 🔑 환경 설정
 
 ### 기본 설정
-`.env` 파일에 필요한 API 키와 데이터베이스 정보를 설정하세요:
+`.env.template` 파일을 `.env`로 복사하고 각자의 환경에 맞게 설정하세요:
 
-#### 필수 API 키
+```bash
+# .env 파일 생성
+cp .env.template .env
+```
+
+#### 필수 설정 항목
 
 ```env
+# SSH Private Key Path (가장 중요!)
+# Windows: C:\path\to\livith-key.pem 또는 /c/path/to/livith-key.pem (Git Bash)
+# macOS/Linux: /path/to/livith-key.pem
+LIVITH_SSH_KEY_PATH=/Users/youz2me/Downloads/livith-key.pem
+
 # API Keys
 KOPIS_API_KEY=your_key_here
 GEMINI_API_KEY=your_key_here
 PERPLEXITY_API_KEY=your_key_here
 MUSIXMATCH_API_KEY=your_key_here
 
-# Database
-DB_HOST=your_host
-DB_USER=your_user  
-DB_PASSWORD=your_password
-DB_NAME=your_database
+# Database SSH Connection (이미 설정됨)
+DB_SSH_HOST=43.203.48.65
+DB_SSH_PORT=22
+DB_SSH_USER=ubuntu
 
-# SSH (for remote DB)
-SSH_HOST=your_ssh_host
-SSH_USER=your_ssh_user
-SSH_KEY_PATH=path/to/key
+# Database Connection (이미 설정됨)
+DB_HOST=livithdb.c142i2022qs5.ap-northeast-2.rds.amazonaws.com
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=livith0407
+DB_NAME=livith_v3
+```
+
+### 팀원 환경 설정 가이드
+
+#### Windows 사용자
+SSH 키 경로를 다음 중 하나로 설정:
+```env
+# 절대 경로 (백슬래시)
+LIVITH_SSH_KEY_PATH=C:\Users\YourName\Downloads\livith-key.pem
+
+# 또는 Git Bash 스타일 (슬래시)
+LIVITH_SSH_KEY_PATH=/c/Users/YourName/Downloads/livith-key.pem
+```
+
+#### macOS/Linux 사용자
+```env
+# 절대 경로
+LIVITH_SSH_KEY_PATH=/Users/YourName/Downloads/livith-key.pem
+
+# 또는 홈 디렉토리 상대 경로 (~ 사용 가능)
+LIVITH_SSH_KEY_PATH=~/Downloads/livith-key.pem
 ```
 
 ## 📝 주의사항

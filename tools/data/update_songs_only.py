@@ -11,13 +11,16 @@ import signal
 import os
 from datetime import datetime
 import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from lib.config import Config
 
 class UpdateSongsOnly:
     def __init__(self):
         self.ssh_process = None
         self.connection = None
         self.cursor = None
-        self.csv_file_path = '/Users/youz2me/Xcode/Livith-Data/data/main_output/songs.csv'
+        self.csv_file_path = str(Config.OUTPUT_DIR / 'songs.csv')
 
     def create_ssh_tunnel(self):
         """SSH 터널 생성"""
@@ -26,7 +29,7 @@ class UpdateSongsOnly:
             
             ssh_command = [
                 'ssh',
-                '-i', '/Users/youz2me/Downloads/livith-key.pem',
+                '-i', Config.get_ssh_key_path(),
                 '-L', '3307:livithdb.c142i2022qs5.ap-northeast-2.rds.amazonaws.com:3306',
                 '-N',
                 '-o', 'StrictHostKeyChecking=no',

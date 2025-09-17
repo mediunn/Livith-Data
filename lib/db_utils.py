@@ -9,6 +9,7 @@ import mysql.connector
 from mysql.connector import Error
 from pathlib import Path
 from lib.platform_utils import create_cross_platform_subprocess
+from lib.config import Config
 
 
 class DatabaseManager:
@@ -24,10 +25,10 @@ class DatabaseManager:
         """SSH 터널 생성"""
         if ssh_config is None:
             ssh_config = {
-                'key_path': '/Users/youz2me/Downloads/livith-key.pem',
-                'host': 'ubuntu@43.203.48.65',
-                'remote_host': 'livithdb.c142i2022qs5.ap-northeast-2.rds.amazonaws.com',
-                'remote_port': 3306,
+                'key_path': Config.get_ssh_key_path(),
+                'host': f"{Config.DB_SSH_USER}@{Config.DB_SSH_HOST}",
+                'remote_host': Config.DB_HOST,
+                'remote_port': Config.DB_PORT,
                 'local_port': 3307
             }
         
@@ -68,9 +69,9 @@ class DatabaseManager:
             config = {
                 'host': '127.0.0.1',
                 'port': 3307,
-                'user': 'root',
-                'password': 'livith0407',
-                'database': 'livith_v3',
+                'user': Config.DB_USER,
+                'password': Config.DB_PASSWORD,
+                'database': Config.DB_NAME,
                 'charset': 'utf8mb4',
                 'use_unicode': True
             }

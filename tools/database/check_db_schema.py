@@ -8,6 +8,10 @@ from mysql.connector import Error
 import time
 import signal
 import os
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from lib.config import Config
 
 class DatabaseSchemaChecker:
     def __init__(self):
@@ -22,7 +26,7 @@ class DatabaseSchemaChecker:
             
             ssh_command = [
                 'ssh',
-                '-i', '/Users/youz2me/Downloads/livith-key.pem',
+                '-i', Config.get_ssh_key_path(),
                 '-L', '3307:livithdb.c142i2022qs5.ap-northeast-2.rds.amazonaws.com:3306',
                 '-N',
                 '-o', 'StrictHostKeyChecking=no',

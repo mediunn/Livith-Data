@@ -278,8 +278,13 @@ def main():
         'database': 'livith_v2'   # 데이터베이스 이름
     }
     
-    # CSV 파일들이 있는 경로
-    csv_base_path = '/Users/youz2me/Xcode/Livith-Data/output'
+    # CSV 파일들이 있는 경로 - Config 추가 필요
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).parent.parent.parent))
+    from lib.config import Config
+    
+    csv_base_path = str(Config.OUTPUT_DIR.parent)
     
     # 데이터 로더 생성
     loader = MySQLDataLoader(**config)

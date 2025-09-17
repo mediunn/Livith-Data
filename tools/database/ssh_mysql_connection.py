@@ -6,6 +6,10 @@ import mysql.connector
 from mysql.connector import Error
 from sshtunnel import SSHTunnelForwarder
 import logging
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from lib.config import Config
 
 class SSHMySQLConnection:
     def __init__(self, ssh_config, mysql_config):
@@ -145,7 +149,7 @@ def main():
         'host': '43.203.48.65',
         'port': 22,
         'username': 'ubuntu',
-        'private_key_path': '/Users/youz2me/Downloads/livith-key.pem'
+        'private_key_path': Config.get_ssh_key_path()
     }
     
     # MySQL 설정
