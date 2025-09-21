@@ -62,7 +62,7 @@ def main():
     """전체 테이블 다운로드"""
     print("🚀 MySQL → CSV 다운로드 시작")
     
-    tables = ["artists", "concerts", "songs", "setlists"]
+    tables = ["artists","setlist_songs", "concerts", "songs", "setlists"]
     
     for table_name in tables:
         if not download_table(table_name):
