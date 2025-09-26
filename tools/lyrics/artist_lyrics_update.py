@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 
 # 프로젝트 루트 경로 추가
-project_root = Path(__file__).parent.parent
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from core.apis.lyrics_updater import LyricsUpdater

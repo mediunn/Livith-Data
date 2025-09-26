@@ -4,7 +4,7 @@ Musixmatch API를 사용하여 가사를 업데이트하는 스크립트
 """
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 import logging
 from core.apis.lyrics_updater import LyricsUpdater
