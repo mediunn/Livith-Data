@@ -3,13 +3,11 @@ Google AI Studio (Gemini) API 클라이언트
 Gemini 2.5 pro with Google Search grounding 구현
 """
 import google.generativeai as genai
-from google.generativeai import types
 import time
 import logging
 import json
-from typing import Optional, Dict, Any, List
+from typing import Dict, Any, List
 from lib.config import Config
-from lib.prompts import APIPrompts
 
 logger = logging.getLogger(__name__)
 
@@ -20,21 +18,29 @@ class GeminiAPI:
         genai.configure(api_key=api_key)
         self._search_logged = False  # 검색 활성화 로그를 한 번만 출력하기 위한 플래그
         
-        # Gemini 2.0 Flash 모델 설정 (Google Search 지원)
+        # Gemini 2.0 Flash Exp 모델 설정 (최신 실험 모델)
         try:
-            # 검색 기능이 지원되는 경우 활성화
+            # gemini-2.0-flash-exp 모델 시도
             self.model_with_search = genai.GenerativeModel(
-                'gemini-2.5-flash'  # 최신 2.5 Flash 모델
+                'gemini-2.0-flash-exp',
+                generation_config={"temperature": 0.7}
             )
             self.search_available = True
-            logger.info("Gemini 2.5 Flash 모델 초기화 완료 (Google Search 통합)")
+            logger.info("Gemini 2.0 Flash Exp 모델 초기화 완료")
         except Exception as e:
-            logger.warning(f"Google Search 통합 실패, 일반 모델 사용: {e}")
-            self.model_with_search = genai.GenerativeModel('gemini-2.5-flash')
-            self.search_available = False
+            logger.warning(f"Gemini 2.0 Flash Exp 모델 실패, 일반 모델 사용: {e}")
+            # 대체 모델 사용
+            try:
+                self.model_with_search = genai.GenerativeModel('gemini-1.5-flash')
+                self.search_available = True
+                logger.info("Gemini 1.5 Flash 모델로 대체")
+            except:
+                self.model_with_search = genai.GenerativeModel('gemini-pro')
+                self.search_available = False
+                logger.info("Gemini Pro 모델로 대체")
         
-        # 일반 모델 (검색 없이)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        # 일반 모델 (검색 없이) - 같은 모델 사용
+        self.model = self.model_with_search
         
         # 기본 생성 설정 (500 에러 방지를 위해 보수적으로 설정)
         self.generation_config = {
@@ -74,49 +80,52 @@ class GeminiAPI:
             urls: 참조할 URL 리스트 (컨텍스트로 제공)
         """
         
-        # 검색 중심의 시스템 프롬프트
-        system_prompt = """당신은 Google Search를 활용하여 최신 한국 내한 콘서트 정보를 수집하는 전문가입니다.
-        
+        # 검색 모드에 따라 시스템 프롬프트 조정
+        if search_focus:
+            system_prompt = """당신은 실시간 정보 검색 전문가입니다.
+
 중요 지침:
-1. Google Search를 통해 실시간으로 검색한 정보만 제공하세요.
-2. 추측하지 말고, 검색 결과에서 찾은 사실만 답변하세요.
-3. 정보를 찾을 수 없으면 빈 값("")으로 반환하세요.
-4. 2020-2025년 최신 정보를 우선적으로 찾아주세요.
-5. 모든 응답은 반드시 한국어로 작성하세요.
+1. 최신 정보를 정확하게 검색하여 제공하세요.
+2. 검색 결과에 기반한 사실만 답변하세요.
+3. 정보를 찾을 수 없으면 명확히 알려주세요.
+4. 모든 응답은 한국어로 작성하세요."""
+        else:
+            system_prompt = """당신은 유용한 정보를 제공하는 AI 어시스턴트입니다.
 
-검색 우선순위:
-1. 공식 티켓 사이트 (예스24, 인터파크, 멜론티켓, 등등)
-2. 아티스트 공식 SNS/웹사이트
-3. 한국 음악 뉴스 사이트
-4. 팬 커뮤니티 및 포럼
-
-주요 한국 공연장:
-- 대형: 고척스카이돔, 잠실실내체육관, KSPO DOME, 인스파이어 아레나
-- 중형: 예스24 라이브홀, 블루스퀘어, 올림픽홀, 무신사 개러지
-- 소형: 웨스트브릿지, 롤링홀, 클럽FF, 사운드홀"""
+지식 기반으로 정확하고 도움이 되는 답변을 제공하세요.
+한국어로 응답하세요."""
         
         # URL 컨텍스트 추가
         url_context = ""
         if urls:
             url_context = f"\n\n참조 URL:\n" + "\n".join(f"- {url}" for url in urls)
         
-        # 프롬프트 강화 (검색 키워드 최적화)
-        enhanced_prompt = f"""{system_prompt}
+        # 프롬프트 강화
+        if search_focus:
+            # 콘서트 관련 키워드가 있는지 확인
+            concert_keywords = ["콘서트", "공연", "내한", "티켓", "concert", "tour", "live"]
+            is_concert_query = any(keyword in prompt.lower() for keyword in concert_keywords)
 
-요청사항:
-{prompt}
+            if is_concert_query:
+                enhanced_prompt = f"""{system_prompt}
 
-Google Search를 사용하여 다음을 검색해주세요:
-- 최신 공연 정보 (2024-2025)
-- 공식 발표 및 티켓 정보
-- 실제 개최된/개최 예정 공연만
-{url_context}
+요청사항: {prompt}
 
-응답 원칙:
-- Google Search 결과 기반 답변
-- 출처가 명확한 정보만 제공
-- 최신 정보 우선
-- 한국어로 응답"""
+다음 정보를 검색해주세요:
+- 최신 공연 정보 (2024-2025년)
+- 공식 티켓 사이트 정보
+- 실제 공연 일정
+{url_context}"""
+            else:
+                enhanced_prompt = f"""{system_prompt}
+
+요청사항: {prompt}
+{url_context}"""
+        else:
+            enhanced_prompt = f"""{system_prompt}
+
+요청사항: {prompt}
+{url_context}"""
         
         for attempt in range(Config.MAX_RETRIES):
             try:
@@ -308,9 +317,9 @@ Google Search를 사용하여 다음을 검색해주세요:
     
     def get_model_info(self) -> Dict[str, str]:
         """현재 사용 중인 모델 정보 반환"""
+        model_name = self.model._model_name if hasattr(self.model, '_model_name') else "unknown"
         return {
-            "search_model": "gemini-2.5-flash",
-            "regular_model": "gemini-2.5-flash",
-            "search_enabled": "google_search_retrieval",
-            "version": "2.5"
+            "model": model_name,
+            "search_available": self.search_available,
+            "api_status": "active"
         }
