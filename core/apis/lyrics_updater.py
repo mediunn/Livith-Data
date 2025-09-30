@@ -100,10 +100,13 @@ class LyricsUpdater:
             if 'musixmatch_url' not in fieldnames:
                 fieldnames.append('musixmatch_url')
             
-            # 백업 파일 생성
-            backup_path = csv_path.with_suffix('.csv.backup')
+            # 백업 파일 생성 (타임스탬프 사용)
             if csv_path.exists():
-                csv_path.rename(backup_path)
+                import datetime
+                import shutil
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                backup_path = csv_path.with_suffix(f'.{timestamp}.csv.backup')
+                shutil.copy2(csv_path, backup_path)
                 logger.info(f"기존 파일 백업: {backup_path}")
             
             # 새 파일 저장 - quoting 옵션 추가로 특수문자 처리
