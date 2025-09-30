@@ -4,7 +4,11 @@
       "Bash(setup/install.sh:*)",
       "Bash(git rm:*)",
       "Bash(git rebase:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(python test:*)",
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)",
+      "Bash(source:*)"
     ],
     "deny": [],
     "ask": []
