@@ -178,7 +178,39 @@ class DataCollector:
     def _collect_artist_basic_info(self, artist_name: str) -> Optional[Dict[str, Any]]:
         """아티스트 기본 정보 수집"""
         try:
-            query = f"{artist_name} 아티스트 정보 데뷔 국적"
+            json_example = '''{
+"name": "Oasis (오아시스)",
+"debut_date": "1994",
+"nationality": "영국",
+"group_type": "밴드",
+"introduction": "1990년대 브릿팝의 부흥을 이끈 맨체스터 출신의 전설적인 밴드.\\n노엘 갤러거의 작곡 능력과 리암 갤러거의 독보적인 보컬을 중심으로, 'Wonderwall', 'Don't Look Back in Anger' 등 수많은 명곡을 발표했다.\\n직설적인 가사와 로큰롤 사운드로 전 세계적인 팬덤을 구축했으며,\\n90년대 영국 음악 씬을 상징하는 아이콘으로 평가받는다.",
+"social_media": "https://www.oasisinet.com/",
+"keywords": "브릿팝, 록, 밴드, 90년대",
+"img_url": "https://example.com/oasis.jpg"
+}'''
+
+            query = f"""아티스트 '{artist_name}'에 대한 상세 정보를 수집해서 JSON 형식으로 만들어줘.
+
+요청하는 정보:
+- name: 아티스트의 공식 이름 (영문/한글 병기 권장)
+- debut_date: 데뷔 연도 (YYYY 형식)
+- nationality: 국적
+- group_type: 그룹 형태 (솔로, 그룹, 밴드 등)
+- introduction: 아티스트의 활동, 음악 스타일, 주요 성과 등을 포함하여 4~5줄의 상세한 소개. 문맥에 맞게 적절히 줄바꿈(\n)을 포함해줘.
+- social_media: 대표 소셜 미디어 URL (공식 웹사이트, 인스타그램 등)
+- keywords: 음악 장르, 특징 등 아티스트를 설명하는 키워드 (쉼표로 구분)
+- img_url: 프로필 이미지 URL
+
+중요 규칙: 만약 특정 필드의 정보를 찾을 수 없다면, 해당 필드의 값을 빈 문자열("")로 설정해줘. 절대로 '정보 없음'이나 'N/A'와 같은 텍스트를 넣지 마.
+
+예시:
+- 프롬프트: 'Oasis'
+- 결과: {json_example}
+
+이제 다음 아티스트의 정보를 만들어줘: '{artist_name}'
+
+결과는 반드시 위 예시와 동일한 JSON 형식이어야 하고, 다른 텍스트는 포함하지 마.
+"""
             response = self.api.query_json(query)
             time.sleep(6)  # API 호출 후 6초 대기
             
