@@ -23,7 +23,7 @@ logging.basicConfig(
 def main():
     if len(sys.argv) < 3 or len(sys.argv) > 4:
         print("사용법:")
-        print("  python3 scripts/translate_lyrics.py <CSV파일경로> <모드> [최대처리곡수]")
+        print("  python3 tools/lyrics/translate_lyrics.py <CSV파일경로> <모드> [최대처리곡수]")
         print()
         print("모드:")
         print("  translation    - 한국어 번역만")
@@ -32,13 +32,13 @@ def main():
         print()
         print("예시:")
         print("  # 모든 곡을 번역 + 발음 변환")
-        print("  python3 scripts/translate_lyrics.py output/main_output/songs.csv both")
+        print("  python3 tools/lyrics/translate_lyrics.py data/main_output/songs.csv both")
         print()
         print("  # 한국어 번역만, 최대 5곡")
-        print("  python3 scripts/translate_lyrics.py output/main_output/songs.csv translation 5")
+        print("  python3 tools/lyrics/translate_lyrics.py data/main_output/songs.csv translation 5")
         print()
         print("  # 발음 변환만")
-        print("  python3 scripts/translate_lyrics.py output/main_output/songs.csv pronunciation")
+        print("  python3 tools/lyrics/translate_lyrics.py data/main_output/songs.csv pronunciation")
         sys.exit(1)
     
     csv_path = sys.argv[1]
