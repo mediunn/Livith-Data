@@ -39,10 +39,12 @@ class DataCollector:
                 concert.ticket_url = ticket_info.get('url', '')
                 concert.ticket_site = ticket_info.get('site', '')
             
-            # 추가 정보 수집
+            # 1. (새로운 함수) 한 줄 요약(introduction) 수집
+            concert.introduction = self._collect_short_introduction(concert.title, concert.artist)
+            
+            # 2. (기존 함수) 라벨(label) 정보 수집
             additional_info = self._collect_additional_info(concert.title, concert.artist)
             if additional_info:
-                concert.introduction = additional_info.get('introduction', '')
                 concert.label = additional_info.get('label', '')
             
             return concert
@@ -144,6 +146,34 @@ class DataCollector:
             logger.warning(f"추가 정보 수집 실패: {e}")
         
         return None
+
+    def _collect_short_introduction(self, title: str, artist: str) -> str:
+        """한 줄 요약 소개 수집"""
+        try:
+            # 명확하고 구체적인 프롬프트 사용
+            query = f"""'{title}' ({artist}) 콘서트의 한 줄 소개 문구를 생성해줘.
+- 반드시 콘서트의 핵심 특징(예: 첫 내한, 오랜만의 내한(몇 년 후 내한인지), 재결합(몇 년 후 내한인지), 대표곡, 투어 컨셉 등)을 하나 이상 포함해야 해.
+
+예시:
+- 프롬프트: 'Gen Hoshino presents MAD HOPE Asia Tour in SEOUL' (Gen Hoshino (호시노 겐))
+- 결과: {{"summary": "‘Koi’ 신드롬의 주인공 호시노 겐, 'MAD HOPE' 투어로 n년 만에 한국 팬들과의 만남!"}}
+
+이제 다음 콘서트의 한 줄 소개를 만들어줘: '{title}' ({artist})
+
+결과는 반드시 다음 JSON 형식이어야 하고, 다른 텍스트는 포함하지 마:
+{{"summary": "여기에 한 줄 소개 문구"}}
+"""
+            response = self.api.query_json(query)
+            time.sleep(6)  # API 호출 후 6초 대기
+            
+            # AI가 'summary' 또는 'introduction' 키로 응답한다는 가정
+            if response:
+                return response.get('summary') or response.get('introduction', '')
+            
+        except Exception as e:
+            logger.warning(f"한 줄 요약 수집 실패: {e}")
+        
+        return ""
     
     def _collect_artist_basic_info(self, artist_name: str) -> Optional[Dict[str, Any]]:
         """아티스트 기본 정보 수집"""
