@@ -26,7 +26,7 @@ class LyricsTranslator:
             output_dir: 출력 디렉토리 (None이면 Config.OUTPUT_DIR 사용)
         """
         # 설정 검증 - Gemini API 키 확인
-        Config.validate()
+        Config.validate_api_keys()
         
         self.gemini_api = GeminiAPI(Config.GEMINI_API_KEY)
         self.output_dir = Path(output_dir or Config.OUTPUT_DIR)
