@@ -2,6 +2,7 @@
 데이터 수집 핵심 로직
 """
 import logging
+import time
 from typing import Dict, Any, Optional
 from lib.data_models import Concert, Artist
 from lib.config import Config
@@ -111,7 +112,8 @@ class DataCollector:
         # API 호출 로직 (간소화)
         try:
             query = f"{title} {artist} 티켓 예매"
-            response = self.api.search(query)
+            response = self.api.query_json(query)
+            time.sleep(6)  # API 호출 후 6초 대기
             
             # 응답 파싱 로직
             if response and 'ticket' in response:
@@ -129,7 +131,8 @@ class DataCollector:
         """추가 정보 수집"""
         try:
             query = f"{title} {artist} 콘서트 정보"
-            response = self.api.search(query)
+            response = self.api.query_json(query)
+            time.sleep(6)  # API 호출 후 6초 대기
             
             if response:
                 return {
@@ -146,7 +149,8 @@ class DataCollector:
         """아티스트 기본 정보 수집"""
         try:
             query = f"{artist_name} 아티스트 정보 데뷔 국적"
-            response = self.api.search(query)
+            response = self.api.query_json(query)
+            time.sleep(6)  # API 호출 후 6초 대기
             
             if response:
                 return {
