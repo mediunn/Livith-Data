@@ -81,8 +81,8 @@ def _upsert_concerts(db, df):
     """콘서트 테이블 업서트"""
     for _, row in df.iterrows():
         query = """
-        INSERT INTO concerts (concert_id, title, artist, venue, start_date, end_date, status, poster_url)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO concerts (id, title, artist, venue, start_date, end_date, status, poster)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE
         title = VALUES(title),
         artist = VALUES(artist),
@@ -90,17 +90,17 @@ def _upsert_concerts(db, df):
         start_date = VALUES(start_date),
         end_date = VALUES(end_date),
         status = VALUES(status),
-        poster_url = VALUES(poster_url)
+        poster = VALUES(poster)
         """
         db.cursor.execute(query, (
-            row.get('concert_id', ''),
+            row.get('id', ''),
             row.get('title', ''),
             row.get('artist', ''),
             row.get('venue', ''),
             row.get('start_date', ''),
             row.get('end_date', ''),
             row.get('status', ''),
-            row.get('poster_url', '')
+            row.get('poster', '')
         ))
     
     db.commit()
@@ -112,22 +112,22 @@ def _upsert_songs(db, df):
     """곡 테이블 업서트"""
     for _, row in df.iterrows():
         query = """
-        INSERT INTO songs (concert_id, title, artist, lyrics, lyrics_kr, romanized)
+        INSERT INTO songs (id, title, artist, lyrics, translation, pronunciation)
         VALUES (%s, %s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE
         title = VALUES(title),
         artist = VALUES(artist),
         lyrics = VALUES(lyrics),
-        lyrics_kr = VALUES(lyrics_kr),
-        romanized = VALUES(romanized)
+        translation = VALUES(translation),
+        pronunciation = VALUES(pronunciation)
         """
         db.cursor.execute(query, (
-            row.get('concert_id', ''),
+            row.get('id', ''),
             row.get('title', ''),
             row.get('artist', ''),
             row.get('lyrics', ''),
-            row.get('lyrics_kr', ''),
-            row.get('romanized', '')
+            row.get('translation', ''),
+            row.get('pronunciation', '')
         ))
     
     db.commit()
@@ -139,21 +139,21 @@ def _upsert_setlists(db, df):
     """세트리스트 테이블 업서트"""
     for _, row in df.iterrows():
         query = """
-        INSERT INTO setlists (concert_id, song_order, title, artist)
+        INSERT INTO setlist_songs (id, song_order, title, artist)
         VALUES (%s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE
         title = VALUES(title),
         artist = VALUES(artist)
         """
         db.cursor.execute(query, (
-            row.get('concert_id', ''),
+            row.get('id', ''),
             row.get('song_order', 0),
             row.get('title', ''),
             row.get('artist', '')
         ))
     
     db.commit()
-    print(f"✅ setlists 테이블 업데이트 완료")
+    print(f"✅ setlists songs 테이블 업데이트 완료")
     return True
 
 
