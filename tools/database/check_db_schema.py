@@ -62,7 +62,7 @@ class DatabaseSchemaChecker:
                 'port': 3307,
                 'user': 'root',
                 'password': 'livith0407',
-                'database': 'livith_v3',
+                'database': 'livith_service',
                 'charset': 'utf8mb4',
                 'use_unicode': True
             }

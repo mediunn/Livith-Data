@@ -275,7 +275,7 @@ def main():
         'port': 3307,             # MySQL 포트
         'user': 'root',           # MySQL 사용자명
         'password': 'livith0407', # MySQL 비밀번호
-        'database': 'livith_v2'   # 데이터베이스 이름
+                'database': 'livith_service',
     }
     
     # CSV 파일들이 있는 경로 - Config 추가 필요

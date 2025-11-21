@@ -49,7 +49,7 @@ def check_connection_details():
         'port': 3307,         # 로컬 포워딩 포트
         'user': 'root',
         'password': 'livith0407',
-        'database': 'livith_v3',
+        'database': 'livith_service',
         'charset': 'utf8mb4'
     }
     
@@ -67,14 +67,14 @@ def check_connection_details():
         databases = cursor.fetchall()
         print(f"   📁 사용 가능한 데이터베이스:")
         for db in databases:
-            mark = "👉" if db[0] == 'livith_v2' else "   "
+            mark = "👉" if db[0] == 'livith_service' else "   "
             print(f"      {mark} {db[0]}")
         
         # 테이블 확인
-        cursor.execute("USE livith_v2")
+        cursor.execute("USE livith_service")
         cursor.execute("SHOW TABLES")
         tables = cursor.fetchall()
-        print(f"\n   📋 livith_v2 데이터베이스의 테이블 ({len(tables)}개):")
+        print(f"\n   📋 livith_service 데이터베이스의 테이블 ({len(tables)}개):")
         for table in tables[:5]:  # 처음 5개만 표시
             print(f"      - {table[0]}")
         if len(tables) > 5:
@@ -90,7 +90,7 @@ def check_connection_details():
         print("       port=3307,")
         print("       user='root',")
         print("       password='livith0407',")
-        print("       database='livith_v3',")
+        print("       database='livith_service',")
         print("       charset='utf8mb4'")
         print("   )")
         return True
@@ -111,7 +111,7 @@ def check_connection_details():
         print("   1. SSH 터널이 정상적으로 실행 중인가?")
         print("   2. SSH 키 파일 경로와 권한이 올바른가? (chmod 400)")
         print("   3. EC2 인스턴스가 실행 중인가?")
-        print("   4. RDS가 EC2에서 접근 가능하도록 설정되어 있나?")
+            print("   4. RDS가 EC2에서 접근 가능하도록 설정되어 있나?")
     
     return False
 
