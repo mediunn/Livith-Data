@@ -21,8 +21,17 @@ class KopisAPI:
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
     
-    def fetch_all_concerts(self) -> List[str]:
+    def fetch_all_concerts(self, start_date: str = None, end_date: str = None) -> List[str]:
         """다양한 상태의 콘서트를 모두 가져오기 (최대 50개 제한)"""
+        if start_date and end_date:
+            logger.info(f"{start_date}~{end_date} 기간의 모든 콘서트 수집...")
+            all_codes = []
+            for state in ["01", "02", "03"]:
+                all_codes.extend(self.fetch_concerts_in_range(start_date, end_date, state))
+            unique_codes = list(set(all_codes))
+            logger.info(f"총 {len(unique_codes)}개의 고유한 공연 수집")
+            return unique_codes
+
         now = datetime.now()
         today = now.strftime("%Y%m%d")
         yesterday = (now - timedelta(days=1)).strftime("%Y%m%d")
@@ -62,8 +71,8 @@ class KopisAPI:
         
         # 10월 말까지 계산
         end_of_october = datetime(now.year, 10, 31)
-        if now.month > 10:  # 현재가 10월 이후면 내년 10월
-            end_of_october = datetime(now.year + 1, 10, 31)
+        #if now.month > 12:  # 현재가 10월 이후면 내년 10월
+        #    end_of_october = datetime(now.year + 1, 10, 31)
             
         remaining_slots = max_concerts - len(all_codes)
         
@@ -79,7 +88,7 @@ class KopisAPI:
             else:
                 current_month = current_month.replace(month=current_month.month + 1)
                 
-        logger.info(f"수집 대상 월: {len(months_to_collect)}개월 (10월까지)")
+        logger.info(f"수집 대상 월: {len(months_to_collect)}개월 (12월까지)")
         
         for i, month_start in enumerate(months_to_collect):
             if len(future_codes) >= remaining_slots:
