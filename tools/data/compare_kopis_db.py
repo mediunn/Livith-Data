@@ -21,6 +21,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from typing import Dict, List, Optional, Any
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from tqdm import tqdm
 from lib.discord_notifier import DiscordNotifier
 
