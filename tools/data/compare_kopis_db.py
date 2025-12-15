@@ -20,6 +20,7 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from typing import Dict, List, Optional, Any
+from calendar import monthrange
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -328,7 +329,11 @@ def compare_concerts():
         
         max_db_date_str = max_date_result[0]
         max_db_date = datetime.strptime(max_db_date_str, "%Y.%m.%d")
-        end_date_str = max_db_date.strftime("%Y%m%d")
+
+        last_day = monthrange(max_db_date.year, max_db_date.month)[1]
+        end_of_month = max_db_date.replace(day=last_day)
+        end_date_str = end_of_month.strftime("%Y%m%d")
+        max_db_date_str = end_of_month.strftime("%Y.%m.%d")
         
         logger.info(f"✅ 비교 기간: {today_str} ~ {end_date_str}")
 
