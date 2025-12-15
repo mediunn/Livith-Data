@@ -229,7 +229,7 @@ def print_comparison_results(
     print(f"   - KOPIS 내한 공연: {total_kopis}개")
     print(f"   - DB 현재/미래 공연: {len(db_codes)}개")
     if jazz_count > 0:
-        print(f"   - 🎷 재즈 공연 (제외됨): {jazz_count}개")
+        print(f"   - 재즈 공연 (제외됨): {jazz_count}개")
     print(f"   - 새로 추가된 공연: {len(new_codes)}개")
     print(f"   - 사라진 공연: {len(removed_codes)}개")
     
@@ -390,7 +390,9 @@ def compare_concerts():
             logger.info("📤 Discord 알림 전송 중...")
             notifier = DiscordNotifier(Config.DISCORD_WEBHOOK_URL)
             if notifier.send_compare_result(
-                kopis_codes, db_codes, kopis_concerts, db_concerts, jazz_count
+                kopis_codes, db_codes, kopis_concerts, db_concerts, jazz_count,
+                start_date=today_for_db,      # 추가
+                end_date=max_db_date_str
             ):
                 logger.info("✅ Discord 알림 전송 완료")
             else:

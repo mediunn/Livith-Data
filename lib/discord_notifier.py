@@ -5,6 +5,7 @@ import requests
 import logging
 from datetime import datetime
 from typing import Dict, Set
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,9 @@ class DiscordNotifier:
         db_codes: Set[str],
         kopis_concerts: Dict,
         db_concerts: Dict,
-        jazz_count: int = 0
+        jazz_count: int = 0,
+        start_date: str = "",
+        end_date: str = ""
     ) -> bool:
         """compare 결과를 Discord로 전송"""
         new_codes = kopis_codes - db_codes
@@ -56,34 +59,47 @@ class DiscordNotifier:
         messages = []
         
         # 헤더 + 통계
-        header = f"""🎵 KOPIS 동기화 알림 ({today})
-━━━━━━━━━━━━━━━━━━━━━━
-
-📊 통계
-- KOPIS 내한 공연: {total_kopis}개
-- DB 공연: {len(db_codes)}개
-- 새로 추가: {len(new_codes)}개
-- 사라진 공연: {len(removed_codes)}개"""
+        header = f"🎵 KOPIS 동기화 알림 ({today})\n"
+        header += "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        header += f"📆 비교 기간: {start_date} ~ {end_date}\n\n"
+        header += "📊 통계\n"
+        header += f"- KOPIS 내한 공연: {total_kopis}개\n"
+        header += f"- DB 공연: {len(db_codes)}개\n"
+        header += f"- 새로 추가: {len(new_codes)}개\n"
+        header += f"- 사라진 공연: {len(removed_codes)}개"
         
         if jazz_count > 0:
-            header += f"\n• 🎷 재즈 공연 (제외): {jazz_count}개"
+            header += f"\n- 재즈 공연 (제외): {jazz_count}개"
+        
+        # 월별 통계 추가
+        if new_codes:
+            monthly_stats = defaultdict(int)
+            for code in new_codes:
+                details = kopis_concerts.get(code, {})
+                start_date = details.get('start_date', '')
+                if start_date and len(start_date) >= 7:
+                    month_key = start_date[:7]  # "YYYY.MM"
+                    monthly_stats[month_key] += 1
+            
+            if monthly_stats:
+                header += "\n\n📅 월별 새 공연:"
+                for month in sorted(monthly_stats.keys()):
+                    header += f"\n- {month}: {monthly_stats[month]}개"
         
         messages.append(header)
         
         # 새로 추가된 공연
         if new_codes:
-            new_msg = f"""
-━━━━━━━━━━━━━━━━━━━━━━
-✨ 새로 추가된 공연 ({len(new_codes)}개)
-━━━━━━━━━━━━━━━━━━━━━━
-"""
+            new_msg = "\n━━━━━━━━━━━━━━━━━━━━━━\n"
+            new_msg += f"✨ 새로 추가된 공연 ({len(new_codes)}개)\n"
+            new_msg += "━━━━━━━━━━━━━━━━━━━━━━\n"
+            
             for idx, code in enumerate(sorted(new_codes), 1):
                 details = kopis_concerts.get(code, {})
-                concert_info = f"""
-{idx}. [{code}] {details.get('title', '제목 없음')}
-   {details.get('artist', '아티스트 없음')}
-   📅 {details.get('start_date', 'N/A')} ~ {details.get('end_date', 'N/A')}
-"""
+                concert_info = f"\n{idx}. [{code}] {details.get('title', '제목 없음')}\n"
+                concert_info += f"　　{details.get('artist', '아티스트 없음')}\n"
+                concert_info += f"　　{details.get('start_date', 'N/A')} ~ {details.get('end_date', 'N/A')}\n"
+                
                 if len(new_msg + concert_info) > self.max_message_length - 100:
                     messages.append(new_msg)
                     new_msg = concert_info
@@ -94,19 +110,17 @@ class DiscordNotifier:
         
         # 사라진 공연
         if removed_codes:
-            removed_msg = f"""
-━━━━━━━━━━━━━━━━━━━━━━
-🗑️ 사라진 공연 ({len(removed_codes)}개)
-━━━━━━━━━━━━━━━━━━━━━━
-⚠️ 공연 취소 또는 KOPIS에서 삭제된 공연
-"""
+            removed_msg = "\n━━━━━━━━━━━━━━━━━━━━━━\n"
+            removed_msg += f"🗑️ 사라진 공연 ({len(removed_codes)}개)\n"
+            removed_msg += "━━━━━━━━━━━━━━━━━━━━━━\n"
+            removed_msg += "⚠️ 공연 취소 또는 KOPIS에서 삭제된 공연\n"
+            
             for idx, code in enumerate(sorted(removed_codes), 1):
                 details = db_concerts.get(code, {})
-                concert_info = f"""
-{idx}. [{code}] {details.get('title', '제목 없음')}
-   {details.get('artist', '아티스트 없음')}
-   📅 {details.get('start_date', 'N/A')} ~ {details.get('end_date', 'N/A')}
-"""
+                concert_info = f"\n{idx}. [{code}] {details.get('title', '제목 없음')}\n"
+                concert_info += f"　　{details.get('artist', '아티스트 없음')}\n"
+                concert_info += f"　　{details.get('start_date', 'N/A')} ~ {details.get('end_date', 'N/A')}\n"
+                
                 if len(removed_msg + concert_info) > self.max_message_length - 100:
                     messages.append(removed_msg)
                     removed_msg = concert_info
