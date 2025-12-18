@@ -234,19 +234,34 @@ class LrcLibAPI:
                 logger.info(f"LRCLIB 검색 결과 없음: {title} - {artist}")
                 return None
             
-            track = results[0]
-            plain_lyrics = track.get('plainLyrics')
+            # 유사도 검증하며 결과 순회
+            for track in results:
+                found_title = track.get('trackName', '')
+                found_artist = track.get('artistName', '')
+                
+                title_sim = self._calculate_similarity(title, found_title)
+                artist_sim = self._calculate_similarity(artist, found_artist)
+                
+                logger.info(f"LRCLIB 후보: {found_title} - {found_artist} (유사도: 제목 {title_sim:.2f}, 아티스트 {artist_sim:.2f})")
+                
+                # Musixmatch보다 느슨하게 (0.7)
+                if title_sim < 0.7:
+                    continue
+                if artist_sim < 0.7:
+                    continue
+                
+                plain_lyrics = track.get('plainLyrics')
+                if not plain_lyrics:
+                    continue
+                
+                logger.info(f"✅ LRCLIB 가사 찾음: {found_title} - {found_artist}")
+                return {
+                    'lyrics': plain_lyrics,
+                    'source': 'lrclib'
+                }
             
-            if not plain_lyrics:
-                logger.info(f"LRCLIB 가사 없음: {title} - {artist}")
-                return None
-            
-            logger.info(f"✅ LRCLIB 가사 찾음: {track.get('trackName')} - {track.get('artistName')}")
-            
-            return {
-                'lyrics': plain_lyrics,
-                'source': 'lrclib'
-            }
+            logger.warning(f"LRCLIB 모든 후보 유사도 기준 미달: {title} - {artist}")
+            return None
             
         except Exception as e:
             logger.error(f"LRCLIB 검색 오류: {e}")
