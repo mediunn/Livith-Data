@@ -53,11 +53,11 @@ class MusixmatchLyricsAPI:
             곡 정보 또는 None
         """
         try:
-            # 검색 파라미터
+            # 검색 파라미터 - page_size를 5로 늘려 여러 후보를 받음
             params = {
                 'q_track': title,
                 'q_artist': artist,
-                'page_size': 1,
+                'page_size': 5,
                 'page': 1,
                 's_track_rating': 'desc',
                 'apikey': self.api_key
@@ -88,34 +88,38 @@ class MusixmatchLyricsAPI:
                 logger.info(f"검색 결과 없음: {title} - {artist}")
                 return None
             
-            # 첫 번째 결과 가져오기
-            track = track_list[0].get('track', {})
-            found_title = track.get('track_name', '')
-            found_artist = track.get('artist_name', '')
-            
-            # 제목 유사도 검증
-            title_similarity = self.calculate_similarity(title, found_title)
-            
-            # 아티스트 비교 시 feat. 부분 제거하고 메인 아티스트만 비교
-            clean_original_artist = self._extract_main_artist(artist)
-            clean_found_artist = self._extract_main_artist(found_artist)
-            artist_similarity = self.calculate_similarity(clean_original_artist, clean_found_artist)
-            
-            logger.info(f"트랙 발견: {found_title} - {found_artist}")
-            logger.info(f"유사도 - 제목: {title_similarity:.2f}, 아티스트: {artist_similarity:.2f}")
-            
-            # 제목과 아티스트 유사도 모두 확인 (AND 조건)
-            # 제목 유사도가 너무 낮으면 거부 (임계값: 0.6)
-            if title_similarity < 0.6:
-                logger.warning(f"제목 유사도 너무 낮음! 원본: {title}, 발견: {found_title}, 유사도: {title_similarity:.2f}")
-                return None
-            
-            # 아티스트 유사도가 너무 낮으면 거부 (임계값: 0.8)
-            if artist_similarity < 0.8:
-                logger.warning(f"아티스트 유사도 너무 낮음! 원본: {artist}, 발견: {found_artist}, 유사도: {artist_similarity:.2f}")
-                return None
+            # 여러 트랙을 순회하며 가장 적합한 트랙 찾기
+            for item in track_list:
+                track = item.get('track', {})
+                found_title = track.get('track_name', '')
+                found_artist = track.get('artist_name', '')
                 
-            return track
+                # 제목 유사도 검증
+                title_similarity = self.calculate_similarity(title, found_title)
+                
+                # 아티스트 비교 시 feat. 부분 제거하고 메인 아티스트만 비교
+                clean_original_artist = self._extract_main_artist(artist)
+                clean_found_artist = self._extract_main_artist(found_artist)
+                artist_similarity = self.calculate_similarity(clean_original_artist, clean_found_artist)
+                
+                logger.info(f"후보 트랙 확인: {found_title} - {found_artist} (유사도: 제목 {title_similarity:.2f}, 아티스트 {artist_similarity:.2f})")
+                
+                # 제목과 아티스트 유사도 모두 확인 (AND 조건)
+                # 제목 유사도가 너무 낮으면 거부 (임계값: 0.8)
+                if title_similarity < 0.8:
+                    continue # 다음 후보로 넘어감
+                
+                # 아티스트 유사도가 너무 낮으면 거부 (임계값: 0.9)
+                if artist_similarity < 0.9:
+                    continue # 다음 후보로 넘어감
+                    
+                # 두 조건 모두 만족하는 첫 번째 트랙을 반환
+                logger.info(f"✅ 트랙 최종 선택: {found_title} - {found_artist}")
+                return track
+            
+            # 적합한 트랙을 찾지 못한 경우
+            logger.warning(f"모든 후보 트랙({len(track_list)}개)이 유사도 기준 미달: {title} - {artist}")
+            return None
             
         except Exception as e:
             logger.error(f"트랙 검색 실패: {title} - {artist}: {e}")
