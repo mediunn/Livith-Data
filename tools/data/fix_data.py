@@ -38,6 +38,7 @@ from mysql.connector import Error
 import time
 import signal
 import argparse
+import shutil
 from datetime import datetime
 from typing import Dict, List, Optional
 import json
@@ -120,7 +121,7 @@ class DataFixer:
                 for col in columns:
                     if col in df.columns:
                         # 기본 검색 (부분 매칭)
-                        mask = df[col].str.contains(keyword, case=False, na=False)
+                        mask = df[col].str.contains(keyword, case=False, na=False, regex=False)
                         
                         # 유사 검색을 위한 추가 패턴들
                         similar_patterns = [
@@ -133,7 +134,7 @@ class DataFixer:
                         # 추가 패턴들로도 검색
                         for pattern in similar_patterns:
                             if pattern != keyword:  # 원래 키워드와 다를 때만
-                                additional_mask = df[col].str.contains(pattern, case=False, na=False)
+                                additional_mask = df[col].str.contains(pattern, case=False, na=False, regex=False)
                                 mask = mask | additional_mask
                         
                         if mask.any():
@@ -466,6 +467,391 @@ class DataFixer:
             else:
                 mysql_results = self.update_mysql_data('concert_title', old_value, new_value)
 
+    def interactive_fix_individual_fields(self):
+        """개별 필드 수정 메뉴"""
+        while True:
+            print("\n" + "="*60)
+            print("📝 개별 필드 수정")
+            print("="*60)
+            print("1. 빈 콘서트에 아티스트 작성")
+            print("2. 신규 아티스트 추가")
+            print("3. artists.csv 아티스트 정보 수정")
+            print("4. artists.csv 아티스트명 수정")
+            print("5. concerts.csv 아티스트명 수정")
+            print("6. songs.csv 노래 제목 수정")
+            print("7. 돌아가기")
+            
+            choice = input("선택 (1-7): ").strip()
+            
+            if choice == '1':
+                self.fill_missing_artists()
+            elif choice == '2':
+                self.add_new_artists()
+            elif choice == '3':
+                self.update_artist_info_from_csv()
+            elif choice == '4':
+                self.edit_artist_in_artists_csv()
+            elif choice == '5':
+                self.edit_artist_in_concerts_csv()
+            elif choice == '6':
+                self.edit_song_title()
+            elif choice == '7':
+                break
+            else:
+                print("❌ 잘못된 선택입니다.")
+
+    def update_artist_info_from_csv(self):
+        """artists.csv의 아티스트 정보를 다시 수집합니다."""
+        print("\n" + "="*60)
+        print("🔄 artist.csv 아티스트 정보 수정")
+        print("="*60)
+        artist_name = input("정보를 수정할 아티스트의 정확한 이름을 입력하세요: ").strip()
+        if not artist_name:
+            print("❌ 아티스트 이름이 입력되지 않았습니다.")
+            return
+
+        script_path = Path(__file__).parent / 'update_artist_basic_info.py'
+        command = [sys.executable, str(script_path), "--artist", artist_name]
+
+        try:
+            print(f"🚀 '{artist_name}'의 정보 업데이트를 시작합니다...")
+            subprocess.run(command, check=True)
+            print(f"✅ '{artist_name}'의 정보 업데이트가 완료되었습니다.")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ 스크립트 실행 중 오류가 발생했습니다: {e}")
+        except FileNotFoundError:
+            print(f"❌ 스크립트 파일을 찾을 수 없습니다: {script_path}")
+
+    def edit_artist_in_concerts_csv(self):
+        """concerts.csv에서 특정 콘서트의 아티스트명을 수정합니다."""
+        csv_path = os.path.join(self.output_dir, 'concerts.csv')
+        if not os.path.exists(csv_path):
+            print("❌ concerts.csv 파일을 찾을 수 없습니다.")
+            return
+
+        try:
+            df = pd.read_csv(csv_path, encoding='utf-8-sig')
+            df['artist'] = df['artist'].fillna('')
+
+            while True:
+                print("\n" + "-"*60)
+                print("🎤 수정할 콘서트를 선택하세요")
+                print("-"*60)
+
+                for i, row in df.iterrows():
+                    print(f"{i+1}. {row['title']} (현재 아티스트: {row['artist']})")
+
+                print("\n'q'를 입력하여 종료")
+                choice = input("수정할 콘서트 번호를 선택하세요: ").strip()
+
+                if choice.lower() == 'q':
+                    break
+
+                try:
+                    choice_idx = int(choice) - 1
+                    if not (0 <= choice_idx < len(df)):
+                        print("❌ 잘못된 번호입니다.")
+                        continue
+
+                    old_artist = df.loc[choice_idx, 'artist']
+                    concert_title = df.loc[choice_idx, 'title']
+                    new_artist = input(f"'{concert_title}'의 새 아티스트명을 입력하세요 (현재: {old_artist}): ").strip()
+
+                    if not new_artist:
+                        print("❌ 새 아티스트명이 입력되지 않았습니다. 취소합니다.")
+                        continue
+
+                    # DataFrame 업데이트
+                    df.loc[choice_idx, 'artist'] = new_artist
+
+                    # CSV 파일 저장
+                    df.to_csv(csv_path, index=False, encoding='utf-8-sig')
+                    print(f"✅ '{concert_title}'의 아티스트가 '{new_artist}'(으)로 성공적으로 변경되었습니다.")
+                    break
+
+                except ValueError:
+                    print("❌ 숫자를 입력하거나 'q'를 입력하여 종료하세요.")
+                except Exception as e:
+                    print(f"❌ 업데이트 중 오류 발생: {e}")
+
+        except Exception as e:
+            print(f"❌ 파일 처리 중 오류 발생: {e}")
+
+    def edit_artist_in_artists_csv(self):
+        """artists.csv에서 아티스트명을 직접 수정합니다."""
+        csv_path = os.path.join(self.output_dir, 'artists.csv')
+        if not os.path.exists(csv_path):
+            print("❌ artists.csv 파일을 찾을 수 없습니다.")
+            return
+
+        try:
+            df = pd.read_csv(csv_path, encoding='utf-8-sig')
+            df['artist'] = df['artist'].fillna('')
+
+            while True:
+                print("\n" + "-"*60)
+                print("🎤 수정할 아티스트를 선택하세요")
+                print("-"*60)
+
+                artists = df['artist'].tolist()
+                for i, artist_name in enumerate(artists):
+                    print(f"{i+1}. {artist_name}")
+
+                print("\n'q'를 입력하여 종료")
+                choice = input("수정할 아티스트 번호를 선택하세요: ").strip()
+
+                if choice.lower() == 'q':
+                    break
+
+                try:
+                    choice_idx = int(choice) - 1
+                    if not (0 <= choice_idx < len(artists)):
+                        print("❌ 잘못된 번호입니다.")
+                        continue
+
+                    old_name = artists[choice_idx]
+                    new_name = input(f"'{old_name}'의 새 아티스트명을 입력하세요: ").strip()
+
+                    if not new_name:
+                        print("❌ 새 아티스트명이 입력되지 않았습니다. 취소합니다.")
+                        continue
+
+                    if new_name in artists:
+                        print(f"❌ 아티스트 '{new_name}'은(는) 이미 존재합니다. 다른 이름을 사용해주세요.")
+                        continue
+
+                    # DataFrame 업데이트
+                    df.loc[choice_idx, 'artist'] = new_name
+
+                    # CSV 파일 저장
+                    df.to_csv(csv_path, index=False, encoding='utf-8-sig')
+                    print(f"✅ 아티스트명이 '{old_name}'에서 '{new_name}'(으)로 성공적으로 변경되었습니다.")
+                    # Break the loop after a successful update to show the updated list
+                    break
+
+                except ValueError:
+                    print("❌ 숫자를 입력하거나 'q'를 입력하여 종료하세요.")
+                except Exception as e:
+                    print(f"❌ 업데이트 중 오류 발생: {e}")
+
+        except Exception as e:
+            print(f"❌ 파일 처리 중 오류 발생: {e}")
+
+    def edit_song_title(self):
+        """songs.csv에서 노래 제목을 수정합니다."""
+        csv_path = os.path.join(self.output_dir, 'songs.csv')
+        if not os.path.exists(csv_path):
+            print(f"❌ {csv_path} 파일을 찾을 수 없습니다.")
+            return
+
+        try:
+            df = pd.read_csv(csv_path, encoding='utf-8-sig')
+            df['title'] = df['title'].fillna('')
+            df['artist'] = df['artist'].fillna('')
+        except FileNotFoundError:
+            print(f"❌ songs.csv 파일을 찾을 수 없습니다: {csv_path}")
+            return
+        except Exception as e:
+            print(f"❌ 파일 처리 중 오류 발생: {e}")
+            return
+
+        artist_name = input("\n곡을 찾을 아티스트명을 입력하세요: ").strip()
+        if not artist_name:
+            print("❌ 아티스트명이 입력되지 않았습니다.")
+            return
+
+        artist_songs_mask = df['artist'].str.contains(artist_name, case=False, na=False, regex=False)
+        if not artist_songs_mask.any():
+            print(f"❌ '{artist_name}' 아티스트의 곡을 찾을 수 없습니다.")
+            return
+
+        # 백업 생성
+        backup_dir = os.path.join(self.output_dir, 'backups', datetime.now().strftime('%Y%m%d_%H%M%S'))
+        os.makedirs(backup_dir, exist_ok=True)
+        backup_path = os.path.join(backup_dir, 'songs.csv')
+        try:
+            shutil.copy2(csv_path, backup_path)
+            print(f"📋 원본 파일 백업 완료: {backup_path}")
+        except Exception as e:
+            print(f"⚠️ 백업 실패: {e}. 작업을 중단합니다.")
+            return
+
+        while True:
+            # 루프마다 최신 DataFrame 상태에서 다시 필터링
+            artist_songs = df[df['artist'].str.contains(artist_name, case=False, na=False, regex=False)].copy()
+            artist_songs.reset_index(inplace=True)
+
+            if artist_songs.empty:
+                print("더 이상 수정할 곡이 없습니다.")
+                break
+
+            print("\n" + "-"*60)
+            print(f"🎤 '{artist_name}'의 노래 목록")
+            print("-"*60)
+            for i, row in artist_songs.iterrows():
+                print(f"{i+1}. {row['title']}")
+
+            print("\n'q'를 입력하여 종료")
+            choice = input("수정할 곡 번호를 선택하세요: ").strip()
+
+            if choice.lower() == 'q':
+                break
+
+            try:
+                choice_idx = int(choice) - 1
+                if not (0 <= choice_idx < len(artist_songs)):
+                    print("❌ 잘못된 번호입니다.")
+                    continue
+
+                original_song_row = artist_songs.loc[choice_idx]
+                original_title = original_song_row['title']
+                original_df_index = original_song_row['index']
+
+                new_title = input(f"'{original_title}'의 새 제목을 입력하세요: ").strip()
+
+                if not new_title:
+                    print("❌ 새 제목이 입력되지 않았습니다. 취소합니다.")
+                    continue
+
+                # DataFrame 업데이트
+                df.loc[original_df_index, 'title'] = new_title
+
+                # 변경된 내용을 CSV 파일에 즉시 저장
+                df.to_csv(csv_path, index=False, encoding='utf-8-sig')
+                print(f"✅ 곡 제목이 성공적으로 '{new_title}' (으)로 변경되었습니다.")
+
+            except ValueError:
+                print("❌ 숫자를 입력하거나 'q'를 입력하여 종료하세요.")
+            except Exception as e:
+                print(f"❌ 업데이트 중 오류 발생: {e}")
+                break
+
+    def add_new_artists(self):
+        """artists.csv에 신규 아티스트를 추가합니다."""
+        csv_path = os.path.join(self.output_dir, 'artists.csv')
+        if not os.path.exists(csv_path):
+            print("❌ artists.csv 파일을 찾을 수 없습니다.")
+            return
+
+        try:
+            df = pd.read_csv(csv_path, encoding='utf-8-sig')
+            existing_artists = set(df['artist'].dropna().str.strip())
+
+            print("\n" + "-"*60)
+            print("🎤 신규 아티스트 추가 (여러 명은 쉼표(,)로 구분)")
+            print("-"*60)
+            new_artists_input = input("추가할 아티스트명을 입력하세요: ").strip()
+
+            if not new_artists_input:
+                print("❌ 입력된 아티스트가 없습니다.")
+                return
+
+            new_artists = [name.strip() for name in new_artists_input.split(',') if name.strip()]
+            added_artists = []
+            new_rows = []
+
+            for artist_name in new_artists:
+                if artist_name in existing_artists:
+                    print(f"ℹ️ 아티스트 '{artist_name}'은(는) 이미 존재합니다. 건너뜁니다.")
+                else:
+                    new_row = {
+                        'id': '',
+                        'artist': artist_name,
+                        'debut_date': '',
+                        'nationality': '',
+                        'group_type': '',
+                        'introduction': '',
+                        'social_media': '',
+                        'keywords': '',
+                        'img_url': '',
+                        'created_at': '',
+                        'updated_at': ''
+                    }
+                    new_rows.append(new_row)
+                    added_artists.append(artist_name)
+                    existing_artists.add(artist_name) # Add to set to prevent duplicate additions in the same run
+
+            if new_rows:
+                new_df = pd.DataFrame(new_rows)
+                df = pd.concat([df, new_df], ignore_index=True)
+                df.to_csv(csv_path, index=False, encoding='utf-8-sig')
+                print(f"\n✅ 다음 아티스트가 성공적으로 추가되었습니다: {', '.join(added_artists)}")
+            else:
+                print("\nℹ️ 추가할 새로운 아티스트가 없습니다.")
+
+        except Exception as e:
+            print(f"❌ 아티스트 추가 중 오류 발생: {e}")
+
+    def fill_missing_artists(self):
+        """concerts.csv에서 아티스트가 비어있는 콘서트에 아티스트명을 채워넣습니다."""
+        csv_path = os.path.join(self.output_dir, 'concerts.csv')
+        if not os.path.exists(csv_path):
+            print("❌ concerts.csv 파일을 찾을 수 없습니다.")
+            return
+
+        try:
+            df = pd.read_csv(csv_path, encoding='utf-8-sig')
+            # NaN 값을 빈 문자열로 대체하고 양쪽 공백 제거
+            df['artist'] = df['artist'].fillna('').str.strip()
+            
+            missing_artist_concerts = df[df['artist'] == ''].copy()
+
+            if missing_artist_concerts.empty:
+                print("✅ 아티스트 정보가 비어있는 콘서트가 없습니다.")
+                return
+
+            while True:
+                print("\n" + "-"*60)
+                print("🎤 아티스트가 비어있는 콘서트 목록")
+                print("-"*60)
+                
+                # 목록 다시 로드 및 출력
+                df = pd.read_csv(csv_path, encoding='utf-8-sig')
+                df['artist'] = df['artist'].fillna('').str.strip()
+                missing_artist_concerts = df[df['artist'] == ''].copy()
+
+                if missing_artist_concerts.empty:
+                    print("✅ 모든 콘서트에 아티스트 정보가 채워졌습니다.")
+                    break
+
+                for i, (index, row) in enumerate(missing_artist_concerts.iterrows()):
+                    print(f"{i+1}. {row['title']}")
+                
+                print("\n'q'를 입력하여 종료")
+                choice = input("아티스트를 추가할 콘서트 번호를 선택하세요: ").strip()
+
+                if choice.lower() == 'q':
+                    break
+                
+                try:
+                    choice_idx = int(choice) - 1
+                    if not (0 <= choice_idx < len(missing_artist_concerts)):
+                        print("❌ 잘못된 번호입니다.")
+                        continue
+                    
+                    # 선택된 콘서트의 실제 DataFrame 인덱스
+                    concert_index = missing_artist_concerts.index[choice_idx]
+                    concert_title = missing_artist_concerts.loc[concert_index, 'title']
+                    
+                    new_artist = input(f"'{concert_title}'의 아티스트명을 입력하세요: ").strip()
+                    
+                    if new_artist:
+                        # DataFrame 업데이트
+                        df.loc[concert_index, 'artist'] = new_artist
+                        
+                        # CSV 파일 저장
+                        df.to_csv(csv_path, index=False, encoding='utf-8-sig')
+                        print(f"✅ '{concert_title}'의 아티스트가 '{new_artist}'(으)로 업데이트되었습니다.")
+                    else:
+                        print("❌ 아티스트명이 입력되지 않았습니다. 취소합니다.")
+
+                except ValueError:
+                    print("❌ 숫자를 입력하거나 'q'를 입력하여 종료하세요.")
+                except Exception as e:
+                    print(f"❌ 업데이트 중 오류 발생: {e}")
+        except Exception as e:
+            print(f"❌ 파일 처리 중 오류 발생: {e}")
+
     def delete_data_menu(self):
         """데이터 삭제 메뉴"""
         print("\n" + "="*60)
@@ -604,7 +990,7 @@ class DataFixer:
         df = df.fillna('')
         
         # 아티스트명으로 필터링
-        mask = df['artist'].str.contains(keyword, case=False, na=False)
+        mask = df['artist'].str.contains(keyword, case=False, na=False, regex=False)
         filtered_df = df[mask]
         
         if filtered_df.empty:
@@ -797,7 +1183,7 @@ class DataFixer:
                 elif choice == '2':
                     self.interactive_fix_concert()
                 elif choice == '3':
-                    print("⚠️ 개별 필드 수정 기능은 추후 구현 예정입니다.")
+                    self.interactive_fix_individual_fields()
                 elif choice == '4':
                     self.interactive_search()
                 elif choice == '5':
