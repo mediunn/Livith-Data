@@ -9,7 +9,6 @@ KOPIS API와 로컬 데이터베이스의 콘서트 목록을 비교하여
 - 전역 변수 제거, 의존성 주입 방식으로 변경
 - 에러 처리 개선
 - 로깅 상세화
-- AI를 사용한 아티스트명 추출
 """
 import os
 import sys
@@ -31,10 +30,8 @@ from lib.discord_notifier import DiscordNotifier
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from core.apis.kopis_api import KopisAPI
-from core.apis.gemini_api import GeminiAPI
 from lib.db_utils import get_db_manager
 from lib.config import Config
-from lib.prompts import DataCollectionPrompts
 
 logging.basicConfig(
     level=logging.INFO,
@@ -57,35 +54,6 @@ class RateLimiter:
             if wait_time > 0:
                 time.sleep(wait_time)
             self.last_call = time.time()
-
-
-def extract_artist_from_title(gemini_api: GeminiAPI, title: str, kopis_artist: str = '') -> str:
-    """
-    AI를 사용해 콘서트 제목에서 아티스트 이름 추출
-    prompts.py의 get_artist_name_prompt 사용 (추출+검증 한번에)
-    """
-    # KOPIS artist가 이미 "원어 (한국어)" 형식이면 그대로 사용
-    if kopis_artist and '(' in kopis_artist and ')' in kopis_artist:
-        return kopis_artist
-    
-    try:
-        prompt = DataCollectionPrompts.get_artist_name_prompt(title)
-        response = gemini_api.query_json(prompt, use_search=True)
-        artist = response.get('artist', '')
-        
-        # 빈 값이나 의심스러운 응답 필터링
-        invalid_responses = ['unknown', '알 수 없음', 'n/a', 'none', 'various artists', '아티스트명', '정보 없음']
-        if not artist or artist.lower() in invalid_responses:
-            return kopis_artist if kopis_artist else ''
-        
-        # "원어 (한국어)" 형식 확인
-        if '(' not in artist or ')' not in artist:
-            return kopis_artist if kopis_artist else ''
-        
-        return artist
-    except Exception as e:
-        logger.warning(f"아티스트 추출 실패 ({title}): {e}")
-        return kopis_artist if kopis_artist else ''
 
 
 # 전역 rate limiter (초당 10회 요청)
@@ -205,7 +173,6 @@ def print_concert_info(idx: int, code: str, details: Dict[str, Any]):
     """공연 정보 출력"""
     print(f"\n{idx}. 공연 코드: {code}")
     print(f"   제목: {details.get('title', '제목 없음')}")
-    print(f"   아티스트: {details.get('artist', '아티스트 없음')}")
     print(f"   기간: {details.get('start_date', 'N/A')} ~ {details.get('end_date', 'N/A')}")
 
 
@@ -214,8 +181,7 @@ def print_comparison_results(
     db_codes: set, 
     kopis_concerts: Dict, 
     db_concerts: Dict,
-    jazz_count: int = 0,
-    gemini_api: Optional[GeminiAPI] = None
+    jazz_count: int = 0
 ):
     """비교 결과 출력"""
     new_codes = kopis_codes - db_codes
@@ -261,19 +227,6 @@ def print_comparison_results(
         print(f"✨ 새로 추가된 공연 (KOPIS에는 있지만 DB에는 없음) - {len(new_codes)}개")
         print(f"{'=' * 80}")
         
-        # AI로 아티스트명 추출
-        if gemini_api:
-            print("\n🤖 AI로 아티스트명 추출 중 (2단계 검증)...")
-            for code in tqdm(sorted(new_codes), desc="아티스트 추출"):
-                details = kopis_concerts.get(code, {})
-                title = details.get('title', '')
-                kopis_artist = details.get('artist', '')
-                if title:
-                    extracted_artist = extract_artist_from_title(gemini_api, title, kopis_artist)
-                    if extracted_artist:
-                        details['artist'] = extracted_artist
-            print("✅ 아티스트명 추출 완료\n")
-        
         for idx, code in enumerate(sorted(new_codes), 1):
             print_concert_info(idx, code, kopis_concerts.get(code, {}))
     
@@ -296,9 +249,6 @@ def compare_concerts():
     """KOPIS와 DB의 콘서트 목록을 비교하고 차이점을 출력"""
     kopis_api = KopisAPI(api_key=Config.KOPIS_API_KEY)
     db_manager = get_db_manager()
-    
-    # AI 아티스트 추출을 위한 GeminiAPI 초기화
-    gemini_api = GeminiAPI(api_key=Config.GEMINI_API_KEY)
 
     try:
         logger.info("=" * 50)
@@ -387,7 +337,7 @@ def compare_concerts():
         logger.info("\n🔄 공연 목록 비교 중...")
         print_comparison_results(
             kopis_codes, db_codes, kopis_concerts, db_concerts, 
-            jazz_count, gemini_api
+            jazz_count
         )
 
         # 7. Discord 알림 전송 (try 블록 안에 있어야 함!)
