@@ -63,7 +63,7 @@ class UpdateSongsOnly:
                 port=3307,
                 user='root',
                 password='livith0407',
-                database='livith_v3',
+                database='livith_service',
                 charset='utf8mb4',
                 collation='utf8mb4_unicode_ci'
             )
@@ -95,19 +95,8 @@ class UpdateSongsOnly:
             df_with_lyrics = df[df['lyrics'].str.strip() != '']
             print(f"  • 가사 있는 곡: {len(df_with_lyrics)}개")
             
-            # UPDATE 쿼리 (title + artist 조합으로 업데이트)
-            update_query = """
-                UPDATE songs 
-                SET lyrics = %s,
-                    pronunciation = %s,
-                    translation = %s,
-                    youtube_id = %s,
-                    updated_at = %s
-                WHERE title = %s AND artist = %s
-            """
-            
-            # INSERT 쿼리 (없는 곡은 추가)
-            insert_query = """
+            # INSERT ... ON DUPLICATE KEY UPDATE 쿼리
+            query = """
                 INSERT INTO songs (title, artist, lyrics, pronunciation, translation, youtube_id, created_at, updated_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
@@ -122,39 +111,29 @@ class UpdateSongsOnly:
             update_count = 0
             insert_count = 0
             
-            for _, row in df.iterrows():
-                # UPDATE 시도
-                self.cursor.execute(update_query, (
+            for i, row in df.iterrows():
+                self.cursor.execute(query, (
+                    row['title'],
+                    row['artist'],
                     row.get('lyrics', ''),
                     row.get('pronunciation', ''),
                     row.get('translation', ''),
                     row.get('youtube_id', ''),
                     current_time,
-                    row['title'],
-                    row['artist']
+                    current_time
                 ))
                 
-                if self.cursor.rowcount > 0:
+                # `ON DUPLICATE KEY UPDATE`는 INSERT의 경우 1, UPDATE의 경우 2를 반환합니다.
+                if self.cursor.rowcount == 1:
+                    insert_count += 1
+                elif self.cursor.rowcount == 2:
                     update_count += 1
-                else:
-                    # UPDATE가 안 되면 INSERT
-                    self.cursor.execute(insert_query, (
-                        row['title'],
-                        row['artist'],
-                        row.get('lyrics', ''),
-                        row.get('pronunciation', ''),
-                        row.get('translation', ''),
-                        row.get('youtube_id', ''),
-                        current_time,
-                        current_time
-                    ))
-                    if self.cursor.rowcount > 0:
-                        insert_count += 1
-                
-                # 진행 상황 출력 (50개마다)
-                if (_ + 1) % 50 == 0:
-                    print(f"    처리 중... {_ + 1}/{len(df)}")
-            
+
+                # 진행 상황 출력 및 중간 커밋
+                if (i + 1) % 20 == 0:
+                    self.connection.commit()
+                    print(f"    처리 중... {i + 1}/{len(df)} (커밋)")
+
             self.connection.commit()
             
             print(f"\n  ✅ UPDATE 완료!")
