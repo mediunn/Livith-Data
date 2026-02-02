@@ -26,9 +26,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from tqdm import tqdm
 from lib.discord_notifier import DiscordNotifier
 
-# 프로젝트 루트 경로를 sys.path에 추가
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from core.apis.kopis_api import KopisAPI
 from lib.db_utils import get_db_manager
 from lib.config import Config
