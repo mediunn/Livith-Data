@@ -76,9 +76,9 @@ class DiscordNotifier:
             monthly_stats = defaultdict(int)
             for code in new_codes:
                 details = kopis_concerts.get(code, {})
-                start_date = details.get('start_date', '')
-                if start_date and len(start_date) >= 7:
-                    month_key = start_date[:7]  # "YYYY.MM"
+                concert_start = details.get('start_date', '')  # 변수명 수정
+                if concert_start and len(concert_start) >= 7:
+                    month_key = concert_start[:7]
                     monthly_stats[month_key] += 1
             
             if monthly_stats:
