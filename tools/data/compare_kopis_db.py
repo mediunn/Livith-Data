@@ -57,6 +57,14 @@ class RateLimiter:
 rate_limiter = RateLimiter(calls_per_second=10)
 
 
+def validate_config():
+    """필수 설정 검증"""
+    required = ['KOPIS_API_KEY']
+    missing = [key for key in required if not getattr(Config, key, None)]
+    if missing:
+        raise ValueError(f"필수 설정 누락: {missing}")
+
+
 def is_visit_concert(detail: Dict[str, Any]) -> tuple[bool, bool]:
     """
     내한공연 여부 확인
@@ -242,10 +250,24 @@ def print_comparison_results(
     print("=" * 80)
 
 
-def compare_concerts():
+def compare_concerts() -> dict:
     """KOPIS와 DB의 콘서트 목록을 비교하고 차이점을 출력"""
+    
+    # 필수 설정 검증
+    validate_config()
+    
+    # 실행 시간 측정 시작
+    start_time = time.time()
+    
     kopis_api = KopisAPI(api_key=Config.KOPIS_API_KEY)
     db_manager = get_db_manager()
+    
+    result = {
+        'new_count': 0,
+        'removed_count': 0,
+        'elapsed_time': 0,
+        'success': False
+    }
 
     try:
         logger.info("=" * 50)
@@ -256,7 +278,7 @@ def compare_concerts():
         logger.info("데이터베이스에 연결하는 중...")
         if not db_manager.connect_with_ssh():
             logger.error("❌ 데이터베이스 연결에 실패했습니다.")
-            return
+            return result
 
         # 2. 날짜 범위 설정
         today = datetime.now()
@@ -272,7 +294,7 @@ def compare_concerts():
         
         if not max_date_result or not max_date_result[0]:
             logger.error("❌ 데이터베이스에 공연 정보가 없습니다.")
-            return
+            return result
         
         max_db_date_str = max_date_result[0]
         max_db_date = datetime.strptime(max_db_date_str, "%Y.%m.%d")
@@ -294,11 +316,11 @@ def compare_concerts():
             logger.info(f"✅ KOPIS에서 총 {len(all_kopis_codes)}개의 공연을 찾았습니다.")
         except Exception as e:
             logger.error(f"❌ KOPIS API 호출 중 오류 발생: {e}")
-            return
+            return result
         
         if not all_kopis_codes:
             logger.warning("⚠️ KOPIS에서 가져온 공연이 없습니다.")
-            return
+            return result
         
         # 4. 내한 공연 필터링 (병렬 처리)
         logger.info(f"\n🔍 내한 공연 필터링 중 (병렬 처리, 동시 작업: 20개)...")
@@ -318,7 +340,7 @@ def compare_concerts():
             logger.error(f"❌ 공연 상세 정보 가져오기 중 오류 발생: {e}")
             import traceback
             logger.error(traceback.format_exc())
-            return
+            return result
 
         # 5. 데이터베이스에서 공연 조회
         logger.info(f"\n💾 데이터베이스에서 공연 목록을 가져오는 중...")
@@ -328,7 +350,7 @@ def compare_concerts():
             logger.info(f"✅ 데이터베이스에서 {len(db_codes)}개의 공연을 찾았습니다.")
         except Exception as e:
             logger.error(f"❌ 데이터베이스 조회 중 오류 발생: {e}")
-            return
+            return result
 
         # 6. 결과 출력 (AI 아티스트 추출 포함)
         logger.info("\n🔄 공연 목록 비교 중...")
@@ -336,19 +358,30 @@ def compare_concerts():
             kopis_codes, db_codes, kopis_concerts, db_concerts, 
             jazz_count
         )
+        
+        # 결과 저장
+        new_codes = kopis_codes - db_codes
+        removed_codes = db_codes - kopis_codes
+        result['new_count'] = len(new_codes)
+        result['removed_count'] = len(removed_codes)
+        result['success'] = True
 
-        # 7. Discord 알림 전송 (try 블록 안에 있어야 함!)
+        # Discord 알림 전송 (재시도 로직 포함)
         if Config.DISCORD_WEBHOOK_URL:
             logger.info("📤 Discord 알림 전송 중...")
             notifier = DiscordNotifier(Config.DISCORD_WEBHOOK_URL)
-            if notifier.send_compare_result(
-                kopis_codes, db_codes, kopis_concerts, db_concerts, jazz_count,
-                start_date=today_for_db,      # 추가
-                end_date=max_db_date_str
-            ):
-                logger.info("✅ Discord 알림 전송 완료")
-            else:
-                logger.warning("⚠️ Discord 알림 전송 실패")
+            
+            max_retries = 3
+            for attempt in range(max_retries):
+                if notifier.send_compare_result(
+                    kopis_codes, db_codes, kopis_concerts, db_concerts, jazz_count,
+                    start_date=today_for_db,
+                    end_date=max_db_date_str
+                ):
+                    logger.info("✅ Discord 알림 전송 완료")
+                    break
+                logger.warning(f"⚠️ Discord 알림 전송 실패 (시도 {attempt + 1}/{max_retries})")
+                time.sleep(2)
 
     except Exception as e:
         logger.error(f"❌ 비교 작업 중 예상치 못한 오류 발생: {e}")
@@ -358,6 +391,14 @@ def compare_concerts():
         if db_manager:
             db_manager.disconnect()
             logger.info("\n🔌 데이터베이스 연결을 종료했습니다.")
+        
+        # 실행 시간 측정 종료
+        elapsed = time.time() - start_time
+        result['elapsed_time'] = elapsed
+        logger.info(f"⏱️ 총 소요 시간: {elapsed:.1f}초")
+    
+    return result
+
 
 if __name__ == "__main__":
     compare_concerts()
