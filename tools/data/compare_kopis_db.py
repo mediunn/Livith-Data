@@ -56,6 +56,9 @@ class RateLimiter:
 # 전역 rate limiter (초당 10회 요청)
 rate_limiter = RateLimiter(calls_per_second=10)
 
+# 제외할 장르 키워드 (제목에 포함되면 제외)
+EXCLUDED_GENRES = ['재즈', '클래식', '트리오']
+
 
 def validate_config():
     """필수 설정 검증"""
@@ -65,28 +68,30 @@ def validate_config():
         raise ValueError(f"필수 설정 누락: {missing}")
 
 
-def is_visit_concert(detail: Dict[str, Any]) -> tuple[bool, bool]:
+def is_visit_concert(detail: Dict[str, Any]) -> tuple[bool, str]:
     """
     내한공연 여부 확인
-    Returns: (is_valid, is_jazz) - 유효한 내한공연 여부, 내한공연 중 재즈 여부
+    Returns: (is_valid, excluded_genre) - 유효한 내한공연 여부, 제외된 장르명 (없으면 빈 문자열)
     """
     title = detail.get('title', '')
-    
+
     is_visit = (
-        detail.get('visit') == 'Y' and 
+        detail.get('visit') == 'Y' and
         detail.get('festival') == 'N' and
-        bool(title) and 
+        bool(title) and
         bool(detail.get('artist'))
     )
-    
-    # 내한공연이 아니면 둘 다 False
+
+    # 내한공연이 아니면 통과
     if not is_visit:
-        return False, False
-    
-    # 내한공연 중 재즈인지 체크
-    is_jazz = '재즈' in title
-    
-    return (not is_jazz, is_jazz)
+        return False, ''
+
+    # 내한공연 중 제외 장르 체크
+    for genre in EXCLUDED_GENRES:
+        if genre in title:
+            return False, genre
+
+    return True, ''
 
 
 def normalize_date(date_str: str) -> str:
@@ -96,58 +101,58 @@ def normalize_date(date_str: str) -> str:
     return date_str
 
 
-def fetch_single_concert(code: str, api: KopisAPI) -> tuple[Optional[Dict[str, Any]], bool]:
+def fetch_single_concert(code: str, api: KopisAPI) -> tuple[Optional[Dict[str, Any]], str]:
     """
     단일 공연 정보를 가져오는 함수
-    Returns: (detail or None, is_jazz)
+    Returns: (detail or None, excluded_genre)
     """
     try:
         rate_limiter.wait()
         detail = api.get_concert_detail(code)
         if detail:
-            is_visit, is_jazz = is_visit_concert(detail)
-            if is_visit:
+            is_valid, excluded_genre = is_visit_concert(detail)
+            if is_valid:
                 detail['start_date'] = normalize_date(detail.get('start_date', ''))
                 detail['end_date'] = normalize_date(detail.get('end_date', ''))
-                return detail, False
-            return None, is_jazz
-        return None, False
+                return detail, ''
+            return None, excluded_genre
+        return None, ''
     except Exception as e:
         logger.warning(f"공연 코드 {code} 처리 실패: {e}")
-        return None, False
+        return None, ''
 
 
 def fetch_concerts_parallel(
-    concert_codes: List[str], 
-    api: KopisAPI, 
+    concert_codes: List[str],
+    api: KopisAPI,
     max_workers: int = 20
-) -> tuple[List[Dict[str, Any]], int]:
+) -> tuple[List[Dict[str, Any]], Dict[str, int]]:
     """
     병렬 처리로 공연 정보를 가져오는 함수
-    
+
     Rate limiter로 초당 요청 수를 제한하여 API 차단 방지
-    Returns: (concert_list, jazz_count)
+    Returns: (concert_list, excluded_counts)
     """
     result = []
-    jazz_count = 0
+    excluded_counts: Dict[str, int] = {genre: 0 for genre in EXCLUDED_GENRES}
     fetch_func = partial(fetch_single_concert, api=api)
-    
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_code = {
-            executor.submit(fetch_func, code): code 
+            executor.submit(fetch_func, code): code
             for code in concert_codes
         }
-        
+
         with tqdm(total=len(concert_codes), desc="내한공연 필터링") as pbar:
             for future in as_completed(future_to_code):
-                detail, is_jazz = future.result()
+                detail, excluded_genre = future.result()
                 if detail:
                     result.append(detail)
-                if is_jazz:
-                    jazz_count += 1
+                if excluded_genre:
+                    excluded_counts[excluded_genre] = excluded_counts.get(excluded_genre, 0) + 1
                 pbar.update(1)
-    
-    return result, jazz_count
+
+    return result, excluded_counts
 
 
 def get_db_concerts(db_manager, start_date: str, end_date: str) -> Dict[str, Dict[str, Any]]:
@@ -182,26 +187,28 @@ def print_concert_info(idx: int, code: str, details: Dict[str, Any]):
 
 
 def print_comparison_results(
-    kopis_codes: set, 
-    db_codes: set, 
-    kopis_concerts: Dict, 
+    kopis_codes: set,
+    db_codes: set,
+    kopis_concerts: Dict,
     db_concerts: Dict,
-    jazz_count: int = 0
+    excluded_counts: Dict[str, int] = None
 ):
     """비교 결과 출력"""
+    excluded_counts = excluded_counts or {}
     new_codes = kopis_codes - db_codes
     removed_codes = db_codes - kopis_codes
-    
-    total_kopis = len(kopis_codes) + jazz_count  # 재즈 포함 전체 내한공연 수
-    
+
+    total_excluded = sum(excluded_counts.values())
+    total_kopis = len(kopis_codes) + total_excluded
+
     print("\n" + "=" * 80)
     print("🔍 KOPIS vs DB 비교 결과 (내한 공연 기준)")
     print("=" * 80)
     print(f"📊 통계:")
     print(f"   - KOPIS 내한 공연: {total_kopis}개")
     print(f"   - DB 현재/미래 공연: {len(db_codes)}개")
-    if jazz_count > 0:
-        print(f"   - 재즈 공연 (제외됨): {jazz_count}개")
+    for genre, count in sorted(excluded_counts.items()):
+        print(f"   - {genre} 공연 (제외됨): {count}개")
     print(f"   - 새로 추가된 공연: {len(new_codes)}개")
     print(f"   - 사라진 공연: {len(removed_codes)}개")
     
@@ -325,9 +332,9 @@ def compare_concerts() -> dict:
         # 4. 내한 공연 필터링 (병렬 처리)
         logger.info(f"\n🔍 내한 공연 필터링 중 (병렬 처리, 동시 작업: 20개)...")
         try:
-            concert_details, jazz_count = fetch_concerts_parallel(
-                all_kopis_codes, 
-                api=kopis_api, 
+            concert_details, excluded_counts = fetch_concerts_parallel(
+                all_kopis_codes,
+                api=kopis_api,
                 max_workers=20
             )
             
@@ -355,8 +362,8 @@ def compare_concerts() -> dict:
         # 6. 결과 출력 (AI 아티스트 추출 포함)
         logger.info("\n🔄 공연 목록 비교 중...")
         print_comparison_results(
-            kopis_codes, db_codes, kopis_concerts, db_concerts, 
-            jazz_count
+            kopis_codes, db_codes, kopis_concerts, db_concerts,
+            excluded_counts
         )
         
         # 결과 저장
@@ -374,7 +381,7 @@ def compare_concerts() -> dict:
             max_retries = 3
             for attempt in range(max_retries):
                 if notifier.send_compare_result(
-                    kopis_codes, db_codes, kopis_concerts, db_concerts, jazz_count,
+                    kopis_codes, db_codes, kopis_concerts, db_concerts, excluded_counts,
                     start_date=today_for_db,
                     end_date=max_db_date_str
                 ):
