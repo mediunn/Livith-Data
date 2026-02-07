@@ -41,23 +41,25 @@ class DiscordNotifier:
         db_codes: Set[str],
         kopis_concerts: Dict,
         db_concerts: Dict,
-        jazz_count: int = 0,
+        excluded_counts: Dict = None,
         start_date: str = "",
         end_date: str = ""
     ) -> bool:
         """compare 결과를 Discord로 전송"""
+        excluded_counts = excluded_counts or {}
         new_codes = kopis_codes - db_codes
         removed_codes = db_codes - kopis_codes
-        
+
         if not new_codes and not removed_codes:
             logger.info("변경 사항 없음 - Discord 알림 스킵")
             return True
-        
+
         today = datetime.now().strftime("%Y.%m.%d")
-        total_kopis = len(kopis_codes) + jazz_count
-        
+        total_excluded = sum(excluded_counts.values())
+        total_kopis = len(kopis_codes) + total_excluded
+
         messages = []
-        
+
         # 헤더 + 통계
         header = f"🎵 KOPIS 동기화 알림 ({today})\n"
         header += "━━━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -67,9 +69,9 @@ class DiscordNotifier:
         header += f"- DB 공연: {len(db_codes)}개\n"
         header += f"- 새로 추가: {len(new_codes)}개\n"
         header += f"- 사라진 공연: {len(removed_codes)}개"
-        
-        if jazz_count > 0:
-            header += f"\n- 재즈 공연 (제외): {jazz_count}개"
+
+        for genre, count in sorted(excluded_counts.items()):
+            header += f"\n- {genre} 공연 (제외): {count}개"
         
         # 월별 통계 추가
         if new_codes:
