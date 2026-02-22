@@ -50,7 +50,7 @@ class ConcertStatusUpdater:
             if os.path.exists(self.csv_file):
                 backup_file = f"concerts_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
                 backup_path = os.path.join(Config.BACKUP_DIR, backup_file)
-                pd.read_csv(self.csv_file).to_csv(backup_path, index=False, encoding="utf-8-sig")
+                pd.read_csv(self.csv_file, encoding="utf-8-sig").to_csv(backup_path, index=False, encoding="utf-8-sig")
                 logger.info(f"💾 백업 생성: {backup_file}")
 
             df.to_csv(self.csv_file, index=False, encoding="utf-8-sig")
