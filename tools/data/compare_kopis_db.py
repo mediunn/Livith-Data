@@ -101,31 +101,40 @@ def normalize_date(date_str: str) -> str:
     return date_str
 
 
-def fetch_single_concert(code: str, api: KopisAPI) -> tuple[Optional[Dict[str, Any]], str]:
+def fetch_single_concert(code: str, api: KopisAPI, max_retries: int = 3) -> tuple[Optional[Dict[str, Any]], str]:
     """
-    단일 공연 정보를 가져오는 함수
+    단일 공연 정보를 가져오는 함수 (400 에러 시 재시도)
     Returns: (detail or None, excluded_genre)
     """
-    try:
-        rate_limiter.wait()
-        detail = api.get_concert_detail(code)
-        if detail:
-            is_valid, excluded_genre = is_visit_concert(detail)
-            if is_valid:
-                detail['start_date'] = normalize_date(detail.get('start_date', ''))
-                detail['end_date'] = normalize_date(detail.get('end_date', ''))
-                return detail, ''
-            return None, excluded_genre
-        return None, ''
-    except Exception as e:
-        logger.warning(f"공연 코드 {code} 처리 실패: {e}")
-        return None, ''
+    for attempt in range(max_retries):
+        try:
+            rate_limiter.wait()
+            detail = api.get_concert_detail(code)
+            if detail:
+                is_valid, excluded_genre = is_visit_concert(detail)
+                if is_valid:
+                    detail['start_date'] = normalize_date(detail.get('start_date', ''))
+                    detail['end_date'] = normalize_date(detail.get('end_date', ''))
+                    return detail, ''
+                return None, excluded_genre
+            # detail이 None (400 에러 등) → 재시도
+            if attempt < max_retries - 1:
+                time.sleep(1 * (attempt + 1))
+                continue
+            return None, ''
+        except Exception as e:
+            logger.warning(f"공연 코드 {code} 처리 실패 (시도 {attempt + 1}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(1 * (attempt + 1))
+                continue
+            return None, ''
+    return None, ''
 
 
 def fetch_concerts_parallel(
     concert_codes: List[str],
     api: KopisAPI,
-    max_workers: int = 20
+    max_workers: int = 10
 ) -> tuple[List[Dict[str, Any]], Dict[str, int]]:
     """
     병렬 처리로 공연 정보를 가져오는 함수
