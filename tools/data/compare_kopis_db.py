@@ -27,6 +27,7 @@ from tqdm import tqdm
 from lib.discord_notifier import DiscordNotifier
 
 from core.apis.kopis_api import KopisAPI
+from core.apis.gemini_api import GeminiAPI
 from lib.db_utils import get_db_manager
 from lib.config import Config
 
@@ -57,7 +58,13 @@ class RateLimiter:
 rate_limiter = RateLimiter(calls_per_second=10)
 
 # 제외할 장르 키워드 (제목에 포함되면 제외)
-EXCLUDED_GENRES = ['재즈', '클래식', '트리오']
+EXCLUDED_GENRES = [
+    '재즈', '클래식',
+    '연주회', '독주회',
+    '기타리스트', '핑거스타일',
+    '앙상블', '챔버', '콰르텟', '트리오',
+    '관현악', '교향',
+]
 
 
 def validate_config():
@@ -162,6 +169,56 @@ def fetch_concerts_parallel(
                 pbar.update(1)
 
     return result, excluded_counts
+
+
+def filter_instrumental_with_gemini(
+    concerts: List[Dict[str, Any]],
+    gemini_api: GeminiAPI,
+    delay: float = 2.0
+) -> tuple[List[Dict[str, Any]], int]:
+    """
+    Gemini AI + Google Search로 연주곡(기악) 공연 필터링
+    Returns: (filtered_concerts, ai_excluded_count)
+    """
+    if not concerts:
+        return concerts, 0
+
+    filtered = []
+    excluded_count = 0
+
+    with tqdm(total=len(concerts), desc="AI 연주곡 필터링") as pbar:
+        for concert in concerts:
+            title = concert.get('title', '')
+            artist = concert.get('artist', '')
+
+            prompt = f"""다음 공연이 가사 없는 연주곡/기악 공연인지 판단해줘.
+
+제목: {title}
+아티스트: {artist}
+
+이 아티스트를 검색해서, 주로 기악 연주 위주(피아노·기타·바이올린 등 가사 없는 연주)인지,
+아니면 보컬/노래가 있는 아티스트인지 확인해줘.
+
+딱 한 단어만 답해:
+- 연주곡 (기악 연주 위주, 가사 없음)
+- 보컬 (노래/보컬 있음)"""
+
+            try:
+                response = gemini_api.query(prompt, use_search=True).strip()
+                if '연주곡' in response and '보컬' not in response:
+                    excluded_count += 1
+                    logger.info(f"AI 연주곡 제외: [{concert.get('code')}] {title}")
+                else:
+                    filtered.append(concert)
+            except Exception as e:
+                logger.warning(f"AI 판단 실패, 포함 처리: {title} - {e}")
+                filtered.append(concert)
+
+            pbar.update(1)
+            if delay > 0:
+                time.sleep(delay)
+
+    return filtered, excluded_count
 
 
 def get_db_concerts(db_manager, start_date: str, end_date: str) -> Dict[str, Dict[str, Any]]:
@@ -347,18 +404,31 @@ def compare_concerts() -> dict:
                 max_workers=20
             )
             
-            kopis_concerts = {
-                detail['code']: detail for detail in concert_details
-            }
-            kopis_codes = set(kopis_concerts.keys())
-            logger.info(f"✅ KOPIS에서 {len(kopis_codes)}개의 내한 공연을 찾았습니다.")
+            logger.info(f"✅ KOPIS에서 {len(concert_details)}개의 내한 공연을 찾았습니다.")
         except Exception as e:
             logger.error(f"❌ 공연 상세 정보 가져오기 중 오류 발생: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return result
 
-        # 5. 데이터베이스에서 공연 조회
+        # 5. Gemini AI로 연주곡 필터링
+        if Config.GEMINI_API_KEY:
+            logger.info(f"\n🤖 Gemini AI로 연주곡 필터링 중 ({len(concert_details)}개)...")
+            try:
+                gemini_api = GeminiAPI(api_key=Config.GEMINI_API_KEY)
+                concert_details, ai_excluded_count = filter_instrumental_with_gemini(concert_details, gemini_api)
+                excluded_counts['연주곡 (AI)'] = ai_excluded_count
+                logger.info(f"✅ AI 필터링 후 {len(concert_details)}개 남음 (AI 제외: {ai_excluded_count}개)")
+            except Exception as e:
+                logger.warning(f"⚠️ AI 필터링 실패, 스킵: {e}")
+        else:
+            logger.info("⚠️ GEMINI_API_KEY 없음 - AI 연주곡 필터링 스킵")
+
+        kopis_concerts = {detail['code']: detail for detail in concert_details}
+        kopis_codes = set(kopis_concerts.keys())
+        logger.info(f"✅ 최종 {len(kopis_codes)}개의 공연으로 비교 진행")
+
+        # 6. 데이터베이스에서 공연 조회
         logger.info(f"\n💾 데이터베이스에서 공연 목록을 가져오는 중...")
         try:
             db_concerts = get_db_concerts(db_manager, today_for_db, max_db_date_str)
@@ -368,7 +438,7 @@ def compare_concerts() -> dict:
             logger.error(f"❌ 데이터베이스 조회 중 오류 발생: {e}")
             return result
 
-        # 6. 결과 출력 (AI 아티스트 추출 포함)
+        # 7. 결과 출력
         logger.info("\n🔄 공연 목록 비교 중...")
         print_comparison_results(
             kopis_codes, db_codes, kopis_concerts, db_concerts,
