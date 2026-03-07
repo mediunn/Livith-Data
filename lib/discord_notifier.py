@@ -99,9 +99,8 @@ class DiscordNotifier:
             for idx, code in enumerate(sorted(new_codes), 1):
                 details = kopis_concerts.get(code, {})
                 concert_info = f"\n{idx}. [{code}] {details.get('title', '제목 없음')}\n"
-                concert_info += f"　　{details.get('artist', '아티스트 없음')}\n"
                 concert_info += f"　　{details.get('start_date', 'N/A')} ~ {details.get('end_date', 'N/A')}\n"
-                
+
                 if len(new_msg + concert_info) > self.max_message_length - 100:
                     messages.append(new_msg)
                     new_msg = concert_info
@@ -120,9 +119,8 @@ class DiscordNotifier:
             for idx, code in enumerate(sorted(removed_codes), 1):
                 details = db_concerts.get(code, {})
                 concert_info = f"\n{idx}. [{code}] {details.get('title', '제목 없음')}\n"
-                concert_info += f"　　{details.get('artist', '아티스트 없음')}\n"
                 concert_info += f"　　{details.get('start_date', 'N/A')} ~ {details.get('end_date', 'N/A')}\n"
-                
+
                 if len(removed_msg + concert_info) > self.max_message_length - 100:
                     messages.append(removed_msg)
                     removed_msg = concert_info
