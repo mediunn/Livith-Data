@@ -11,6 +11,11 @@ from datetime import datetime, timedelta
 logger = logging.getLogger(__name__)
 
 
+class KopisAPIError(Exception):
+    """KOPIS API 400 에러 - 재시도 없이 스킵"""
+    pass
+
+
 class KopisAPI:
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -103,6 +108,9 @@ class KopisAPI:
                 time.sleep(self.request_delay)
             response = self.session.get(url, timeout=15)
             
+            if response.status_code == 400:
+                logger.debug(f"공연 코드 없음 (코드: {code}): 400")
+                raise KopisAPIError(f"400: {code}")
             if response.status_code != 200:
                 logger.error(f"공연 상세정보 HTTP 에러 (코드: {code}): {response.status_code}")
                 return None
@@ -139,6 +147,8 @@ class KopisAPI:
                 'producer_sponsor': self._get_text(db, 'entrpsnmS'),
             }
             
+        except KopisAPIError:
+            raise
         except requests.RequestException as e:
             logger.error(f"공연 상세정보 요청 실패 (코드: {code}): {e}")
             return None
