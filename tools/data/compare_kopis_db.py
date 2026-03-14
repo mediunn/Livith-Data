@@ -26,7 +26,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from tqdm import tqdm
 from lib.discord_notifier import DiscordNotifier
 
-from core.apis.kopis_api import KopisAPI
+from core.apis.kopis_api import KopisAPI, KopisAPIError
 from core.apis.gemini_api import GeminiAPI
 from lib.db_utils import get_db_manager
 from lib.config import Config
@@ -109,10 +109,14 @@ def normalize_date(date_str: str) -> str:
     return date_str
 
 
+_API_ERROR = '__api_error__'
+
+
 def fetch_single_concert(code: str, api: KopisAPI, max_retries: int = 3) -> tuple[Optional[Dict[str, Any]], str]:
     """
-    단일 공연 정보를 가져오는 함수 (400 에러 시 재시도)
+    단일 공연 정보를 가져오는 함수
     Returns: (detail or None, excluded_genre)
+    excluded_genre == '__api_error__' 이면 400 에러로 스킵된 코드
     """
     for attempt in range(max_retries):
         try:
@@ -125,11 +129,13 @@ def fetch_single_concert(code: str, api: KopisAPI, max_retries: int = 3) -> tupl
                     detail['end_date'] = normalize_date(detail.get('end_date', ''))
                     return detail, ''
                 return None, excluded_genre
-            # detail이 None (400 에러 등) → 재시도
             if attempt < max_retries - 1:
                 time.sleep(1 * (attempt + 1))
                 continue
             return None, ''
+        except KopisAPIError:
+            # 400 에러: 재시도 없이 즉시 스킵
+            return None, _API_ERROR
         except Exception as e:
             logger.warning(f"공연 코드 {code} 처리 실패 (시도 {attempt + 1}): {e}")
             if attempt < max_retries - 1:
@@ -143,15 +149,17 @@ def fetch_concerts_parallel(
     concert_codes: List[str],
     api: KopisAPI,
     max_workers: int = 10
-) -> tuple[List[Dict[str, Any]], Dict[str, int]]:
+) -> tuple[List[Dict[str, Any]], Dict[str, int], set]:
     """
     병렬 처리로 공연 정보를 가져오는 함수
 
     Rate limiter로 초당 요청 수를 제한하여 API 차단 방지
-    Returns: (concert_list, excluded_counts)
+    Returns: (concert_list, excluded_counts, api_error_codes)
+    api_error_codes: 400 에러로 조회 실패한 코드 셋 (사라진 공연 판단에서 제외)
     """
     result = []
     excluded_counts: Dict[str, int] = {genre: 0 for genre in EXCLUDED_GENRES}
+    api_error_codes: set = set()
     fetch_func = partial(fetch_single_concert, api=api)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -162,14 +170,40 @@ def fetch_concerts_parallel(
 
         with tqdm(total=len(concert_codes), desc="내한공연 필터링") as pbar:
             for future in as_completed(future_to_code):
+                code = future_to_code[future]
                 detail, excluded_genre = future.result()
                 if detail:
-                    result.append(detail)
-                if excluded_genre:
+                elif excluded_genre == _API_ERROR:
+                    api_error_codes.add(code)
+                elif excluded_genre:
                     excluded_counts[excluded_genre] = excluded_counts.get(excluded_genre, 0) + 1
                 pbar.update(1)
 
-    return result, excluded_counts
+    # 400 에러 코드 재시도 (전체 완료 후 순차적으로)
+    if api_error_codes:
+        logger.info(f"⏳ 400 에러 {len(api_error_codes)}개 재시도 중...")
+        time.sleep(2)
+        still_error = set()
+        for code in tqdm(api_error_codes, desc="400 에러 재시도"):
+            rate_limiter.wait()
+            try:
+                detail = api.get_concert_detail(code)
+                if detail:
+                    is_valid, excluded_genre = is_visit_concert(detail)
+                    if is_valid:
+                        detail['start_date'] = normalize_date(detail.get('start_date', ''))
+                        detail['end_date'] = normalize_date(detail.get('end_date', ''))
+                        result.append(detail)
+                    elif excluded_genre:
+                        excluded_counts[excluded_genre] = excluded_counts.get(excluded_genre, 0) + 1
+                else:
+                    still_error.add(code)
+            except KopisAPIError:
+                still_error.add(code)
+        logger.info(f"✅ 재시도 결과: {len(api_error_codes) - len(still_error)}개 복구, {len(still_error)}개 여전히 실패")
+        api_error_codes = still_error
+
+    return result, excluded_counts, api_error_codes
 
 
 def filter_instrumental_with_gemini(
@@ -399,12 +433,13 @@ def compare_concerts() -> dict:
         # 4. 내한 공연 필터링 (병렬 처리)
         logger.info(f"\n🔍 내한 공연 필터링 중 (병렬 처리, 동시 작업: 20개)...")
         try:
-            concert_details, excluded_counts = fetch_concerts_parallel(
+            concert_details, excluded_counts, api_error_codes = fetch_concerts_parallel(
                 all_kopis_codes,
                 api=kopis_api,
                 max_workers=20
             )
-            
+            if api_error_codes:
+                logger.info(f"⚠️ API 400 에러로 조회 실패: {len(api_error_codes)}개 코드 (사라진 공연 판단 제외)")
             logger.info(f"✅ KOPIS에서 {len(concert_details)}개의 내한 공연을 찾았습니다.")
         except Exception as e:
             logger.error(f"❌ 공연 상세 정보 가져오기 중 오류 발생: {e}")
@@ -433,7 +468,7 @@ def compare_concerts() -> dict:
         logger.info(f"\n💾 데이터베이스에서 공연 목록을 가져오는 중...")
         try:
             db_concerts = get_db_concerts(db_manager, today_for_db, max_db_date_str)
-            db_codes = set(db_concerts.keys())
+            db_codes = set(db_concerts.keys()) - api_error_codes
             logger.info(f"✅ 데이터베이스에서 {len(db_codes)}개의 공연을 찾았습니다.")
         except Exception as e:
             logger.error(f"❌ 데이터베이스 조회 중 오류 발생: {e}")
