@@ -173,6 +173,7 @@ def fetch_concerts_parallel(
                 code = future_to_code[future]
                 detail, excluded_genre = future.result()
                 if detail:
+                    result.append(detail)
                 elif excluded_genre == _API_ERROR:
                     api_error_codes.add(code)
                 elif excluded_genre:
