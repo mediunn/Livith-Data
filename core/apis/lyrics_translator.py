@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
 가사를 한국어 해석 및 발음으로 변환하는 모듈
-원본 가사는 절대 손실되지 않도록 안전하게 처리
+원본 가사 손실되지 않도록 처리
 """
-import os
 import csv
 import logging
 import time
@@ -13,34 +12,30 @@ from core.apis.gemini_api import GeminiAPI
 from lib.config import Config
 from lib.prompts import LyricsPrompts
 
-# CSV 모듈 설정 - 큰 필드 허용
+# CSV 모듈 설정 - 100만 글자 허용
 csv.field_size_limit(1000000)
 
 logger = logging.getLogger(__name__)
 
 class LyricsTranslator:
+    # 외국어 가사 -> 한국어 번역 + 발음 변환
+    # Gemini API를 사용하여 번역/발음 변환
     def __init__(self, output_dir: str = None):
-        """
-        가사 번역기 초기화
-        Args:
-            output_dir: 출력 디렉토리 (None이면 Config.OUTPUT_DIR 사용)
-        """
-        # 설정 검증 - Gemini API 키 확인
-        Config.validate_api_keys()
-        
+        # output_dir (main_output 디렉토리에 저장)
+        Config.validate_api_keys()  # Gemini API 키 확인
         self.gemini_api = GeminiAPI(Config.GEMINI_API_KEY)
         self.output_dir = Path(output_dir or Config.OUTPUT_DIR)
         
     def create_translation_prompt(self, lyrics: str, song_title: str, artist: str) -> str:
-        """번역용 프롬프트 생성"""
+        #번역용 프롬프트 생성
         return LyricsPrompts.get_translation_prompt(lyrics, song_title, artist)
 
     def create_pronunciation_prompt(self, lyrics: str, song_title: str, artist: str) -> str:
-        """발음용 프롬프트 생성"""
+        #발음용 프롬프트 생성
         return LyricsPrompts.get_pronunciation_prompt(lyrics, song_title, artist)
 
-    def translate_lyrics(self, lyrics: str, song_title: str, artist: str) -> Optional[str]:
-        """가사를 한국어로 번역"""
+    def get_translation(self, lyrics: str, song_title: str, artist: str) -> Optional[str]:
+        #가사를 한국어로 번역
         try:
             prompt = self.create_translation_prompt(lyrics, song_title, artist)
             response = self.gemini_api.query(prompt, use_search=False)
@@ -56,8 +51,8 @@ class LyricsTranslator:
             logger.error(f"번역 중 오류: {song_title} - {artist}: {e}")
             return None
 
-    def convert_to_pronunciation(self, lyrics: str, song_title: str, artist: str) -> Optional[str]:
-        """가사를 한국어 발음으로 변환"""
+    def get_pronunciation(self, lyrics: str, song_title: str, artist: str) -> Optional[str]:
+        #가사를 한국어 발음으로 변환
         try:
             prompt = self.create_pronunciation_prompt(lyrics, song_title, artist)
             response = self.gemini_api.query(prompt, use_search=False)
@@ -74,7 +69,7 @@ class LyricsTranslator:
             return None
 
     def read_songs_from_csv(self, csv_path: Path) -> List[Dict[str, str]]:
-        """CSV 파일에서 곡 정보 읽기"""
+        #CSV 파일에서 곡 정보 읽기
         songs = []
         
         try:
@@ -102,7 +97,7 @@ class LyricsTranslator:
             return []
 
     def write_songs_to_csv(self, songs: List[Dict[str, str]], csv_path: Path) -> bool:
-        """업데이트된 곡 정보를 CSV 파일에 저장 (원본 보존)"""
+        #업데이트된 발음, 번역을 CSV 파일에 다시 저장
         try:
             if not songs:
                 logger.warning(f"저장할 곡이 없습니다: {csv_path}")
@@ -115,17 +110,7 @@ class LyricsTranslator:
                 if field not in fieldnames:
                     fieldnames.append(field)
             
-            # 백업 파일 생성 - 타임스탬프 포함
-            import datetime
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = csv_path.with_suffix(f'.backup_{timestamp}.csv')
-            if csv_path.exists():
-                # 원본 파일을 백업으로 복사
-                import shutil
-                shutil.copy2(csv_path, backup_path)
-                logger.info(f"원본 파일 백업: {backup_path}")
-            
-            # 새 파일 저장 - 줄바꿈이 있는 필드는 자동으로 따옴표 처리
+            # 새 파일 저장
             with open(csv_path, 'w', encoding='utf-8-sig', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_NONNUMERIC)
                 writer.writeheader()
@@ -145,13 +130,9 @@ class LyricsTranslator:
             return False
 
     def process_lyrics_translation(self, csv_path: str, mode: str = "both", max_songs: int = None) -> Dict[str, int]:
-        """
-        가사 번역/발음 변환 처리
-        Args:
-            csv_path: CSV 파일 경로
-            mode: "translation", "pronunciation", "both" 중 선택
-            max_songs: 최대 처리 곡 수 (테스트용)
-        """
+        # 여러 가사 번역/발음 일괄 처리
+        # mode: "translation", "pronunciation", "both" 중 선택
+        # max_songs: 최대 처리 곡 수
         csv_path = Path(csv_path)
         stats = {
             'total': 0,
@@ -199,9 +180,10 @@ class LyricsTranslator:
             if mode in ["translation", "both"]:
                 if current_translation:
                     logger.info(f"이미 번역 있음, 스킵: {title}")
+                    stats['skipped'] += 1
                 else:
                     logger.info(f"번역 시작: {title}")
-                    translation = self.translate_lyrics(lyrics, title, artist)
+                    translation = self.get_translation(lyrics, title, artist)
                     if translation:
                         song['translation'] = translation
                         stats['translation_updated'] += 1
@@ -221,9 +203,10 @@ class LyricsTranslator:
             if mode in ["pronunciation", "both"]:
                 if current_pronunciation:
                     logger.info(f"이미 발음 있음, 스킵: {title}")
+                    stats['skipped'] += 1
                 else:
                     logger.info(f"발음 변환 시작: {title}")
-                    pronunciation = self.convert_to_pronunciation(lyrics, title, artist)
+                    pronunciation = self.get_pronunciation(lyrics, title, artist)
                     if pronunciation:
                         song['pronunciation'] = pronunciation
                         stats['pronunciation_updated'] += 1
