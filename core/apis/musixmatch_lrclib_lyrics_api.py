@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
 Musixmatch + LRCLIB 폴백 가사 검색 모듈
+musixmatch_lrclib_lyrics_api.py
+    MusixmatchAPI  → Musixmatch API 직접 통신                                                                                      
+    LrcLibAPI      → LRCLIB API 직접 통신                                                                                              
+    LyricsAPI      → 두 개 조합 (Musixmatch 실패 시 LRCLIB 폴백) 
 """
 import requests
 import logging
@@ -12,25 +16,39 @@ from difflib import SequenceMatcher
 logger = logging.getLogger(__name__)
 
 
+def _calculate_similarity(str1: str, str2: str) -> float:
+    # 두 문자열의 유사도 계산 (0.0 ~ 1.0), 띄어쓰기 무관 비교 포함
+    str1 = str1.lower().strip()
+    str2 = str2.lower().strip()
+
+    if str1 == str2:
+        return 1.0
+    if str1 in str2 or str2 in str1:
+        return 0.8
+
+    str1_nospace = str1.replace(' ', '')
+    str2_nospace = str2.replace(' ', '')
+    if str1_nospace == str2_nospace:
+        return 1.0
+    if str1_nospace in str2_nospace or str2_nospace in str1_nospace:
+        return 0.8
+
+    return max(
+        SequenceMatcher(None, str1, str2).ratio(),
+        SequenceMatcher(None, str1_nospace, str2_nospace).ratio()
+    )
+
+
 class MusixmatchAPI:
-    """Musixmatch API 인터페이스"""
+    #Musixmatch API 인터페이스
     
     BASE_URL = "https://api.musixmatch.com/ws/1.1"
     
     def __init__(self, api_key: str):
         self.api_key = api_key
     
-    def _calculate_similarity(self, str1: str, str2: str) -> float:
-        str1 = str1.lower().strip()
-        str2 = str2.lower().strip()
-        
-        if str1 == str2:
-            return 1.0
-        if str1 in str2 or str2 in str1:
-            return 0.8
-        return SequenceMatcher(None, str1, str2).ratio()
-    
     def _extract_main_artist(self, artist_name: str) -> str:
+        #아티스트명에서 메인 아티스트만 추출
         patterns = [
             r'\s+feat\..*$',
             r'\s+ft\..*$',
@@ -44,6 +62,7 @@ class MusixmatchAPI:
         return cleaned.strip()
     
     def _clean_search_query(self, query: str) -> str:
+        #검색에 방해되는 불필요한 요소 제거(소괄호, 대괄호)
         cleaned = re.sub(r'\([^)]*\)', '', query)
         cleaned = re.sub(r'\[[^\]]*\]', '', cleaned)
         if 'feat.' in cleaned.lower():
@@ -55,6 +74,7 @@ class MusixmatchAPI:
         return cleaned.strip()
     
     def search_track(self, title: str, artist: str) -> Optional[Dict]:
+        #Musixmatch에서 곡 검색 (유사도 기준을 통과한 곡만 반환)
         try:
             params = {
                 'q_track': title,
@@ -86,15 +106,16 @@ class MusixmatchAPI:
                 logger.info(f"Musixmatch 검색 결과 없음: {title} - {artist}")
                 return None
             
+            # 유사도 검증
             for item in track_list:
                 track = item.get('track', {})
                 found_title = track.get('track_name', '')
                 found_artist = track.get('artist_name', '')
                 
-                title_similarity = self._calculate_similarity(title, found_title)
+                title_similarity = _calculate_similarity(title, found_title)
                 clean_original_artist = self._extract_main_artist(artist)
                 clean_found_artist = self._extract_main_artist(found_artist)
-                artist_similarity = self._calculate_similarity(clean_original_artist, clean_found_artist)
+                artist_similarity = _calculate_similarity(clean_original_artist, clean_found_artist)
                 
                 logger.info(f"Musixmatch 후보: {found_title} - {found_artist} (유사도: 제목 {title_similarity:.2f}, 아티스트 {artist_similarity:.2f})")
                 
@@ -114,6 +135,7 @@ class MusixmatchAPI:
             return None
     
     def get_lyrics_by_track_id(self, track_id: int) -> Optional[str]:
+        #트랙 ID로 가사 가져오기
         try:
             params = {
                 'track_id': track_id,
@@ -143,6 +165,7 @@ class MusixmatchAPI:
                 logger.warning(f"Musixmatch 가사 본문 없음: track_id={track_id}")
                 return None
             
+            # Musixmatch 경고 문구 제거
             if "******* This Lyrics is NOT for Commercial use *******" in lyrics_body:
                 lyrics_body = lyrics_body.replace(
                     "******* This Lyrics is NOT for Commercial use *******", 
@@ -155,12 +178,17 @@ class MusixmatchAPI:
             logger.error(f"Musixmatch 가사 가져오기 실패 track_id={track_id}: {e}")
             return None
     
-    def get_lyrics(self, title: str, artist: str) -> Optional[Dict[str, str]]:
+    def get_lyrics(self, title: str, artist: str, skip_artist_clean: bool = False) -> Optional[Dict[str, str]]:
+        """
+        Musixmatch 가사 검색 메인 메서드
+        1차: 원본 검색어로 시도
+        2차: 실패하면 검색어 정제 후 재시도
+        """
         try:
             track = self.search_track(title, artist)
             if not track:
                 clean_title = self._clean_search_query(title)
-                clean_artist = self._clean_search_query(artist)
+                clean_artist = artist if skip_artist_clean else self._clean_search_query(artist)
                 if clean_title != title or clean_artist != artist:
                     logger.info(f"Musixmatch 정제된 검색어로 재시도: {clean_title} - {clean_artist}")
                     track = self.search_track(clean_title, clean_artist)
@@ -194,7 +222,7 @@ class MusixmatchAPI:
 
 
 class LrcLibAPI:
-    """LRCLIB API 인터페이스 (폴백용)"""
+    #LRCLIB API 인터페이스
     
     BASE_URL = "https://lrclib.net/api"
     
@@ -204,17 +232,8 @@ class LrcLibAPI:
             'User-Agent': 'Livith/1.0 (https://livith.kr)'
         })
     
-    def _calculate_similarity(self, str1: str, str2: str) -> float:
-        str1 = str1.lower().strip()
-        str2 = str2.lower().strip()
-        
-        if str1 == str2:
-            return 1.0
-        if str1 in str2 or str2 in str1:
-            return 0.8
-        return SequenceMatcher(None, str1, str2).ratio()
-    
     def get_lyrics(self, title: str, artist: str) -> Optional[Dict[str, str]]:
+        #LRCLIB에서 가사 검색
         try:
             response = self.session.get(
                 f"{self.BASE_URL}/search",
@@ -234,20 +253,19 @@ class LrcLibAPI:
                 logger.info(f"LRCLIB 검색 결과 없음: {title} - {artist}")
                 return None
             
-            # 유사도 검증하며 결과 순회
+            # 유사도 검증
             for track in results:
                 found_title = track.get('trackName', '')
                 found_artist = track.get('artistName', '')
                 
-                title_sim = self._calculate_similarity(title, found_title)
-                artist_sim = self._calculate_similarity(artist, found_artist)
+                title_sim = _calculate_similarity(title, found_title)
+                artist_sim = _calculate_similarity(artist, found_artist)
                 
                 logger.info(f"LRCLIB 후보: {found_title} - {found_artist} (유사도: 제목 {title_sim:.2f}, 아티스트 {artist_sim:.2f})")
                 
-                # Musixmatch보다 느슨하게 (0.7)
-                if title_sim < 0.7:
+                if title_sim < 0.8:
                     continue
-                if artist_sim < 0.7:
+                if artist_sim < 0.9:
                     continue
                 
                 plain_lyrics = track.get('plainLyrics')
@@ -269,21 +287,16 @@ class LrcLibAPI:
 
 
 class LyricsAPI:
-    """통합 가사 API (Musixmatch → LRCLIB 폴백)"""
+    #통합 가사 API (Musixmatch → LRCLIB 폴백)
     
     def __init__(self, musixmatch_api_key: str):
         self.musixmatch = MusixmatchAPI(musixmatch_api_key)
         self.lrclib = LrcLibAPI()
     
-    def get_lyrics(self, title: str, artist: str) -> Optional[Dict[str, str]]:
-        """
-        가사 검색 (Musixmatch 우선, 실패 시 LRCLIB 폴백)
-        
-        Returns:
-            {'lyrics': 가사, 'source': 'musixmatch'|'lrclib', 'url': ...} 또는 None
-        """
+    def get_lyrics(self, title: str, artist: str, skip_artist_clean: bool = False) -> Optional[Dict[str, str]]:
+        #가사 검색 (Musixmatch 우선, 실패 시 LRCLIB 폴백)
         # 1. Musixmatch 시도
-        result = self.musixmatch.get_lyrics(title, artist)
+        result = self.musixmatch.get_lyrics(title, artist, skip_artist_clean=skip_artist_clean)
         if result:
             return result
         
