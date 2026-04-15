@@ -3,9 +3,16 @@
 """
 import logging
 import time
+import json
+import re
 from typing import Dict, Any, Optional
+import requests
+import pandas as pd
 from lib.data_models import Concert, Artist
 from lib.config import Config
+from lib.prompts import DataCollectionPrompts
+from core.apis.musicbrainz_api import MusicBrainzAPI
+from core.apis.serper_api import SerperAPI
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +20,35 @@ logger = logging.getLogger(__name__)
 class DataCollector:
     def __init__(self, api_client):
         self.api = api_client
-    
+        self.mb_api = MusicBrainzAPI()
+        self.serper = SerperAPI()
+
+        self._artist_cache = {}
+        self._title_artist_cache = {}
+
+    def _validate_image_url(self, url: str) -> bool:
+        """URL이 유효한 이미지인지 HEAD 요청으로 확인"""
+        if not url:
+            return False
+        try:
+            response = requests.head(url, timeout=5)
+            response.raise_for_status()
+            content_type = response.headers.get('Content-Type', '').lower()
+            if 'image' in content_type:
+                logger.info(f"이미지 URL 유효: {url}")
+                return True
+            else:
+                logger.warning(f"이미지 URL 아님 (Content-Type: {content_type}): {url}")
+                return False
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"이미지 URL 검증 실패 {url}: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"이미지 URL 검증 중 오류 {url}: {e}")
+            return False
+
     def collect_concert_basic_info(self, kopis_data: Dict[str, Any]) -> Concert:
-        """KOPIS 데이터를 기반으로 기본 콘서트 정보 생성"""
+        #KOPIS 데이터를 기반으로 기본 콘서트 정보 생성 (제목, 아티스트, 날짜, 장소, 포스터, 티켓URL, 상태)
         return Concert(
             title=kopis_data.get('title', ''),
             artist=kopis_data.get('artist', ''),
@@ -23,210 +56,305 @@ class DataCollector:
             end_date=self._format_date(kopis_data.get('end_date')),
             venue=kopis_data.get('venue', ''),
             code=kopis_data.get('code', ''),
-            img_url=kopis_data.get('poster_url', ''),
+            poster=kopis_data.get('poster', ''),
+            ticket_url=kopis_data.get('ticket_url', ''),  # KOPIS 티켓 URL 우선 사용
             status=self._determine_status(
                 kopis_data.get('start_date'),
                 kopis_data.get('end_date')
             )
         )
-    
-    def enhance_concert_data(self, concert: Concert) -> Concert:
-        """AI API를 사용하여 콘서트 정보 보강"""
+
+    def _extract_artist_from_title(self, title: str) -> Optional[str]:
+        #AI를 사용해 콘서트 제목에서 아티스트 이름 추출 (아티스트명 한국어/영문)
+        if title in self._title_artist_cache:
+            logger.info(f"캐시에서 아티스트 반환: {title}")
+            return self._title_artist_cache[title]
         try:
-            # 티켓 정보 수집
-            ticket_info = self._collect_ticket_info(concert.title, concert.artist)
-            if ticket_info:
-                concert.ticket_url = ticket_info.get('url', '')
-                concert.ticket_site = ticket_info.get('site', '')
-            
-            # 1. (새로운 함수) 한 줄 요약(introduction) 수집
+            query = DataCollectionPrompts.get_artist_name_prompt(title)
+            response = self.api.query_json(query, use_search=True)
+            time.sleep(6)
+
+            if response and response.get('artist'):
+                artist_name = response.get('artist')
+                # 1글자 이하이거나 구분자만인 경우 거부
+                if len(artist_name.strip()) <= 1 or artist_name.strip().lower() in ['x', '&', 'ft.', 'vs']:
+                    logger.warning(f"유효하지 않은 아티스트명 거부: '{artist_name}'")
+                    self._title_artist_cache[title] = None
+                    return None
+                logger.info(f"콘서트 제목 '{title}'에서 아티스트 '{artist_name}' 추출 성공")
+                self._title_artist_cache[title] = artist_name
+                return artist_name
+        except Exception as e:
+            logger.warning(f"콘서트 제목에서 아티스트 추출 실패 ({title}): {e}")
+        self._title_artist_cache[title] = None
+        return None
+
+    def enhance_concert_data(self, concert: Concert) -> Concert:
+        #AI API를 사용하여 콘서트 정보 보강 (아티스트명, 티켓URL, 한줄소개, 레이블)
+        try:
+            # 콘서트 제목에서 아티스트 추출하여 KOPIS 출연진 정보 덮어쓰기
+            try:
+                extracted_artist = self._extract_artist_from_title(concert.title)
+                if extracted_artist and extracted_artist != concert.artist:
+                    logger.info(f"콘서트 제목에서 추출한 아티스트 '{extracted_artist}'로 기존 정보 '{concert.artist}'를 덮어씁니다.")
+                    concert.artist = extracted_artist
+            except Exception as e:
+                logger.warning(f"콘서트 제목에서 아티스트 추출 중 오류 발생: {e}")
+
+            # 티켓 정보 수집 (KOPIS URL 없을 때만 Serper 검색)
+            if not concert.ticket_url:
+                ticket_info = self.serper.search_ticket_url(concert.title)
+                if ticket_info:
+                    concert.ticket_url = ticket_info.get('url', '')
+                    concert.ticket_site = ticket_info.get('site', '')
+
             concert.introduction = self._collect_short_introduction(concert.title, concert.artist)
-            
-            # 2. (기존 함수) 라벨(label) 정보 수집
+
             additional_info = self._collect_additional_info(concert.title, concert.artist)
             if additional_info:
                 concert.label = additional_info.get('label', '')
-            
+
             return concert
-            
+
         except Exception as e:
             logger.error(f"콘서트 정보 보강 실패: {e}")
             return concert
-    
-    def collect_artist_info(self, artist_name: str) -> Optional[Artist]:
-        """아티스트 정보 수집"""
+
+    def collect_artist_info(self, artist_name: str, concert_title: Optional[str] = None) -> Optional[Artist]:
+        #아티스트 정보 수집 (카테고리, 소개, 인스타URL, 키워드, 이미지, 데뷔년도, 국적, 그룹유형, MBID)
         try:
-            info = self._collect_artist_basic_info(artist_name)
+            info = self._collect_artist_basic_info(artist_name, concert_title)
+
             if not info:
                 return None
-            
+
             return Artist(
-                artist=info.get('name', artist_name),
+                artist=info.get('artist', artist_name),
+                category=info.get('category', ''),
+                detail=info.get('detail', ''),
+                instagram_url=info.get('instagram_url', ''),
+                keywords=info.get('keywords', ''),
+                img_url=info.get('img_url', ''),
                 debut_date=info.get('debut_date', ''),
                 nationality=info.get('nationality', ''),
                 group_type=info.get('group_type', ''),
-                introduction=info.get('introduction', ''),
-                social_media=info.get('social_media', ''),
-                keywords=info.get('keywords', ''),
-                img_url=info.get('img_url', '')
+                musicbrainz_id=info.get('musicbrainz_id', '')
             )
-            
+
         except Exception as e:
             logger.error(f"아티스트 정보 수집 실패: {e}")
             return None
-    
+
+    def collect_concert_genre(self, artist_name: str, concert_title: str) -> Optional[Dict[str, Any]]:
+        #콘서트 장르 정보 수집 (장르명, 장르 코드)
+        try:
+            query = DataCollectionPrompts.get_concert_genre_prompt(artist_name, concert_title)
+            response = self.api.query_json(query, use_search=True)
+            time.sleep(6)
+
+            if response:
+                if isinstance(response, dict):
+                    return response
+                elif isinstance(response, list) and len(response) > 0:
+                    return response[0]
+
+        except Exception as e:
+            logger.warning(f"콘서트 장르 수집 실패 ({concert_title}): {e}")
+
+        return None
+
     def _format_date(self, date_str: Optional[str]) -> str:
-        """날짜 형식 통일"""
+        #날짜 형식 통일 (YYYY.MM.DD)
         if not date_str:
             return ''
-        
-        # YYYY-MM-DD 형식으로 통일
-        date_str = date_str.replace('.', '-').replace('/', '-')
-        return date_str
-    
+        return date_str.replace('-', '.').replace('/', '.')
+
     def _determine_status(self, start_date: Optional[str], end_date: Optional[str]) -> str:
         """날짜 기반 상태 결정"""
         from datetime import datetime, date
-        
+
         if not start_date:
             return 'UNKNOWN'
-        
+
         try:
-            start = datetime.strptime(start_date, '%Y-%m-%d').date()
+            start_date = start_date.replace('-', '.').replace('/', '.')
+            start = datetime.strptime(start_date, '%Y.%m.%d').date()
             today = date.today()
-            
+
             if start > today:
                 return 'UPCOMING'
             elif end_date:
-                end = datetime.strptime(end_date, '%Y-%m-%d').date()
-                if end >= today:
-                    return 'ONGOING'
-                else:
-                    return 'PAST'
+                end_date = end_date.replace('-', '.').replace('/', '.')
+                end = datetime.strptime(end_date, '%Y.%m.%d').date()
+                return 'ONGOING' if end >= today else 'PAST'
             else:
                 return 'PAST' if start < today else 'ONGOING'
-                
+
         except ValueError:
             return 'UNKNOWN'
-    
-    def _collect_ticket_info(self, title: str, artist: str) -> Optional[Dict[str, Any]]:
-        """티켓 정보 수집"""
-        # API 호출 로직 (간소화)
-        try:
-            query = f"{title} {artist} 티켓 예매"
-            response = self.api.query_json(query)
-            time.sleep(6)  # API 호출 후 6초 대기
-            
-            # 응답 파싱 로직
-            if response and 'ticket' in response:
-                return {
-                    'url': response.get('ticket_url', ''),
-                    'site': response.get('ticket_site', '')
-                }
-            
-        except Exception as e:
-            logger.warning(f"티켓 정보 수집 실패: {e}")
-        
-        return None
-    
+
     def _collect_additional_info(self, title: str, artist: str) -> Optional[Dict[str, Any]]:
-        """추가 정보 수집"""
+        #추가 정보 수집 (레이블)
         try:
-            query = f"{title} {artist} 콘서트 정보"
-            response = self.api.query_json(query)
-            time.sleep(6)  # API 호출 후 6초 대기
-            
+            query = DataCollectionPrompts.get_additional_info_prompt(title, artist)
+            response = self.api.query_json(query, use_search=True)
+            time.sleep(6)
+
             if response:
-                return {
-                    'introduction': response.get('description', ''),
-                    'label': response.get('label', '')
-                }
-            
+                return {'label': response.get('label', '')}
+
         except Exception as e:
             logger.warning(f"추가 정보 수집 실패: {e}")
-        
+
         return None
 
     def _collect_short_introduction(self, title: str, artist: str) -> str:
-        """한 줄 요약 소개 수집"""
+        #한 줄 요약 소개 수집 (콘서트 한줄소개)
         try:
-            # 명확하고 구체적인 프롬프트 사용
-            query = f"""'{title}' ({artist}) 콘서트의 한 줄 소개 문구를 생성해줘.
-- 반드시 콘서트의 핵심 특징(예: 첫 내한, 오랜만의 내한(몇 년 후 내한인지), 재결합(몇 년 후 내한인지), 대표곡, 투어 컨셉 등)을 하나 이상 포함해야 해.
+            query = DataCollectionPrompts.get_short_introduction_prompt(title, artist)
+            response = self.api.query_json(query, use_search=True)
+            time.sleep(6)
 
-예시:
-- 프롬프트: 'Gen Hoshino presents MAD HOPE Asia Tour in SEOUL' (Gen Hoshino (호시노 겐))
-- 결과: {{"summary": "‘Koi’ 신드롬의 주인공 호시노 겐, 'MAD HOPE' 투어로 n년 만에 한국 팬들과의 만남!"}}
-
-이제 다음 콘서트의 한 줄 소개를 만들어줘: '{title}' ({artist})
-
-결과는 반드시 다음 JSON 형식이어야 하고, 다른 텍스트는 포함하지 마:
-{{"summary": "여기에 한 줄 소개 문구"}}
-"""
-            response = self.api.query_json(query)
-            time.sleep(6)  # API 호출 후 6초 대기
-            
-            # AI가 'summary' 또는 'introduction' 키로 응답한다는 가정
             if response:
-                return response.get('summary') or response.get('introduction', '')
-            
+                introduction = response.get('summary') or response.get('introduction', '')
+
+                if introduction:
+                    introduction = re.sub(r"'\s*'", "", introduction)
+                    introduction = re.sub(r",\s*의 주인공", "의 주인공", introduction)
+                    introduction = re.sub(r"'\s*,\s*의", "의", introduction)
+                    introduction = re.sub(r"히트곡\s*의\s+주인공\s*", "", introduction)
+                    introduction = re.sub(r"^의\s+주인공\s*", "", introduction)
+                    introduction = re.sub(r"주요곡\s*,\s*'", "주요곡 '", introduction)
+                    introduction = re.sub(r"\s+", " ", introduction).strip()
+
+                return introduction
+
         except Exception as e:
             logger.warning(f"한 줄 요약 수집 실패: {e}")
-        
+
         return ""
-    
-    def _collect_artist_basic_info(self, artist_name: str) -> Optional[Dict[str, Any]]:
-        """아티스트 기본 정보 수집"""
+
+    def _collect_artist_basic_info(self, artist_name: str, concert_title: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        #아티스트 기본 정보 수집 (MusicBrainz 우선, LLM 보강) (국적, 그룹유형, 데뷔년도, 카테고리, 소개, 이미지, 인스타URL, 키워드)
+        if artist_name in self._artist_cache:
+            logger.info(f"캐시에서 아티스트 정보 반환: {artist_name}")
+            return self._artist_cache[artist_name]
+
+        artist_info = {}
+        musicbrainz_id = ""
+
         try:
-            json_example = '''{
-"name": "Oasis (오아시스)",
-"debut_date": "1994",
-"nationality": "영국",
-"group_type": "밴드",
-"introduction": "1990년대 브릿팝의 부흥을 이끈 맨체스터 출신의 전설적인 밴드.\\n노엘 갤러거의 작곡 능력과 리암 갤러거의 독보적인 보컬을 중심으로, 'Wonderwall', 'Don't Look Back in Anger' 등 수많은 명곡을 발표했다.\\n직설적인 가사와 로큰롤 사운드로 전 세계적인 팬덤을 구축했으며,\\n90년대 영국 음악 씬을 상징하는 아이콘으로 평가받는다.",
-"social_media": "https://www.oasisinet.com/",
-"keywords": "브릿팝, 록, 밴드, 90년대",
-"img_url": "https://example.com/oasis.jpg"
-}'''
+            # 대표곡 목록 수집
+            song_examples = []
+            try:
+                song_query = DataCollectionPrompts.get_artist_songs_prompt(artist_name)
+                song_response = self.api.query_json(song_query, use_search=True)
+                time.sleep(6)
 
-            query = f"""아티스트 '{artist_name}'에 대한 상세 정보를 수집해서 JSON 형식으로 만들어줘.
+                if song_response and song_response.get('songs'):
+                    song_examples = [s for s in song_response.get('songs', []) if s and s.strip()][:2]
+                    if song_examples:
+                        logger.info(f"'{artist_name}' 대표곡 수집 성공: {song_examples}")
+                    else:
+                        logger.warning(f"'{artist_name}' 대표곡 응답은 있지만 비어있음")
+                else:
+                    logger.warning(f"'{artist_name}' 대표곡 검색 결과 없음")
+            except Exception as e:
+                logger.warning(f"대표곡 검색 실패: {e}")
 
-요청하는 정보:
-- name: 아티스트의 공식 이름 (영문/한글 병기 권장)
-- debut_date: 데뷔 연도 (YYYY 형식)
-- nationality: 국적
-- group_type: 그룹 형태 (솔로, 그룹, 밴드 등)
-- introduction: 아티스트의 활동, 음악 스타일, 주요 성과 등을 포함하여 4~5줄의 상세한 소개. 문맥에 맞게 적절히 줄바꿈(\n)을 포함해줘.
-- social_media: 대표 소셜 미디어 URL (공식 웹사이트, 인스타그램 등)
-- keywords: 음악 장르, 특징 등 아티스트를 설명하는 키워드 (쉼표로 구분)
-- img_url: 프로필 이미지 URL
+            # 1. MusicBrainz에서 아티스트 정보 검색
+            mb_artists = self.mb_api.search_artist(artist_name, limit=3)
 
-중요 규칙: 만약 특정 필드의 정보를 찾을 수 없다면, 해당 필드의 값을 빈 문자열("")로 설정해줘. 절대로 '정보 없음'이나 'N/A'와 같은 텍스트를 넣지 마.
+            if mb_artists:
+                best_match = None
+                for mb_artist in mb_artists:
+                    if int(mb_artist.get('score', 0)) >= 90 or mb_artist.get('name').lower() == artist_name.lower():
+                        best_match = mb_artist
+                        break
+                if not best_match:
+                    best_match = mb_artists[0]
 
-예시:
-- 프롬프트: 'Oasis'
-- 결과: {json_example}
+                if best_match:
+                    musicbrainz_id = best_match['id']
+                    logger.info(f"MusicBrainz에서 '{artist_name}' 정보 발견 (MBID: {musicbrainz_id})")
 
-이제 다음 아티스트의 정보를 만들어줘: '{artist_name}'
+                    artist_info['artist'] = artist_name
+                    artist_info['musicbrainz_id'] = musicbrainz_id
 
-결과는 반드시 위 예시와 동일한 JSON 형식이어야 하고, 다른 텍스트는 포함하지 마.
-"""
-            response = self.api.query_json(query)
-            time.sleep(6)  # API 호출 후 6초 대기
-            
+                    mb_type = best_match.get('type')
+                    if mb_type == 'Person':
+                        artist_info['group_type'] = '솔로'
+                    elif mb_type == 'Group':
+                        artist_info['group_type'] = '그룹'
+                    else:
+                        artist_info['group_type'] = ''
+
+                    artist_info['nationality'] = best_match.get('country', '')
+
+                    mb_details = self.mb_api.get_artist_by_id(musicbrainz_id)
+                    artist_details = mb_details.get('artist', {})
+                    # 그룹만 MusicBrainz 결성일 사용 (솔로는 생년이 나오므로 LLM에 맡김)
+                    if mb_type == 'Group' and artist_details and 'life-span' in artist_details and artist_details['life-span'].get('begin'):
+                        artist_info['debut_date'] = artist_details['life-span']['begin'].split('-')[0]
+                    else:
+                        artist_info['debut_date'] = ''
+            else:
+                logger.info(f"MusicBrainz에서 '{artist_name}' 정보 없음. LLM으로 대체.")
+
+            # 2. LLM을 사용하여 정보 보강
+            mb_context = f"MusicBrainz 정보: {json.dumps(artist_info, ensure_ascii=False)}" if artist_info else ""
+            logger.debug(f"MusicBrainz 컨텍스트: {mb_context}")
+
+            query = DataCollectionPrompts.get_artist_basic_info_prompt(
+                artist_name,
+                concert_title,
+                musicbrainz_context=mb_context,
+                song_examples=song_examples
+            )
+            response = self.api.query_json(query, use_search=True)
+            time.sleep(6)
+
             if response:
-                return {
-                    'name': response.get('name', artist_name),
-                    'debut_date': response.get('debut_year', ''),
-                    'nationality': response.get('nationality', ''),
-                    'group_type': response.get('type', ''),
-                    'introduction': response.get('bio', ''),
-                    'social_media': response.get('instagram', ''),
-                    'keywords': response.get('genres', ''),
-                    'img_url': response.get('image', '')
-                }
-            
+                artist_info['category'] = response.get('category', '')
+                artist_info['detail'] = response.get('detail', '')
+
+                # 빈 따옴표/공백 따옴표가 포함된 문장 전체 제거
+                detail = artist_info.get('detail', '')
+                if detail:
+                    detail = re.sub(r"[^.]*'\s*'[^.]*\.", '', detail)
+                    detail = re.sub(r'\s+', ' ', detail).strip()
+                    artist_info['detail'] = detail
+
+                llm_img_url = response.get('img_url', '')
+                if llm_img_url and self._validate_image_url(llm_img_url):
+                    artist_info['img_url'] = llm_img_url
+                else:
+                    artist_info['img_url'] = ''
+
+                if not artist_info.get('instagram_url'):
+                    artist_info['instagram_url'] = response.get('instagram_url', '')
+
+                artist_info['keywords'] = response.get('keywords', '')
+
+                if not artist_info.get('artist'):
+                    artist_info['artist'] = response.get('artist', artist_name)
+                if not artist_info.get('debut_date'):
+                    artist_info['debut_date'] = response.get('debut_date', '')
+                if not artist_info.get('nationality'):
+                    artist_info['nationality'] = response.get('nationality', '')
+                if not artist_info.get('group_type'):
+                    artist_info['group_type'] = response.get('group_type', '')
+
+                if musicbrainz_id:
+                    artist_info['musicbrainz_id'] = musicbrainz_id
+
+                self._artist_cache[artist_name] = artist_info
+                return artist_info
+            elif artist_info:
+                self._artist_cache[artist_name] = artist_info
+                return artist_info
+
         except Exception as e:
-            logger.warning(f"아티스트 정보 수집 실패: {e}")
-        
+            logger.warning(f"아티스트 정보 수집 실패: {e}", exc_info=True)
+
         return None
