@@ -19,6 +19,7 @@ class Config:
     PERPLEXITY_API_KEY = os.getenv('PERPLEXITY_API_KEY')
     KOPIS_API_KEY = os.getenv('KOPIS_API_KEY')
     MUSIXMATCH_API_KEY = os.getenv('MUSIXMATCH_API_KEY')
+    SERPER_API_KEY = os.getenv('SERPER_API_KEY')
     
     # SSH 설정
     LIVITH_SSH_KEY_PATH = os.getenv('LIVITH_SSH_KEY_PATH')
