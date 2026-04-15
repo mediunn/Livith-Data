@@ -27,7 +27,7 @@ class Config:
     DB_SSH_PORT = int(os.getenv('DB_SSH_PORT', 22))
     DB_SSH_USER = os.getenv('DB_SSH_USER')
     
-    # 데이터베이스 설정
+    # 데이터베이스 설정 (프로덕션)
     DB_HOST = os.getenv('DB_HOST', 'localhost')
     DB_PORT = int(os.getenv('DB_PORT', 3306))
     DB_USER = os.getenv('DB_USER')
