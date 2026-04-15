@@ -2,6 +2,7 @@
 KOPIS API를 사용하여 공연 정보를 수집하는 API 클라이언트
 """
 import logging
+import re
 import requests
 import xml.etree.ElementTree as ET
 from typing import List, Dict, Any, Optional, Set
@@ -217,27 +218,15 @@ class KopisAPI:
         return found.text if found is not None and found.text else ""
     
     def _clean_venue(self, venue: str) -> str:
-        #장소 중복 괄호 제거
-        if not venue or ' (' not in venue:
+        #장소 중복 괄호 제거 (예: '롤링홀 (롤링홀)' → '롤링홀')
+        if not venue or '(' not in venue:
             return venue
-        
-        # 첫 번째 완전한 괄호까지만 추출
-        depth = 0
 
-        for i, char in enumerate(venue):
-            if char == '(':
-                depth += 1
-            elif char == ')':
-                depth -= 1
-                if depth == 0:
-                    # 첫 번째 괄호 닫힘 이후에 또 같은 내용이 반복되는지 확인
-                    first_part = venue[:i+1].strip()
-                    remaining = venue[i+1:].strip()
-                    
-                    # 남은 부분이 괄호로 시작하고 첫 부분의 내용을 포함하면 중복
-                    if remaining.startswith('(') and first_part.split(' (')[0] in remaining:
-                        return first_part
-                    break
-        
+        match = re.match(r'^(.*?)\s*\((.*?)\)\s*$', venue)
+        if match:
+            main = match.group(1).strip()
+            bracket = match.group(2).strip()
+            if main == bracket or main in bracket or bracket in main:
+                return main
         return venue
     
