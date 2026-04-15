@@ -32,6 +32,9 @@ class Config:
     DB_USER = os.getenv('DB_USER')
     DB_PASSWORD = os.getenv('DB_PASSWORD')
     DB_NAME = os.getenv('DB_NAME')
+
+    # 데이터베이스 설정 (개발 서버 - SSH/호스트/유저/비밀번호는 프로덕션과 동일)
+    DEV_DB_NAME = os.getenv('DEV_DB_NAME')
     
     # API 설정
     USE_GEMINI_API = os.getenv('USE_GEMINI_API', 'true').lower() == 'true'
