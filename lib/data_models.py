@@ -11,13 +11,16 @@ class Artist:
     """아티스트 데이터 모델"""
     id: Optional[int] = None
     artist: str = ""
+    category: str = ""
+    detail: str = ""
+    instagram_url: str = ""
+    twitter_url: str = ""
+    keywords: str = ""
+    img_url: str = ""
     debut_date: str = ""
     nationality: str = ""
     group_type: str = ""
-    introduction: str = ""
-    social_media: str = ""
-    keywords: str = ""
-    img_url: str = ""
+    musicbrainz_id: str = ""
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -33,7 +36,7 @@ class Concert:
     status: str = ""
     label: str = ""
     introduction: str = ""
-    img_url: str = ""
+    poster: str = ""
     code: str = ""
     ticket_site: str = ""
     ticket_url: str = ""
