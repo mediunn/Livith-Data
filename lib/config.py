@@ -2,6 +2,8 @@
 프로젝트 설정 관리
 """
 import os
+import shutil
+from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -20,6 +22,7 @@ class Config:
     KOPIS_API_KEY = os.getenv('KOPIS_API_KEY')
     MUSIXMATCH_API_KEY = os.getenv('MUSIXMATCH_API_KEY')
     SERPER_API_KEY = os.getenv('SERPER_API_KEY')
+    CONTACT_EMAIL = os.getenv('CONTACT_EMAIL', 'contact@livith.com')
     
     # SSH 설정
     LIVITH_SSH_KEY_PATH = os.getenv('LIVITH_SSH_KEY_PATH')
@@ -124,3 +127,23 @@ class Config:
             'db_password': cls.DB_PASSWORD,
             'db_name': cls.DB_NAME
         }
+
+    @classmethod
+    def create_backup(cls, filename: str):
+        """파일 백업 생성"""
+        source_path = cls.OUTPUT_DIR / filename
+        if not source_path.exists():
+            return None
+    
+        # 백업 디렉토리 생성
+        now = datetime.now()
+        backup_dir = cls.BACKUP_DIR / now.strftime('%Y%m%d')
+        backup_dir.mkdir(parents=True, exist_ok=True)
+
+        # 백업 파일 생성
+        timestamp = now.strftime('%Y%m%d_%H%M%S')
+        backup_filename = f"{source_path.stem}_backup_{timestamp}{source_path.suffix}"
+        backup_path = backup_dir / backup_filename
+    
+        shutil.copy2(source_path, backup_path)
+        return backup_path
