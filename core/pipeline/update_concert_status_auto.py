@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-콘서트 상태 업데이트 스크립트 (Windows 지원)
-1. DB → CSV 다운로드 (백업 포함)
+콘서트 상태 업데이트 스크립트
+1. DB에서 UPCOMING/ONGOING 공연만 가져와서 CSV 저장
 2. CSV에서 start_date / end_date 비교 후 status 갱신
 3. 갱신된 CSV 내용을 DB에 UPDATE 반영
 """
@@ -12,7 +12,6 @@ import pandas as pd
 from datetime import datetime
 import logging
 
-# 프로젝트 루트 경로 추가 (lib 경로 사용 가능하게)
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from lib.db_utils import get_db_manager
 from lib.config import Config
@@ -38,10 +37,13 @@ class ConcertStatusUpdater:
 
         try:
             db.cursor = db.connection.cursor(dictionary=True)
-            db.cursor.execute("SELECT * FROM concerts")
+            db.cursor.execute("""
+                SELECT * FROM concerts
+                WHERE status IN ('UPCOMING', 'ONGOING')
+            """)
             data = db.cursor.fetchall()
             if not data:
-                logger.warning("⚠️ concerts 테이블이 비어있습니다.")
+                logger.info("⚪ 업데이트 대상 공연 없음 (UPCOMING/ONGOING 0개)")
                 return False
 
             df = pd.DataFrame(data)
