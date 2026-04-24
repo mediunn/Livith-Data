@@ -8,6 +8,7 @@
 
 import os
 import sys
+import shutil
 import pandas as pd
 from datetime import datetime
 import logging
@@ -30,7 +31,7 @@ class ConcertStatusUpdater:
         self.csv_file = os.path.join(Config.OUTPUT_DIR, "concerts.csv")
 
     def download_table(self):
-        """MySQL → CSV 다운로드"""
+        """MySQL → CSV 다운로드 (UPCOMING/ONGOING만)"""
         db = get_db_manager()
         if not db.connect_with_ssh():
             return False
@@ -48,12 +49,15 @@ class ConcertStatusUpdater:
 
             df = pd.DataFrame(data)
 
-            # 기존 CSV 백업
+            # 기존 CSV 백업 (실패해도 계속 진행)
             if os.path.exists(self.csv_file):
-                backup_file = f"concerts_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-                backup_path = os.path.join(Config.BACKUP_DIR, backup_file)
-                pd.read_csv(self.csv_file, encoding="utf-8-sig").to_csv(backup_path, index=False, encoding="utf-8-sig")
-                logger.info(f"💾 백업 생성: {backup_file}")
+                try:
+                    backup_file = f"concerts_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                    backup_path = os.path.join(Config.BACKUP_DIR, backup_file)
+                    shutil.copy2(self.csv_file, backup_path)
+                    logger.info(f"💾 백업 생성: {backup_file}")
+                except Exception as e:
+                    logger.warning(f"⚠️ 백업 실패 (무시하고 계속): {e}")
 
             df.to_csv(self.csv_file, index=False, encoding="utf-8-sig")
             logger.info(f"📁 concerts.csv 저장 완료 ({len(df)}개 레코드)")
@@ -108,12 +112,11 @@ class ConcertStatusUpdater:
             updated_rows = 0
 
             for _, row in df.iterrows():
-                query = """
+                cursor.execute("""
                     UPDATE concerts
                     SET status = %s, updated_at = NOW()
                     WHERE id = %s
-                """
-                cursor.execute(query, (row["status"], row["id"]))
+                """, (row["status"], row["id"]))
                 updated_rows += 1
 
             db.connection.commit()
@@ -161,9 +164,16 @@ def main():
     updater = ConcertStatusUpdater()
     print("🚀 콘서트 상태 업데이트 시작")
 
-    if updater.download_table():
+    download_ok = updater.download_table()
+
+    if not download_ok:
+        logger.warning("⚠️ 다운로드 실패. 기존 CSV로 상태 업데이트 시도...")
+
+    if download_ok or os.path.exists(updater.csv_file):
         updater.update_status_in_csv()
         updater.apply_updates_to_db()
+    else:
+        logger.error("❌ CSV 없음. 업데이트 중단.")
 
     print("✅ 전체 프로세스 완료!")
 
