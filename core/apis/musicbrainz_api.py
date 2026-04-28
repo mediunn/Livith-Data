@@ -50,3 +50,13 @@ class MusicBrainzAPI:
         except Exception as e:
             logger.error(f"MusicBrainz 조회 중 오류 '{mbid}': {e}")
             return {}
+
+    def extract_twitter_url(self, mb_details: dict) -> str:
+        """url-rels에서 Twitter/X URL 추출"""
+        artist = mb_details.get('artist', {})
+        url_rels = artist.get('url-relation-list', [])
+        for rel in url_rels:
+            url = rel.get('target', '') or rel.get('url', {}).get('resource', '')
+            if 'twitter.com' in url or 'x.com' in url:
+                return url
+        return ''
