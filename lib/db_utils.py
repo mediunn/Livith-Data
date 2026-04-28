@@ -170,3 +170,7 @@ def get_db_manager():
 def get_dev_db_manager():
     #개발 DB 매니저 반환 (DB 이름, 포트만 다름)
     return DatabaseManager(db_name=Config.DEV_DB_NAME, local_port=3308)
+
+def get_stage_db_manager():
+    #스테이지 DB 매니저 반환
+    return DatabaseManager(db_name=Config.STAGE_DB_NAME, local_port=3308)
