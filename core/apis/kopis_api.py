@@ -10,6 +10,17 @@ from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
+# 제목 키워드로 1차 제외할 장르
+EXCLUDED_TITLE_KEYWORDS = [
+    "재즈", "jazz",
+    "클래식",
+    "연주회", "독주회",
+    "기타리스트", "핑거스타일",
+    "앙상블", "챔버", "콰르텟", "트리오",
+    "관현악", "교향",
+    "EDM", "일렉트로닉", "electronic",
+]
+
 
 class KopisAPI:
     def __init__(self, api_key: str):
@@ -204,13 +215,18 @@ class KopisAPI:
         return result
     
     def _is_visit_concert(self, detail: Dict[str, Any]) -> bool:
-        # 내한공연 여부 확인
-        return (
-            detail.get('visit') == 'Y' and 
+        if not (
+            detail.get('visit') == 'Y' and
             detail.get('festival') == 'N' and
-            bool(detail.get('title')) and 
+            bool(detail.get('title')) and
             bool(detail.get('artist'))
-        )
+        ):
+            return False
+        title_lower = detail.get('title', '').lower()
+        if any(kw.lower() in title_lower for kw in EXCLUDED_TITLE_KEYWORDS):
+            logger.info(f"1차 키워드 필터 제외: {detail['title']}")
+            return False
+        return True
     
     def _get_text(self, element: ET.Element, tag: str) -> str:
         # XML 요소에서 텍스트 추출

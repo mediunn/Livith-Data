@@ -26,10 +26,10 @@ def main():
         print()
         print("예시:")
         print("  # 기존 아티스트명에서 원어 추출하여 검색")
-        print("  python3 scripts/artist_lyrics_update.py output/main_output/songs.csv \"Pink Sweat$ (핑크스웨츠)\"")
+        print("  python3 scripts/artist_lyrics_update.py data/main_output/songs.csv \"Pink Sweat$ (핑크스웨츠)\"")
         print()
         print("  # 수동으로 검색용 아티스트명 지정")
-        print("  python3 scripts/artist_lyrics_update.py output/main_output/songs.csv \"Pink Sweat$ (핑크스웨츠)\" \"Pink Sweat$\"")
+        print("  python tools/lyrics/artist_lyrics_update.py data/main_output/songs.csv \"YUURI (유우리)" "優里\"") #/ <-지우기
         sys.exit(1)
     
     csv_path = sys.argv[1]

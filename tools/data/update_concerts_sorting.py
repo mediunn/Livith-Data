@@ -11,10 +11,11 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 from lib.config import Config
+from lib.db_utils import get_db_manager
 
 class ConcertsSortingUpdater:
     def __init__(self):
-        self.ssh_process = None
+        self.db = None
         self.connection = None
         self.cursor = None
         self.csv_path = str(Config.OUTPUT_DIR / 'concerts.csv')
@@ -172,63 +173,13 @@ class ConcertsSortingUpdater:
             print(f"❌ CSV 업데이트 실패: {e}")
             return None
 
-    def create_ssh_tunnel(self):
-        """SSH 터널 생성"""
-        try:
-            print(f"\n🔧 SSH 터널 생성 중...")
-            
-            ssh_command = [
-                'ssh',
-                '-i', Config.get_ssh_key_path(),
-                '-L', '3307:livithdb.c142i2022qs5.ap-northeast-2.rds.amazonaws.com:3306',
-                '-N',
-                '-o', 'StrictHostKeyChecking=no',
-                'ubuntu@43.203.48.65'
-            ]
-            
-            self.ssh_process = subprocess.Popen(
-                ssh_command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                preexec_fn=os.setsid
-            )
-            
-            time.sleep(3)
-            
-            if self.ssh_process.poll() is None:
-                print("✅ SSH 터널 생성 완료!")
-                return True
-            else:
-                return False
-                
-        except Exception as e:
-            print(f"❌ SSH 터널 오류: {e}")
-            return False
-
-    def connect_mysql(self):
-        """MySQL 연결"""
-        try:
-            print("🔌 MySQL 연결 중...")
-            
-            config = {
-                'host': '127.0.0.1',
-                'port': 3307,
-                'user': 'root',
-                'password': 'livith0407',
-                'database': 'livith_service',
-                'charset': 'utf8mb4',
-                'use_unicode': True
-            }
-            
-            self.connection = mysql.connector.connect(**config)
-            self.cursor = self.connection.cursor()
-            
-            print("✅ MySQL 연결 성공!")
+    def connect(self):
+        self.db = get_db_manager()
+        if self.db.connect_with_ssh():
+            self.cursor = self.db.cursor
+            self.connection = self.db.connection
             return True
-            
-        except Error as e:
-            print(f"❌ MySQL 연결 실패: {e}")
-            return False
+        return False
 
     def update_database(self, updated_df):
         """데이터베이스 업데이트"""
@@ -333,41 +284,27 @@ class ConcertsSortingUpdater:
 
     def close(self):
         """연결 종료"""
-        if self.cursor:
-            self.cursor.close()
-        if self.connection:
-            self.connection.close()
-        if self.ssh_process:
-            try:
-                os.killpg(os.getpgid(self.ssh_process.pid), signal.SIGTERM)
-                self.ssh_process.wait(timeout=5)
-            except:
-                try:
-                    os.killpg(os.getpgid(self.ssh_process.pid), signal.SIGKILL)
-                except:
-                    pass
+        if self.db:
+            self.db.disconnect()
         print("🔌 연결 종료")
 
 def main():
     """메인 실행"""
     updater = ConcertsSortingUpdater()
-    
+
     try:
         # 1. 현재 데이터 분석
         df, today = updater.analyze_current_data()
         if df is None:
             return
-        
+
         # 2. CSV 업데이트
         updated_df = updater.update_csv_data(df, today)
         if updated_df is None:
             return
-        
+
         # 3. 데이터베이스 업데이트
-        if not updater.create_ssh_tunnel():
-            return
-        
-        if not updater.connect_mysql():
+        if not updater.connect():
             return
         
         updater.update_database(updated_df)

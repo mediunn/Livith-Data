@@ -51,12 +51,20 @@ class MusicBrainzAPI:
             logger.error(f"MusicBrainz 조회 중 오류 '{mbid}': {e}")
             return {}
 
-    def extract_twitter_url(self, mb_details: dict) -> str:
-        """url-rels에서 Twitter/X URL 추출"""
+    def _extract_url(self, mb_details: dict, *domains: str) -> str:
+        """url-rels에서 특정 도메인 URL 추출"""
         artist = mb_details.get('artist', {})
         url_rels = artist.get('url-relation-list', [])
         for rel in url_rels:
             url = rel.get('target', '') or rel.get('url', {}).get('resource', '')
-            if 'twitter.com' in url or 'x.com' in url:
+            if any(domain in url for domain in domains):
                 return url
         return ''
+
+    def extract_twitter_url(self, mb_details: dict) -> str:
+        """url-rels에서 Twitter/X URL 추출"""
+        return self._extract_url(mb_details, 'twitter.com', 'x.com')
+
+    def extract_instagram_url(self, mb_details: dict) -> str:
+        """url-rels에서 Instagram URL 추출"""
+        return self._extract_url(mb_details, 'instagram.com')

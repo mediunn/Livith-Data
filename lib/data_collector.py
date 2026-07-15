@@ -64,8 +64,47 @@ class DataCollector:
             )
         )
 
+    def _get_korean_artist_name(self, artist_name: str) -> str:
+        """아티스트 공식 활동명을 '영문 (한국어)' 형식으로 변환. 이미 형식에 맞으면 그대로 반환."""
+        if not artist_name:
+            return artist_name
+        if '(' in artist_name and ')' in artist_name:
+            # 괄호 앞 스페이스 보정: "위켄드(The Weeknd)" → "위켄드 (The Weeknd)"
+            normalized = re.sub(r'\s*\(', ' (', artist_name).strip()
+            before = normalized[:normalized.index('(')].strip()
+            inside = normalized[normalized.index('(') + 1:normalized.index(')')].strip()
+            # 앞부분이 한글이면 순서가 잘못된 것 → 뒤집기
+            if any('가' <= c <= '힣' for c in before):
+                return f"{inside} ({before})"
+            return normalized
+
+        is_korean = any('가' <= c <= '힣' for c in artist_name)
+
+        if is_korean:
+            prompt = f""""{artist_name} 영어로" 검색해서 이 음악 아티스트의 영문명을 알려줘.
+반드시 "영문 (한국어)" 형식으로 JSON만 답해.
+{{"name": "영문 (한국어)"}}
+예시: {{"name": "Centimillennial (센티밀리멘탈)"}}, {{"name": "Coldplay (콜드플레이)"}}"""
+        else:
+            prompt = f""""{artist_name} 한국어" 검색해서 이 음악 아티스트의 한국어 표기를 알려줘.
+반드시 "영문 (한국어)" 형식으로 JSON만 답해.
+{{"name": "영문 (한국어)"}}
+예시: {{"name": "RADWIMPS (라드윔프스)"}}, {{"name": "Charlie Puth (찰리 푸스)"}}"""
+
+        try:
+            result = self.api.query_json(prompt, use_search=True)
+            time.sleep(1)
+            if result and isinstance(result, dict):
+                name = result.get('name', '')
+                if name and '(' in name and ')' in name:
+                    return name
+                logger.warning(f"아티스트명 형식 불일치, 원본 사용: '{artist_name}' → '{name}'")
+        except Exception as e:
+            logger.warning(f"아티스트명 변환 실패: {e}")
+        return artist_name
+
     def _extract_artist_from_title(self, title: str) -> Optional[str]:
-        #AI를 사용해 콘서트 제목에서 아티스트 이름 추출 (아티스트명 한국어/영문)
+        """콘서트 제목에서 아티스트명 추출 후 '영문 (한국어)' 형식으로 변환"""
         if title in self._title_artist_cache:
             logger.info(f"캐시에서 아티스트 반환: {title}")
             return self._title_artist_cache[title]
@@ -75,12 +114,13 @@ class DataCollector:
             time.sleep(6)
 
             if response and response.get('artist'):
-                artist_name = response.get('artist')
-                # 1글자 이하이거나 구분자만인 경우 거부
-                if len(artist_name.strip()) <= 1 or artist_name.strip().lower() in ['x', '&', 'ft.', 'vs']:
-                    logger.warning(f"유효하지 않은 아티스트명 거부: '{artist_name}'")
+                raw_name = response.get('artist').strip()
+                if len(raw_name) <= 1 or raw_name.lower() in ['x', '&', 'ft.', 'vs']:
+                    logger.warning(f"유효하지 않은 아티스트명 거부: '{raw_name}'")
                     self._title_artist_cache[title] = None
                     return None
+
+                artist_name = self._get_korean_artist_name(raw_name)
                 logger.info(f"콘서트 제목 '{title}'에서 아티스트 '{artist_name}' 추출 성공")
                 self._title_artist_cache[title] = artist_name
                 return artist_name
@@ -133,6 +173,7 @@ class DataCollector:
                 category=info.get('category', ''),
                 detail=info.get('detail', ''),
                 instagram_url=info.get('instagram_url', ''),
+                twitter_url=info.get('twitter_url', ''),
                 keywords=info.get('keywords', ''),
                 img_url=info.get('img_url', ''),
                 debut_date=info.get('debut_date', ''),
@@ -145,18 +186,43 @@ class DataCollector:
             logger.error(f"아티스트 정보 수집 실패: {e}")
             return None
 
-    def collect_concert_genre(self, artist_name: str, concert_title: str) -> Optional[Dict[str, Any]]:
-        #콘서트 장르 정보 수집 (장르명, 장르 코드)
+    def is_excluded_genre(self, title: str, artist: str) -> bool:
+        """재즈/EDM 등 제외 장르 여부를 Gemini로 확인 (1차 키워드 필터 통과 후 2차 검증)"""
+        prompt = f"""다음 내한공연이 재즈, EDM/일렉트로닉 댄스 뮤직, 클래식 계열인지 판단해줘.
+
+공연명: {title}
+아티스트: {artist}
+
+아래 JSON만 반환해:
+{{"is_excluded": true 또는 false, "reason": "판단 이유 한 줄"}}
+
+is_excluded: true 조건
+- 아티스트가 주로 재즈 연주/보컬을 하는 경우
+- 아티스트가 주로 EDM/일렉트로닉 DJ/프로듀서인 경우
+- 그 외는 false"""
+        try:
+            result = self.api.query_json(prompt, use_search=False)
+            time.sleep(1)
+            if result and isinstance(result, dict):
+                if result.get('is_excluded'):
+                    logger.info(f"장르 필터 제외 이유 ({title}): {result.get('reason', '이유 없음')}")
+                return bool(result.get('is_excluded', False))
+        except Exception as e:
+            logger.warning(f"장르 확인 실패 ({title}): {e}")
+        return False
+
+    def collect_concert_genre(self, artist_name: str, concert_title: str) -> Optional[list]:
+        #콘서트 장르 정보 수집 (장르명, 장르 코드) - 최대 2개 반환
         try:
             query = DataCollectionPrompts.get_concert_genre_prompt(artist_name, concert_title)
             response = self.api.query_json(query, use_search=True)
             time.sleep(6)
 
             if response:
-                if isinstance(response, dict):
+                if isinstance(response, list) and len(response) > 0:
                     return response
-                elif isinstance(response, list) and len(response) > 0:
-                    return response[0]
+                elif isinstance(response, dict):
+                    return [response]
 
         except Exception as e:
             logger.warning(f"콘서트 장르 수집 실패 ({concert_title}): {e}")
@@ -247,7 +313,7 @@ class DataCollector:
             # 대표곡 목록 수집
             song_examples = []
             try:
-                song_query = DataCollectionPrompts.get_artist_songs_prompt(artist_name)
+                song_query = DataCollectionPrompts.get_artist_songs_prompt(artist_name, concert_title)
                 song_response = self.api.query_json(song_query, use_search=True)
                 time.sleep(6)
 
@@ -262,8 +328,9 @@ class DataCollector:
             except Exception as e:
                 logger.warning(f"대표곡 검색 실패: {e}")
 
-            # 1. MusicBrainz에서 아티스트 정보 검색
-            mb_artists = self.mb_api.search_artist(artist_name, limit=3)
+            # 1. MusicBrainz에서 아티스트 정보 검색 (괄호 안 한국어 표기 제거 후 검색)
+            mb_search_name = re.sub(r'\s*\([^)]+\)', '', artist_name).strip()
+            mb_artists = self.mb_api.search_artist(mb_search_name, limit=3)
 
             if mb_artists:
                 best_match = None
@@ -298,6 +365,16 @@ class DataCollector:
                         artist_info['debut_date'] = artist_details['life-span']['begin'].split('-')[0]
                     else:
                         artist_info['debut_date'] = ''
+
+                    twitter_url = self.mb_api.extract_twitter_url(mb_details)
+                    if twitter_url:
+                        artist_info['twitter_url'] = twitter_url
+                        logger.info(f"MusicBrainz에서 '{artist_name}' Twitter URL 발견: {twitter_url}")
+
+                    instagram_url = self.mb_api.extract_instagram_url(mb_details)
+                    if instagram_url:
+                        artist_info['instagram_url'] = instagram_url
+                        logger.info(f"MusicBrainz에서 '{artist_name}' Instagram URL 발견: {instagram_url}")
             else:
                 logger.info(f"MusicBrainz에서 '{artist_name}' 정보 없음. LLM으로 대체.")
 

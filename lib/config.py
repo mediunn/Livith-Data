@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 class Config:
@@ -23,6 +23,7 @@ class Config:
     MUSIXMATCH_API_KEY = os.getenv('MUSIXMATCH_API_KEY')
     SERPER_API_KEY = os.getenv('SERPER_API_KEY')
     CONTACT_EMAIL = os.getenv('CONTACT_EMAIL', 'contact@livith.com')
+    DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL', '')
     
     # SSH 설정
     LIVITH_SSH_KEY_PATH = os.getenv('LIVITH_SSH_KEY_PATH')
@@ -40,6 +41,10 @@ class Config:
     # 데이터베이스 설정 (개발 서버 - SSH/호스트/유저/비밀번호는 프로덕션과 동일)
     DEV_DB_NAME = os.getenv('DEV_DB_NAME')
     STAGE_DB_NAME = os.getenv('STAGE_DB_NAME', 'livith_stage')
+
+    # Instagram 크롤링 설정
+    INSTAGRAM_USERNAME = os.getenv('INSTAGRAM_USERNAME')
+    INSTAGRAM_PASSWORD = os.getenv('INSTAGRAM_PASSWORD')
     
     # API 설정
     USE_GEMINI_API = os.getenv('USE_GEMINI_API', 'true').lower() == 'true'

@@ -32,6 +32,7 @@
 
 import pandas as pd
 import os
+import re
 import subprocess
 import mysql.connector
 from mysql.connector import Error
@@ -46,6 +47,7 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 from lib.config import Config
+from lib.db_utils import get_db_manager, get_dev_db_manager, get_stage_db_manager
 
 class DataFixer:
     def __init__(self):
@@ -87,11 +89,12 @@ class DataFixer:
         print("🔧 데이터 수정/삭제 도구")
         print("="*80)
         print("1. 아티스트명 수정")
-        print("2. 콘서트명 수정") 
+        print("2. 콘서트명 수정")
         print("3. 개별 필드 수정")
         print("4. 데이터 검색/확인")
-        print("5. 🗑️  데이터 삭제")
-        print("6. 종료")
+        print("5. 데이터 삭제")
+        print("6. 아티스트명 형식 일괄 교정 (영문 (한국어))")
+        print("7. 종료")
         print("-"*80)
 
     def search_data(self, search_type: str, keyword: str) -> Dict:
@@ -268,64 +271,13 @@ class DataFixer:
         print(f"\n📋 백업 생성됨: {backup_dir}")
         return results
 
-    def create_ssh_tunnel(self):
-        """SSH 터널 생성"""
-        try:
-            print("🔧 SSH 터널 생성 중...")
-            
-            ssh_command = [
-                'ssh',
-                '-i', Config.get_ssh_key_path(),
-                '-L', '3307:livithdb.c142i2022qs5.ap-northeast-2.rds.amazonaws.com:3306',
-                '-N',
-                '-o', 'StrictHostKeyChecking=no',
-                'ubuntu@43.203.48.65'
-            ]
-            
-            self.ssh_process = subprocess.Popen(
-                ssh_command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                preexec_fn=os.setsid
-            )
-            
-            time.sleep(3)
-            
-            if self.ssh_process.poll() is None:
-                print("✅ SSH 터널 생성 완료!")
-                return True
-            else:
-                print("❌ SSH 터널 생성 실패")
-                return False
-                
-        except Exception as e:
-            print(f"❌ SSH 터널 오류: {e}")
-            return False
-
-    def connect_mysql(self):
-        """MySQL 연결"""
-        try:
-            print("🔌 MySQL 연결 중...")
-            
-            config = {
-                'host': '127.0.0.1',
-                'port': 3307,
-                'user': 'root',
-                'password': 'livith0407',
-                'database': 'livith_service',
-                'charset': 'utf8mb4',
-                'use_unicode': True
-            }
-            
-            self.connection = mysql.connector.connect(**config)
-            self.cursor = self.connection.cursor()
-            
-            print("✅ MySQL 연결 성공!")
+    def _connect_db(self, db):
+        """db 매니저로 연결 후 self.connection/cursor 설정"""
+        if db.connect_with_ssh():
+            self.connection = db.connection
+            self.cursor = db.cursor
             return True
-            
-        except Error as e:
-            print(f"❌ MySQL 연결 실패: {e}")
-            return False
+        return False
 
     def update_mysql_data(self, update_type: str, old_value: str, new_value: str) -> Dict:
         """MySQL 데이터베이스 업데이트"""
@@ -412,13 +364,16 @@ class DataFixer:
         
         if choice in ['2', '3']:
             print(f"\n🔄 MySQL 데이터베이스 수정 중...")
-            if not self.connection:
-                if self.create_ssh_tunnel() and self.connect_mysql():
-                    mysql_results = self.update_mysql_data('artist', old_value, new_value)
-                else:
-                    print("❌ MySQL 연결 실패")
-            else:
+            print("  1. Dev DB  2. 프로덕션 DB  3. Stage DB")
+            db_choice = input("  DB 선택 (1/2/3): ").strip()
+            db_map = {'1': get_dev_db_manager, '2': get_db_manager, '3': get_stage_db_manager}
+            db_factory = db_map.get(db_choice, get_db_manager)
+            db = db_factory()
+            if self._connect_db(db):
                 mysql_results = self.update_mysql_data('artist', old_value, new_value)
+                db.disconnect()
+            else:
+                print("❌ MySQL 연결 실패")
 
     def interactive_fix_concert(self):
         """대화형 콘서트명 수정"""
@@ -459,13 +414,16 @@ class DataFixer:
         
         if choice in ['2', '3']:
             print(f"\n🔄 MySQL 데이터베이스 수정 중...")
-            if not self.connection:
-                if self.create_ssh_tunnel() and self.connect_mysql():
-                    mysql_results = self.update_mysql_data('concert_title', old_value, new_value)
-                else:
-                    print("❌ MySQL 연결 실패")
-            else:
+            print("  1. Dev DB  2. 프로덕션 DB  3. Stage DB")
+            db_choice = input("  DB 선택 (1/2/3): ").strip()
+            db_map = {'1': get_dev_db_manager, '2': get_db_manager, '3': get_stage_db_manager}
+            db_factory = db_map.get(db_choice, get_db_manager)
+            db = db_factory()
+            if self._connect_db(db):
                 mysql_results = self.update_mysql_data('concert_title', old_value, new_value)
+                db.disconnect()
+            else:
+                print("❌ MySQL 연결 실패")
 
     def interactive_fix_individual_fields(self):
         """개별 필드 수정 메뉴"""
@@ -479,9 +437,10 @@ class DataFixer:
             print("4. artists.csv 아티스트명 수정")
             print("5. concerts.csv 아티스트명 수정")
             print("6. songs.csv 노래 제목 수정")
-            print("7. 돌아가기")
+            print("7. songs.csv 가사 추가")
+            print("8. 돌아가기")
             
-            choice = input("선택 (1-7): ").strip()
+            choice = input("선택 (1-8): ").strip()
             
             if choice == '1':
                 self.fill_missing_artists()
@@ -496,6 +455,8 @@ class DataFixer:
             elif choice == '6':
                 self.edit_song_title()
             elif choice == '7':
+                self.add_lyrics_to_songs()
+            elif choice == '8':
                 break
             else:
                 print("❌ 잘못된 선택입니다.")
@@ -1128,7 +1089,141 @@ class DataFixer:
                 print(f"ℹ️ setlists.csv: 파일이 존재하지 않음")
             if not os.path.exists(setlist_songs_path):
                 print(f"ℹ️ setlist_songs.csv: 파일이 존재하지 않음")
-    
+
+
+    def add_lyrics_to_songs(self):
+        """songs.csv의 아티스트를 선택하여 가사를 추가합니다."""
+        csv_path = os.path.join(self.output_dir, 'songs.csv')
+        if not os.path.exists(csv_path):
+            print(f"❌ {csv_path} 파일을 찾을 수 없습니다.")
+            return
+
+        try:
+            df = pd.read_csv(csv_path, encoding='utf-8-sig')
+            df['artist'] = df['artist'].fillna('')
+            df['lyrics'] = df['lyrics'].fillna('')
+            
+            # 고유 아티스트 목록 추출
+            unique_artists = df['artist'].unique()
+            unique_artists = [a for a in unique_artists if a.strip()]
+            
+            # 가사 없는 곡이 있는 아티스트만 필터링
+            artists_with_missing_lyrics = []
+            for artist in unique_artists:
+                artist_songs = df[df['artist'] == artist]
+                songs_without_lyrics = len(artist_songs[artist_songs['lyrics'].str.strip() == ''])
+                if songs_without_lyrics > 0:
+                    artists_with_missing_lyrics.append({
+                        'name': artist,
+                        'total': len(artist_songs),
+                        'missing': songs_without_lyrics
+                    })
+            
+            if not artists_with_missing_lyrics:
+                print("✅ 모든 아티스트의 곡에 가사가 있습니다.")
+                return
+            
+            # 가사 없는 곡 수 기준 내림차순 정렬
+            artists_with_missing_lyrics.sort(key=lambda x: x['missing'], reverse=True)
+            
+            print("\n" + "-"*60)
+            print("🎤 가사가 없는 곡이 있는 아티스트 목록")
+            print("-"*60)
+            
+            for i, artist_info in enumerate(artists_with_missing_lyrics, 1):
+                print(f"{i}. {artist_info['name']} (전체: {artist_info['total']}곡, 가사 없음: {artist_info['missing']}곡)")
+            
+            print("\n'q'를 입력하여 종료")
+            print("단일 선택: 번호 (예: 1)")
+            print("복수 선택: 쉼표 구분 (예: 1,3,5) 또는 범위 (예: 1-3)")
+            print("전체 선택: all")
+            choice = input("아티스트 번호를 선택하세요: ").strip()
+
+            if choice.lower() == 'q':
+                return
+
+            try:
+                # 선택 파싱
+                selected_indices = []
+                if choice.lower() == 'all':
+                    selected_indices = list(range(len(artists_with_missing_lyrics)))
+                elif '-' in choice and ',' not in choice:
+                    parts = choice.split('-')
+                    if len(parts) == 2:
+                        start, end = int(parts[0]) - 1, int(parts[1]) - 1
+                        if 0 <= start <= end < len(artists_with_missing_lyrics):
+                            selected_indices = list(range(start, end + 1))
+                        else:
+                            print("❌ 잘못된 범위입니다.")
+                            return
+                    else:
+                        print("❌ 잘못된 범위 형식입니다.")
+                        return
+                else:
+                    for token in choice.split(','):
+                        idx = int(token.strip()) - 1
+                        if not (0 <= idx < len(artists_with_missing_lyrics)):
+                            print(f"❌ 잘못된 번호: {token.strip()}")
+                            return
+                        if idx not in selected_indices:
+                            selected_indices.append(idx)
+
+                selected_artists = [artists_with_missing_lyrics[i] for i in selected_indices]
+                script_path = Path(__file__).parent.parent / 'lyrics' / 'artist_lyrics_update.py'
+
+                # 단일 선택이면 검색용 아티스트명 입력 받기
+                if len(selected_artists) == 1:
+                    selected_artist = selected_artists[0]['name']
+                    print(f"\n선택된 아티스트: {selected_artist}")
+                    search_artist = input("검색용 아티스트명 (Enter시 자동 추출): ").strip()
+
+                    if search_artist:
+                        command = [sys.executable, str(script_path), csv_path, selected_artist, search_artist]
+                    else:
+                        command = [sys.executable, str(script_path), csv_path, selected_artist]
+
+                    print(f"\n🚀 가사 업데이트 시작: {selected_artist}")
+                    print("-"*60)
+                    subprocess.run(command)
+                    print(f"\n✅ '{selected_artist}' 가사 업데이트 완료!")
+
+                else:
+                    # 복수 선택이면 순차 처리 (검색용 아티스트명은 자동 추출)
+                    print(f"\n선택된 아티스트 {len(selected_artists)}명:")
+                    for i, info in enumerate(selected_artists, 1):
+                        print(f"  {i}. {info['name']} (가사 없음: {info['missing']}곡)")
+                    print("\n복수 선택 시 검색용 아티스트명은 자동 추출됩니다.")
+                    confirm = input("진행하시겠습니까? (y/n): ").strip().lower()
+                    if confirm != 'y':
+                        print("취소했습니다.")
+                        return
+
+                    success_count = 0
+                    for i, artist_info in enumerate(selected_artists, 1):
+                        artist_name = artist_info['name']
+                        print(f"\n[{i}/{len(selected_artists)}] 🚀 가사 업데이트 시작: {artist_name}")
+                        print("-"*60)
+                        command = [sys.executable, str(script_path), csv_path, artist_name]
+                        result = subprocess.run(command)
+                        if result.returncode == 0:
+                            print(f"✅ '{artist_name}' 가사 업데이트 완료!")
+                            success_count += 1
+                        else:
+                            print(f"⚠️ '{artist_name}' 가사 업데이트 중 오류 발생")
+
+                    print(f"\n{'='*60}")
+                    print(f"전체 완료: {success_count}/{len(selected_artists)}명 성공")
+
+            except ValueError:
+                print("❌ 숫자를 입력해주세요.")
+            except FileNotFoundError:
+                print(f"❌ 스크립트 파일을 찾을 수 없습니다: {script_path}")
+            except Exception as e:
+                print(f"❌ 가사 업데이트 중 오류 발생: {e}")
+                
+        except Exception as e:
+            print(f"❌ 파일 처리 중 오류 발생: {e}")
+        
     def interactive_search(self):
         """대화형 데이터 검색"""
         print("\n" + "="*60)
@@ -1154,21 +1249,83 @@ class DataFixer:
         else:
             print("❌ 잘못된 선택입니다.")
 
+    @staticmethod
+    def _fix_artist_name(name: str) -> str:
+        """아티스트명을 '영문 (한국어)' 형식으로 교정"""
+        if not name or '(' not in name or ')' not in name:
+            return name
+        normalized = re.sub(r'\s*\(', ' (', name).strip()
+        before = normalized[:normalized.index('(')].strip()
+        inside = normalized[normalized.index('(') + 1:normalized.index(')')].strip()
+        if any('가' <= c <= '힣' for c in before):
+            return f"{inside} ({before})"
+        return normalized
+
+    def fix_artist_name_format(self):
+        """DB의 아티스트명 형식을 '영문 (한국어)'로 일괄 교정"""
+        print("\n" + "="*60)
+        print("아티스트명 형식 일괄 교정")
+        print("="*60)
+        print("어느 DB를 사용할까요?")
+        print("  1. Dev DB")
+        print("  2. 프로덕션 DB")
+        print("  3. Stage DB")
+        db_choice = input("선택 (1-3): ").strip()
+
+        if db_choice == '1':
+            db = get_dev_db_manager()
+        elif db_choice == '2':
+            db = get_db_manager()
+        elif db_choice == '3':
+            db = get_stage_db_manager()
+        else:
+            print("❌ 잘못된 선택입니다.")
+            return
+
+        if not db.connect_with_ssh():
+            print("❌ DB 연결 실패")
+            return
+
+        try:
+            db.cursor.execute("SELECT id, artist FROM artists")
+            rows = db.cursor.fetchall()
+
+            targets = []
+            for artist_id, artist in rows:
+                fixed = self._fix_artist_name(artist)
+                if fixed != artist:
+                    targets.append((artist_id, artist, fixed))
+
+            if not targets:
+                print("수정할 아티스트명이 없습니다.")
+                return
+
+            print(f"\n수정 대상 {len(targets)}개:\n")
+            for artist_id, before, after in targets:
+                print(f"  [{artist_id}] {before!r} → {after!r}")
+
+            confirm = input("\n위 내용으로 수정하시겠습니까? (yes/no): ").strip().lower()
+            if confirm != 'yes':
+                print("취소됨.")
+                return
+
+            for artist_id, before, after in targets:
+                db.cursor.execute("UPDATE artists SET artist = %s WHERE id = %s", (after, artist_id))
+                db.cursor.execute("UPDATE concerts SET artist = %s WHERE artist = %s", (after, before))
+
+            db.commit()
+            print(f"\n{len(targets)}개 아티스트명 수정 완료.")
+
+        except Exception as e:
+            db.rollback()
+            print(f"❌ 오류: {e}")
+        finally:
+            db.disconnect()
+
     def close(self):
         """연결 종료"""
-        if self.cursor:
-            self.cursor.close()
-        if self.connection:
-            self.connection.close()
-        if self.ssh_process:
-            try:
-                os.killpg(os.getpgid(self.ssh_process.pid), signal.SIGTERM)
-                self.ssh_process.wait(timeout=5)
-            except:
-                try:
-                    os.killpg(os.getpgid(self.ssh_process.pid), signal.SIGKILL)
-                except:
-                    pass
+        self.connection = None
+        self.cursor = None
         print("🔌 연결 종료")
 
     def run(self):
@@ -1189,10 +1346,12 @@ class DataFixer:
                 elif choice == '5':
                     self.delete_data_menu()
                 elif choice == '6':
-                    print("👋 프로그램을 종료합니다.")
+                    self.fix_artist_name_format()
+                elif choice == '7':
+                    print("프로그램을 종료합니다.")
                     break
                 else:
-                    print("❌ 잘못된 선택입니다. 1-6 중에서 선택해주세요.")
+                    print("❌ 잘못된 선택입니다. 1-7 중에서 선택해주세요.")
                 
                 input("\nEnter를 눌러 계속...")
                 

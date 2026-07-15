@@ -11,16 +11,10 @@
 │ 테이블/컬럼     │ 사용되는 프롬프트 함수                                  │
 ├─────────────────┼─────────────────────────────────────────────────────────┤
 │ artists.csv     │                                                         │
-│  ├─ artist      │ get_artist_info_prompt()                                │
-│  ├─ debut_date  │ get_artist_info_prompt()                                │
-│  ├─ category    │ get_artist_info_prompt()                                │
-│  ├─ detail      │ get_artist_info_prompt()                                │
-│  ├─ instagram   │ get_artist_info_prompt()                                │
-│  ├─ keywords    │ get_artist_info_prompt()                                │
-│  └─ img_url     │ get_artist_info_prompt()                                │
+│  └─ 모든 컬럼    │ get_artist_basic_info_prompt()                          │
 ├─────────────────┼─────────────────────────────────────────────────────────┤
 │ concerts.csv    │                                                         │
-│  ├─ artist      │ get_artist_name_prompt(), get_artist_display_prompt()   │
+│  ├─ artist      │ get_artist_name_prompt()                                │
 │  ├─ ticket_url  │ get_ticket_link_prompt()                                │
 │  └─ 기타 정보    │ get_concert_info_prompt()                               │
 ├─────────────────┼─────────────────────────────────────────────────────────┤
@@ -38,10 +32,19 @@
 └─────────────────┴─────────────────────────────────────────────────────────┘
 
 사용되는 파일:
-- data_processing/enhanced_data_collector.py (메인 데이터 수집)
-- src/gemini_api.py (Gemini API 시스템 프롬프트)
-- src/perplexity_api.py (Perplexity API 시스템 프롬프트)
+- lib/data_collector.py (메인 데이터 수집)
+- core/apis/gemini_api.py (Gemini API 시스템 프롬프트)
+- core/apis/perplexity_api.py (Perplexity API 시스템 프롬프트)
 """
+from typing import Optional
+
+CONCERT_KEYWORDS = [
+    "콘서트", "concert", "투어", "tour", "공연", "라이브", "live",
+    "단독", "showcase", "쇼케이스", "페스티벌", "festival",
+    "티켓", "ticket", "예매", "공연일", "내한",
+    "추가공연", "앙코르", "encore", "추가 티켓", "추가 오픈", "2차", "3차",
+]
+
 
 class DataCollectionPrompts:
     """데이터 수집용 프롬프트 관리"""
@@ -71,52 +74,113 @@ class DataCollectionPrompts:
     # =========================================================================
     
     @staticmethod
-    def get_artist_info_prompt(artist_name: str) -> str:
+    def get_artist_basic_info_prompt(
+        artist_name: str, 
+        concert_title: Optional[str] = None, 
+        musicbrainz_context: Optional[str] = None,
+        song_examples: Optional[list] = None
+    ) -> str:
+        json_example = '''{
+    "artist": "Oasis (오아시스)",
+    "category": "록, 브릿팝 아티스트",
+    "detail": "1991년 결성된 영국의 5인조 브릿팝 밴드입니다. 보컬 리암 갤러거, 기타 노엘 갤러거, 베이스 폴 맥기건, 드럼 토니 맥캐롤, 리듬기타 폴 아서스로 구성되어 있습니다. 90년대 브릿팝 부흥을 이끌며 전설적인 밴드로 자리잡았습니다. 대표곡으로는 'Wonderwall', 'Don't Look Back in Anger' 등이 있습니다.",
+    "instagram_url": "https://www.instagram.com/oasis/",
+    "keywords": "브릿팝, 록, 밴드, 90년대",
+    "img_url": "",
+    "debut_date": "1991",
+    "nationality": "영국",
+    "group_type": "밴드"
+    }'''
+
+        concert_context = f"공연명 '{concert_title}'에 출연하는 " if concert_title else ""
+
+        # ✅ 대표곡 관련 지시문 개선
+        if song_examples and len(song_examples) > 0:
+            song_instruction = f"""
+    ✅ 대표곡 (이 곡들을 detail 마지막 문장에 포함):
+    {', '.join(f"'{song}'" for song in song_examples[:3])}
+    """
+        else:
+            song_instruction = f"""
+🔍 **대표곡 작성 규칙 (매우 중요!):**
+1. '{artist_name}' + 'popular songs' 또는 '{artist_name}' + '대표곡'으로 웹 검색
+2. Spotify, Apple Music, YouTube에서 실제 조회수/재생수 높은 곡 확인
+3. **검증 단계 (필수):**
+   - 곡명 길이가 1자 이상인가?
+   - 곡명이 실제로 존재하는가?
+   - 위 조건 중 하나라도 NO면 → 대표곡 문장 자체를 작성하지 마세요
+
+✅ **대표곡이 있을 때만:**
+   - 일본어: "대표곡으로는 '名前を呼ぶよ', '風が吹く街' 등이 있습니다."
+   - 영어: "대표곡으로는 'Wonderwall', 'Live Forever' 등이 있습니다."
+   - 러시아어: "대표곡으로는 'Горгород', 'Fata Morgana' 등이 있습니다."
+
+✅ **대표곡을 모를 때:**
+   - "다양한 애니메이션 음악 작업에 참여했습니다."
+   - "국내외에서 큰 인정을 받았습니다."
+   - "활발한 라이브 활동을 이어가고 있습니다."
+
+🚫 **절대 금지 - 이렇게 하면 안 됨:**
+   - "대표곡으로는 '', '' 등" ❌
+   - "2016년 싱글 ''로 데뷔" ❌
+   - "밴드명을 ''로 변경" ❌
+   - **대표곡 모르면 그 문장 자체를 삭제하세요!**
+
+"""
+
+        return f"""
+    {concert_context}아티스트 '{artist_name}'의 정보를 JSON으로 생성하세요.
+
+    ⚠️ **매우 중요: 반드시 웹 검색으로 정확한 정보만 작성!**
+    {song_instruction}
+
+필수 9개 필드:
+- artist: "영문명 (한국어)" 형식
+- category: 직업
+- detail: 3~4문장 (아래 형식 참고)
+- instagram_url: 공식 계정 (없으면 "")
+- keywords: 음악 장르
+- img_url: 프로필 이미지 (없으면 "")
+- debut_date: 데뷔 연도 YYYY (솔로는 첫 음반/싱글 발매 연도, 그룹은 결성 연도, 생년월일 아님, 못 찾으면 "")
+- nationality: 국적
+- group_type: 솔로/그룹/밴드/듀오
+
+⚠️ detail 작성 규칙:
+- 찾은 정보만 포함, 못 찾은 문장은 생략
+- 순서: 결성/데뷔 → 멤버구성(그룹만) → 활동내용
+
+
+🚫 **절대 금지사항**:
+- 인용 출처 번호 [1], [2, 3] 같은 것 포함 금지
+- 빈 괄호 "()", 빈 따옴표 "" 포함 금지
+- 추측으로 멤버 이름생성 금지
+
+🔴 **최종 검증 (작성 완료 후):**
+- detail에 빈 따옴표('', "", '  ')가 하나라도 있으면 그 문장을 통째로 삭제
+- 대표곡을 확실히 못 찾았으면 "대표곡으로는" 문장 자체를 아예 작성하지 말 것
+
+**응답은 순수 JSON만 반환하세요. 설명, 주석, 인용 번호 모두 금지!**
+```json
+    {json_example}
+```
+"""
+    @staticmethod
+    def get_artist_songs_prompt(artist_name: str, concert_title: Optional[str] = None) -> str:
         """
-        사용 위치: data_processing/enhanced_data_collector.py -> _collect_artist_info()
-        목적: artists.csv의 모든 컬럼 정보 수집
-        테이블: artists.csv
-        컬럼: artist, debut_date, category, detail, instagram_url, keywords, img_url
+        사용 위치: lib/data_collector.py -> _collect_artist_basic_info()
+        목적: 아티스트의 대표곡 검색
         """
-        return f"""{DataCollectionPrompts.COMMON_SOURCE_RULES}
+        concert_context = f"공연명 '{concert_title}'에 출연하는 " if concert_title else ""
+        return f"""{concert_context}아티스트 '{artist_name}'의 인기곡/대표곡 1~2개를 검색해서 JSON으로 반환하세요.
 
-아래 아티스트의 **실제 확인된** 정보만을 정확하게 검색해서 JSON 형태로 제공해주세요.
+        ⚠️ 규칙:
+        - Spotify, Apple Music, YouTube 등에서 실제 인기곡 확인
+        - 곡명은 원어 그대로 (일본어면 일본어: '幽霊' O, 'Yurei' X)
+        - 빈 문자열 "" 금지! 못 찾으면 배열 자체를 비워서 반환
 
-검색할 아티스트: {artist_name}
-
-반드시 위에 명시된 "{artist_name}" 아티스트의 정보만 찾아주세요. 다른 아티스트의 정보는 절대 포함하지 마세요.
-
-⭐ 필수 규칙: 아티스트명 통일 ⭐
-- artist 필드는 반드시 "{artist_name}" 그대로 사용 (절대 변경 금지)
-- concerts 테이블과 동일한 표기 유지
-- 다른 표기나 영문명으로 변경하지 말고 입력된 그대로 사용
-
-중요 규칙:
-1. artist: "{artist_name}" 그대로 사용
-2. debut_date: 데뷔연도 또는 첫 앨범 출시 연도를 YYYY 형식의 문자열로 작성해주세요 (예: "2010", "2008")
-3. detail: 아티스트 자체에 대한 정보만 포함하세요 (~요, ~니다를 섞어 친근하게 작성):
-   - 활동 지역/국가 (어디서 활동하는지)
-   - 음악 스타일과 장르
-   - 아티스트명/그룹명의 의미
-   - 그룹인 경우: 멤버 구성 (이름, 역할)
-   - 데뷔 과정과 배경
-   - 주요 음악적 특징이나 성취
-   - 해당 아티스트만의 특징 등
-   - 아티스트와 관련이 있으며, 독자들이 흥미있어 할 내용들
-   - 절대 포함하지 말 것: 내한 콘서트, 한국 활동, 검색되지 않는 정보, 출처 표시([1], [2], URL 등)
-4. keywords: 장르, 스타일, 특징만 포함하고 아티스트 이름은 절대 포함하지 마세요 (예: "록,팝,발라드")
-5. img_url: 가장 대표적이고 고화질인 공식 프로필 사진 URL을 찾아주세요
-
-📝 문체 규칙:
-- ~요, ~니다를 섞어 친근하게 작성
-- "~이에요" 등 문법에 어긋나는 말 사용 절대 금지
-- 정확한 한국어 문법과 맞춤법 준수
-
-JSON 형식으로만 답변:
-{{"artist": "원어 (한국어) 형식", "debut_date": "데뷔연도(YYYY) 또는 빈문자열", "category": "아티스트 카테고리 또는 빈문자열", "detail": "~요, ~니다를 섞어 친근하게 작성된 정확한 설명 (출처 표시 없음)", "instagram_url": "인스타그램URL 또는 빈문자열", "keywords": "장르나 특징만 (아티스트명 제외)", "img_url": "가장 대표적인 고화질 프로필이미지URL 또는 빈문자열"}}
-
-JSON만 반환하고, 반드시 "{artist_name}" 아티스트의 정보만 제공하세요."""
-
+        형식: {{"songs": ["곡1", "곡2"]}}
+        못 찾으면: {{"songs": []}}
+"""
     # =========================================================================
     # CONCERTS 테이블 관련 프롬프트
     # =========================================================================
@@ -124,94 +188,21 @@ JSON만 반환하고, 반드시 "{artist_name}" 아티스트의 정보만 제공
     @staticmethod
     def get_artist_name_prompt(concert_title: str) -> str:
         """
-        사용 위치: data_processing/enhanced_data_collector.py -> _search_artist_from_concert()
-        목적: concerts.csv의 artist 컬럼 정보 추출
-        테이블: concerts.csv
-        컬럼: artist
+        사용 위치: lib/data_collector.py -> _extract_artist_from_title()
+        목적: 콘서트 제목에서 아티스트 공식 활동명(raw)만 추출 - 형식 변환 없음
         """
-        return f"""콘서트 제목 "{concert_title}"에서 아티스트/밴드 이름을 추출해서 "원어 (한국어)" 형식으로 변환해주세요.
+        return f""""{concert_title} 아티스트 활동명" 으로 검색해서 이 공연의 메인 아티스트/밴드 공식 활동명을 찾아줘.
 
-🎯 작업:
-콘서트 제목에 포함된 아티스트명을 찾아서 "원어 (한국어)" 형식으로 변환해주세요.
-
-📋 **필수 형식: "원어 (한국어)"**
-- 원어: 공식 영문명, 일본어명, 또는 원래 표기
-- 한국어: 한국에서 통용되는 한국어 표기
-
-📝 **올바른 변환 예시:**
-- "오아시스 내한공연 [고양]" → "Oasis (오아시스)"
-- "BTS 월드투어 [서울]" → "BTS (방탄소년단)"  
-- "아이유 콘서트 [부산]" → "IU (아이유)"
-- "폼파돌스 라이브 [서울]" → "PompadollS (폼파돌스)"
-- "MADKID 투어 [대구]" → "MADKID (매드키드)"
-
-❌ **절대 사용 금지:**
-- "아티스트명", "가수 이름", "밴드명" 등의 일반적 용어
-- 괄호 없이 한국어만 또는 영어만 사용
-
-⚠️ 중요: 실제 공연 여부나 해체 여부는 고려하지 마세요. 단순히 제목에서 아티스트명만 추출하여 올바른 형식으로 변환하세요.
+규칙:
+- 공식 활동명을 찾은 그대로 반환해. 언어 변환(영문/한국어 변환)은 하지 마.
+- 약어가 있으면 공식 정식 활동명으로 찾아서 반환해.
+- 이벤트/시리즈명인지 아티스트명인지 불분명하면 검색으로 확인해.
+- 콜라보/합동 공연(ArtistA x ArtistB 등)이면 첫 번째 아티스트만 반환해.
+- "x", "&", "ft.", "vs" 등 구분자 자체는 반환하지 마.
+- 찾을 수 없으면 빈 문자열 반환.
 
 반드시 JSON으로 응답:
-{{"artist": "원어 (한국어)"}}"""
-
-    @staticmethod
-    def get_artist_display_prompt(concert_title: str, artist_name: str, kopis_artist: str) -> str:
-        """
-        사용 위치: data_processing/enhanced_data_collector.py -> _collect_artist_display_name()
-        목적: concerts.csv의 artist 컬럼 정보 보정
-        테이블: concerts.csv  
-        컬럼: artist
-        """
-        return f"""{DataCollectionPrompts.COMMON_SOURCE_RULES}
-
-"{concert_title}" 콘서트의 아티스트 정보를 **공식 출처에서** 검색해서 정확한 표기명을 찾아주세요.
-
-콘서트 제목: {concert_title}
-추출된 아티스트명: {artist_name}
-KOPIS 아티스트명: {kopis_artist}
-
-📋 **필수 형식: "원어 (한국어)"**
-- 원어: 공식 영문명, 일본어명, 또는 원래 표기
-- 한국어: 한국에서 통용되는 한국어 표기
-
-✅ **올바른 예시:**
-- "IU (아이유)"
-- "BTS (방탄소년단)" 
-- "Coldplay (콜드플레이)"
-- "Hitsujibungaku (히츠지분가쿠)"
-- "ONE OK ROCK (원 오케이 락)"
-
-❌ **잘못된 예시:**
-- "아티스트명" (절대 사용 금지)
-- "가수 이름" (절대 사용 금지)
-- "밴드명" (절대 사용 금지)
-- 괄호 없이 한국어만: "아이유"
-- 괄호 없이 영어만: "Coldplay"
-
-🔍 **확인 방법:**
-1. 공식 웹사이트, 위키피디아에서 정확한 원어 표기 확인
-2. 한국 언론사, 음악 매체에서 한국어 표기 확인
-3. 공식 SNS에서 사용하는 표기 확인
-
-**JSON 형식으로 응답:**
-{{"artist": "원어 (한국어)"}}"""
-
-    @staticmethod
-    def get_ticket_link_prompt(artist_name: str, concert_title: str) -> str:
-        """
-        사용 위치: data_processing/enhanced_data_collector.py -> _search_ticket_link()
-        목적: concerts.csv의 ticket_url 컬럼 정보 수집
-        테이블: concerts.csv
-        컬럼: ticket_url
-        """
-        return f""""{artist_name}"의 "{concert_title}" 콘서트 정확한 예매 링크를 찾아주세요.
-
-요구사항:
-1. 공식 티켓 판매처 링크만 제공 (인터파크, 멜론티켓, 예스24 등)
-2. 직접 예매 가능한 상세 페이지 URL
-3. 링크가 존재하지 않으면 빈 문자열 반환
-
-예매 링크: """
+{{"artist": "공식 활동명"}}"""
 
     @staticmethod
     def get_concert_info_prompt(artist_name: str, concert_title: str) -> str:
@@ -227,17 +218,17 @@ KOPIS 아티스트명: {kopis_artist}
 
 📋 수집할 정보 카테고리 (각각 별도 항목으로 작성):
 
-2. **입장 및 관람 규칙** 
+1. **입장 및 관람 규칙**
    - 콘서트장 입장 시간 및 절차
    - 금지 물품이나 반입 제한 사항
    - 사진/동영상 촬영 규칙
 
-3. **티켓팅 및 가격 정보** (⚠️ 공식 확인된 정보만!)
+2. **티켓팅 및 가격 정보** (⚠️ 공식 확인된 정보만!)
    - 공식 티켓 사이트에서 확인된 정확한 가격대만
    - 공식 발표된 예매 방법만 (추측 금지)
    - 선예매, 팬클럽 예매 등은 공식 발표가 있는 경우만 포함
 
-4. **공연장 편의시설**
+3. **공연장 편의시설**
    - 주차장, 교통편 안내
    - 공연장 내 편의시설 (카페, 굿즈샵 등)
 
@@ -270,45 +261,74 @@ KOPIS 아티스트명: {kopis_artist}
 [{{"concert_title": "{concert_title}", "category": "확인된카테고리명", "content": "검증된 정보만 (20자 이상)", "img_url": ""}}]"""
 
     @staticmethod
-    def get_concert_label_introduction_prompt(artist_name: str, concert_title: str) -> str:
+    def get_short_introduction_prompt(title: str, artist: str) -> str:
         """
-        사용 위치: data_processing/enhanced_data_collector.py -> _collect_label_introduction()
-        목적: concerts.csv의 label, introduction 컬럼 수집
+    사용 위치: lib/data_collector.py -> _collect_short_introduction()
+    목적: 콘서트의 한 줄 소개 문구를 생성합니다.
+    테이블: concerts.csv
+    컬럼: introduction
+    """
+        return f"""'{title}' ({artist}) 콘서트의 한 줄 소개 문구를 생성해줘.
+
+📝 **작성 우선순위 (순서대로 시도):**
+
+1. **내한 정보** - 첫 내한, n년 만의 내한, 재방문
+2. **특별한 이벤트** - 재결합, 해체 전 마지막, 기념 투어
+3. **투어/앨범** - 새 앨범 발매 기념, 투어명
+4. **대표곡** - 100% 확실하게 찾은 곡만 사용
+5. **장르/업적** - 장르에서의 위상, 수상 경력, 유명 프로젝트
+
+🔍 **대표곡 검색 규칙:**
+- '{artist}' + 'popular songs' 또는 '{artist}' + '대표곡'으로 웹 검색
+- Spotify, YouTube에서 실제 조회수 높은 곡 확인
+- **100% 확실한 곡만 사용, 조금이라도 의심되면 대표곡 사용 금지**
+
+✅ **좋은 예시 (대표곡 있을 때):**
+- "'Wonderwall', 'Don't Look Back in Anger'의 주인공 Oasis, 15년 만의 재결합 투어!"
+- "히트곡 'Sprinter', 'Doja'의 주인공 Central Cee, 첫 단독 내한!"
+
+✅ **좋은 예시 (대표곡 없을 때 - 다른 포인트 사용):**
+- "일본 록 씬을 대표하는 밴드 ZUTOMAYO, 2년 만의 내한 추가공연 확정!"
+- "러시아 힙합의 아이콘 Oxxxymiron, 6년 만의 월드 투어로 서울 방문!"
+- "애니메이션 '문호 스트레이독스' OST로 유명한 Luck Life, 팬클럽 첫 해외 투어!"
+- "J-Rock의 전설 DYGL, 9년 만의 내한으로 서울 팬들과 만난다!"
+- "한국대중음악상 수상 밴드 Madmans Esprit, 3밴드 합동 투어 'GLADIUS'!"
+- "YOASOBI의 보컬 ikura의 솔로 프로젝트 Lilas, 새 앨범 'Laugh' 발매 기념 첫 서울 공연!"
+
+🚫 **절대 금지:**
+- 빈 따옴표 '', '  ' 사용 금지
+- "히트곡 의 주인공" 같은 어색한 문장 금지
+- 대표곡을 모르면 대표곡 언급 자체를 하지 말 것
+- 추측으로 곡명 생성 금지
+
+🔴 **최종 검증:**
+1. 작성 완료 후 빈 따옴표가 있으면 → 대표곡 부분 삭제하고 다른 포인트로 다시 작성
+2. "히트곡 의", ", 등 대표곡" 같은 어색한 표현이 있으면 → 문장 전체 다시 작성
+
+결과는 반드시 다음 JSON 형식이어야 해:
+{{"summary": "여기에 한 줄 소개 문구"}}
+"""
+
+    @staticmethod
+    def get_additional_info_prompt(title: str, artist: str) -> str:
+        """
+        사용 위치: lib/data_collector.py -> _collect_additional_info()
+        목적: 콘서트의 추가 정보(라벨)를 수집합니다.
         테이블: concerts.csv
-        컬럼: label, introduction
+        컬럼: label
         """
-        return f"""{artist_name}의 "{concert_title}" 콘서트에 대한 정보를 검색해주세요.
+        return f"""'{title}' ({artist}) 콘서트의 라벨 정보를 JSON으로 반환하세요.
 
-🔥 중요 규칙:
-1. label: 선택사항 (특별한 이슈가 있을 때만)
-   - 현재 화제가 되는 특별한 부분이 있으면: "\(내용) 콘서트" 형식
-   - 🎯 특히 주목해야 할 화제성:
-     * 밴드 해체 후 재결합/재유니온 (예: "15년 만의 재결합 콘서트")
-     * 오랜만의 내한 (예: "10년 만의 내한 콘서트", "데뷔 n년 만의 첫 내한 콘서트")
-     * 마지막 공연/고별 투어 (예: "해체 전 마지막 투어 콘서트") 
-     * 매진 임박/초고속 매진 (예: "매진 임박 콘서트", "최근 핫한 콘서트")
-     * 특별한 기념 투어 (예: "데뷔 20주년 기념 콘서트")
-   - 특별한 화제가 없으면: 빈 문자열
+라벨: 현재 화제가 되는 특별한 부분이 있을 때만 작성
+- 🎯 특히 주목해야 할 화제성:
+  * 밴드 해체 후 재결합/재유니온 (예: "15년 만의 재결합 콘서트")
+  * 오랜만의 내한 (예: "10년 만의 내한 콘서트", "데뷔 n년 만의 첫 내한 콘서트")
+  * 마지막 공연/고별 투어 (예: "해체 전 마지막 투어 콘서트")
+  * 매진 임박/초고속 매진 (예: "매진 임박 콘서트")
+  * 특별한 기념 투어 (예: "데뷔 20주년 기념 콘서트")
+- 특별한 화제가 없으면 빈 문자열
 
-2. introduction: 필수 항목 (반드시 채워야 함)
-   - {artist_name}에 대한 매력적인 소개 문구 작성 (~요, ~니다를 섞어 친근하게 작성)
-   - 아티스트의 인기곡, 특징, 한국에서의 인지도 등 포함
-   - 형식 자유롭게, 화제성 있게 작성
-   - 예: "일본 대표 록밴드 뮤즈입니다! 세계적 히트곡 Supermassive Black Hole로 유명합니다"
-   - 예: "K-POP 4세대 대표 걸그룹입니다! 글로벌 히트곡 Next Level로 전 세계 팬들이 열광합니다"
-
-🎯 문체 규칙:
-- ~요, ~니다를 섞어 자연스럽고 매력적인 문장
-- 정확한 한국어 문법과 맞춤법 준수
-
-❌ 금지사항:
-- introduction에 "정보가 없다", "검색할 수 없다" 등의 문구 절대 금지
-- introduction이 비어있으면 안됨 (반드시 채워야 함)
-
-JSON 형식으로만 답변:
-{{"label": "특별한 화제가 있으면 내용, 없으면 빈 문자열", "introduction": "매력적인 아티스트 소개 (~요, ~니다를 섞어 친근하게 작성, 반드시 채우기)"}}
-
-JSON만 반환하세요."""
+JSON 형식: {{"label": "화제성 문구 또는 빈 문자열"}}"""
 
     # =========================================================================
     # SETLISTS 테이블 관련 프롬프트
@@ -343,7 +363,7 @@ JSON만 반환하세요."""
    - 대표곡/히트곡 (거의 본업 곡들)
    - 앙코르 정법곡
 2. **신곡/최근 곡** 추가 (20-30%)
-   - 2023-2024년 신발매 앨범 수록곡
+   - 최근 1~2년 내 신발매 앨범 수록곡
    - 최근 인기 차트 상위곡
    - SNS나 스트리밍에서 화제가 된 곡
 
@@ -639,81 +659,75 @@ JSON 배열 형식으로 반환:
     # =========================================================================
     # CONCERT_GENRES 테이블 관련 프롬프트
     # =========================================================================
-    
-    @staticmethod
-    def get_ticket_info_prompt(artist_name: str, concert_title: str) -> str:
-        """
-        사용 위치: data_processing/enhanced_data_collector.py -> _search_ticket_info()
-        목적: 티켓 예매 정보 검색
-        """
-        return f""""{artist_name}"의 "{concert_title}" 콘서트 티켓 예매 정보를 찾아주세요.
-
-요청 사항:
-1. 예매 시작 시간
-2. 티켓 가격
-3. 예매 사이트 URL  
-4. 티켓 오픈 일정
-
-모든 정보는 공식 출처에서 확인된 것만 포함하세요.
-찾을 수 없는 정보는 빈 값으로 반환하세요."""
-
-    @staticmethod
-    def get_concert_genre_fallback_prompt(concert_title: str) -> str:
-        """
-        사용 위치: data_processing/enhanced_data_collector.py -> _collect_concert_genres()
-        목적: 장르 정보 fallback 프롬프트
-        """
-        return f""""{concert_title}" 콘서트의 장르를 아래 6개 중에서 1개만 선택해주세요.
-
-1. JPOP - 일본 음악
-2. RAP_HIPHOP - 랩/힙합
-3. ROCK_METAL - 록/메탈
-4. ACOUSTIC - 어쿠스틱
-5. CLASSIC_JAZZ - 클래식/재즈
-6. ELECTRONIC - 일렉트로닉
-
-JSON 배열로 응답: [{{"genre_id": 숫자, "name": "장르명"}}]"""
 
     @staticmethod
     def get_concert_genre_prompt(artist_name: str, concert_title: str) -> str:
-        """
-        사용 위치: data_processing/enhanced_data_collector.py -> _collect_concert_genres()
-        목적: concert_genres.csv의 장르 매칭 정보 수집
-        테이블: concert_genres.csv
-        컬럼: 모든 컬럼
-        """
         return f"""{DataCollectionPrompts.COMMON_SOURCE_RULES}
 
-"{artist_name}"를 **공식 출처에서** 검색해서 음악 장르를 확인하고, 아래 6개 중에서 가장 적합한 장르를 선택해주세요.
+"{artist_name}"의 음악 장르를 공식 출처에서 확인하고, 아래 5개 중 **가장 대표적인 장르 1개**를 선택해주세요.
 
-🎯 장르 선택 기준:
-1. 구글에서 "{artist_name} music genre", "{artist_name} 음악 장르" 검색
-2. 위키피디아, 음악 사이트 등에서 공식 장르 확인
-3. 아래 6개 중 가장 가까운 장르 선택
+🔍 검색 방법:
+1. "{artist_name} genre" 또는 "{artist_name} 장르" 검색
+2. Wikipedia, AllMusic, MelOn, Spotify 등 공식 출처 확인
+3. 아티스트의 **메인 활동 장르** 기준으로 선택 (콜라보/피처링 곡 제외)
 
-📋 선택 가능한 장르 (반드시 이 중에서만 선택):
-1. JPOP (id: 1) - 일본 아티스트, J-POP, J-ROCK
-2. RAP_HIPHOP (id: 2) - 랩, 힙합, R&B, 트랩
-3. ROCK_METAL (id: 3) - 록, 메탈, 하드록, 얼터너티브
-4. ACOUSTIC (id: 4) - 어쿠스틱, 포크, 인디, 싱어송라이터
-5. CLASSIC_JAZZ (id: 5) - 클래식, 재즈, 블루스
-6. ELECTRONIC (id: 6) - 일렉트로닉, EDM, 하우스, 테크노
+📋 장르 정의:
+1. JPOP (id: 1)
+   - 일본 국적 아티스트의 J-POP, 시티팝, 아니송, J-ROCK
+   - 예시: Perfume, Ado, Yoasobi, Kenshi Yonezu, RADWIMPS, amazarashi
+   - ⚠️ 일본 국적이 아닌 아티스트는 절대 JPOP 선택 금지
 
-🎵 장르 매칭 예시:
-- Oasis → ROCK_METAL (브릿팝/록 밴드)
-- BTS → RAP_HIPHOP (K-POP이지만 힙합 요소 강함)
-- IU → ACOUSTIC (발라드/어쿠스틱 중심)
-- Perfume → ELECTRONIC (일렉트로닉 팝)
-- ONE OK ROCK → ROCK_METAL (일본 록밴드)
+2. ROCK_METAL (id: 2)
+   - 록, 메탈, 하드록, 펑크록, 브릿팝, 얼터너티브 록, 포스트록
+   - 예시: Metallica, Linkin Park, Coldplay, Oasis, My Chemical Romance
+   - ⚠️ R&B, 소울, 팝 아티스트는 해당 없음
 
-⚠️ 중요:
-- 메인 장르 1개만 선택 (가장 대표적인 것)
-- K-POP은 음악 스타일에 따라 RAP_HIPHOP 또는 ACOUSTIC 선택
-- concert_id와 concert_title은 "{concert_title}" 사용
+3. RAP_HIPHOP (id: 3)
+   - 랩, 힙합, 트랩
+   - 예시: Drake, Kendrick Lamar, Jay-Z, Travis Scott, J.I.D
+   - ⚠️ R&B/소울/네오소울은 랩 비중이 높을 때만 RAP_HIPHOP, 아니면 POP
 
-JSON 배열로 응답:
-[{{"concert_id": "{concert_title}", "concert_title": "{concert_title}", "genre_id": 숫자, "name": "장르명"}}]"""
+4. INDIE (id: 4)
+   - 인디팝, 인디록, 포크, 싱어송라이터, 어쿠스틱
+   - 예시: Novo Amor, Phoebe Bridgers, Hozier, Tommy Emmanuel
 
+5. POP (id: 5)전
+   - 메인스트림 팝, K-POP, 댄스팝, 일렉트로팝, EDM, R&B, 소울, 네오소울
+   - 예시: BTS, BLACKPINK, Taylor Swift, Ed Sheeran, Dua Lipa, Giveon, Frank Ocean, The Weeknd
+   - ⚠️ K-POP은 무조건 POP 포함
+
+⚠️ 장르 선택 기준 (중요):
+- **장르 경계가 명확하면 1개, 두 장르를 넘나들면 2개 선택**
+- 아래 경우에만 2개 선택 허용:
+  - 일본 국적 아티스트 + 록/메탈 성향 → JPOP + ROCK_METAL (예: ONE OK ROCK, NEMOPHILA, King Gnu)
+  - 일본 국적 아티스트 + 인디/포크 성향 → JPOP + INDIE (예: toconoma, DEPAPEKO, Vaundy)
+  - 일본 국적 아티스트 + 랩/힙합 성향 → JPOP + RAP_HIPHOP (예: Creepy Nuts, MAN WITH A MISSION)
+  - 그 외 일본 국적 아티스트 → JPOP 1개만
+  - 인디 성향이 주이지만 팝 차트에도 진입 → INDIE + POP (예: Sigrid, Tom Grennan, Laufey)
+  - 록/메탈이 주이지만 팝 성향 곡도 많음 → ROCK_METAL + POP (예: OneRepublic, Coldplay, CHRISTOPHER)
+  - 록과 랩을 번갈아 하는 경우 → ROCK_METAL + RAP_HIPHOP (예: Linkin Park, JAKE MILLER)
+  - 랩이 주이지만 R&B 성향이 강한 경우 → RAP_HIPHOP + POP (예: The Weeknd, Teddy Swims)
+- **위 경우 외에는 반드시 1개만 선택**
+- 3개 이상 선택 절대 금지
+
+⚠️ 자주 틀리는 케이스:
+- R&B/소울/네오소울 아티스트 → 랩 비중이 높으면 RAP_HIPHOP + POP, 팝 비중이 높으면 POP
+- 일본 록/메탈 밴드 → ROCK_METAL만 ❌, JPOP + ROCK_METAL ✅
+- 재즈/재즈팝 아티스트 → 아래 기준으로 판단:
+  - 인디/포크 성향 재즈 → INDIE (예: Laufey)
+  - 힙합 크로스오버 재즈 → RAP_HIPHOP (예: Robert Glasper)
+  - 팝 성향 재즈 → POP
+- 비일본 아티스트 → JPOP ❌
+
+⚠️ 매우 중요:
+- 반드시 최소 1개 이상의 장르를 선택해야 합니다
+- 절대 빈 배열 [] 로 응답하지 마세요
+
+JSON 배열로만 응답 (선택한 장르 수만큼 객체 반환, 다른 텍스트 없이):
+[
+  {{"genre_id": 숫자, "name": "장르명"}},
+  {{"genre_id": 숫자, "name": "장르명"}}
+]"""
     # =========================================================================
     # MD (MERCHANDISE) 테이블 관련 프롬프트
     # =========================================================================
@@ -762,6 +776,61 @@ JSON 배열로 응답:
 **🚨 중요: 굿즈 정보를 찾을 수 없으면 빈 배열 [] 반환하세요!**
 **잘못된 정보보다 빈 값이 훨씬 낫습니다!**"""
 
+    @staticmethod
+    def get_instagram_parse_prompt(account: str, caption: str, post_url: str) -> str:
+        """Instagram 게시물에서 공연 정보 필터링 + 파싱 (1회 Gemini 호출)"""
+        from datetime import datetime
+        current_year = datetime.now().year
+        return f"""다음은 Instagram 계정 @{account}의 게시물입니다.
+게시물 URL: {post_url}
+
+캡션:
+---
+{caption[:2000]}
+---
+
+이 게시물에 **외국 아티스트의 한국 내한공연** 정보가 포함되어 있는지 아래 순서로 판단하세요.
+
+**판단 순서:**
+1. 캡션에 "내한공연" 또는 "내한 공연"이 명시되고, 구체적인 공연 날짜(년/월/일)가 함께 있으면 → is_concert_post: true (아티스트 국적 무관, 아티스트명이 한국어로 표기되어 있어도 일본어·중국어 이름의 한국어 표기일 수 있음)
+2. 위 조건이 아닌 경우, 아래 false 기준으로 판단
+
+공식 공연 공지가 아니더라도 인터뷰, 영상, 홍보글 등에 내한공연 정보(아티스트명, 내한 언급, 날짜 등)가 있으면 is_concert_post: true로 설정하세요.
+
+아래 경우는 반드시 is_concert_post: false로 설정하세요:
+- 한국 아티스트(K-POP, 한국 밴드 등)의 공연
+- 내한공연이 아닌 해외에서 열리는 공연
+- 여러 아티스트가 출연하는 페스티벌/축제 (단독 공연이 아닌 경우)
+- 내한공연 정보가 전혀 없는 순수 홍보/이벤트 게시물
+- CGV, 롯데시네마, 메가박스 등 영화관에서 진행되는 라이브 뷰잉/상영 이벤트
+- "온 스크린", "on screen", "스크린 상영", "극장 상영" 등 영화관 상영 이벤트
+- 노래방 수록/출시 관련 게시물
+
+규칙:
+- 명확히 언급된 정보만 추출하고, 불확실하면 빈 문자열("")로 남기세요
+- 날짜 형식: YYYYMMDD (예: 20250910), 연도 없으면 {current_year}년 기준
+- 시간 형식: HH:MM (예: 14:00), 명시되지 않으면 빈 문자열
+- artist_name: 공연하는 아티스트/밴드명 (주최사 아님), 캡션에 표기된 그대로 추출 (한국어면 한국어, 영문이면 영문)
+- ticket_site: 아래 값 중 하나만 사용, 불명확하면 빈 문자열 ("NOL 티켓" / "예스24" / "멜론티켓" / "티켓링크" / "네이버 예약")
+- concert_time: 공연 시작 시간 (HH:MM), 캡션에 명시된 경우만, 없으면 빈 문자열
+
+반드시 JSON만 출력하세요:
+{{
+  "is_concert_post": true 또는 false,
+  "artist_name": "",
+  "title": "",
+  "start_date": "",
+  "end_date": "",
+  "concert_time": "",
+  "venue": "",
+  "ticket_site": "",
+  "ticket_url": "",
+  "pre_ticketing_date": "",
+  "pre_ticketing_time": "",
+  "general_ticketing_date": "",
+  "general_ticketing_time": ""
+}}"""
+
 
 class LyricsPrompts:
     """가사 번역/발음 관련 프롬프트"""
@@ -770,25 +839,44 @@ class LyricsPrompts:
     def get_translation_prompt(lyrics: str, song_title: str = "", artist: str = "") -> str:
         """
         사용 위치: src/lyrics_translator.py -> translate_lyrics()
-        목적: 영어 가사를 한국어로 번역
+        목적: 영어 또는 일본어 가사를 한국어로 번역
         """
-        return f"""다음 영어 가사를 한국어로 번역해주세요. 오직 번역된 가사만 출력하세요.
+        return f"""아래의 "번역 규칙"과 "번역 예시"를 참고하여 주어진 "번역할 가사"를 한국어로 번역해주세요.
 
+### 번역 규칙:
+1. 가사에 포함된 모든 언어(영어, 일본어 등)를 한국어로 번역해야 합니다.
+2. 가사 중간에 영어가 포함되어 있어도 반드시 한국어로 번역해야 합니다.
+3. 예외: 'yeah', 'oh', 'wow'와 같이 의미가 거의 없는 짧은 추임새는 영어 그대로 유지할 수 있습니다.
+4. 출력은 오직 번역된 한국어 가사만 포함해야 하며, 다른 어떤 설명도 추가하지 마세요.
+
+### 번역 예시:
+- 입력 가사: "You are my everything, 世界の中心で"
+- 출력 결과: "너는 나의 전부, 세상의 중심에서"
+
+### 번역할 가사:
 {lyrics}
-
-중요: 다른 설명이나 추가 정보 없이 번역된 가사만 출력하세요."""
+"""
 
     @staticmethod
     def get_pronunciation_prompt(lyrics: str, song_title: str = "", artist: str = "") -> str:
         """
         사용 위치: src/lyrics_translator.py -> convert_to_pronunciation()
-        목적: 영어 가사를 한국어 발음으로 변환
+        목적: 영어 가사 또는 일본어 가사를 한국어 발음으로 변환
         """
-        return f"""다음 영어 가사를 한국어 발음으로 변환해주세요. 오직 한국어 발음만 출력하세요.
+        return f"""다음 영어 가사 또는 일본어 가사를 한국어 발음으로 변환해주세요. 오직 한국어 발음만 출력하세요.
 
 {lyrics}
 
 중요: 다른 설명이나 추가 정보 없이 한국어 발음만 출력하세요."""
+
+    @staticmethod
+    def get_concert_introduction_prompt(title: str, artist_name: str) -> str:
+        """콘서트 소개글 생성"""
+        return f""""{artist_name}"의 "{title}" 공연에 대한 한국어 소개글을 2~3문장으로 작성해주세요.
+공연명과 아티스트 정보를 바탕으로 자연스럽고 간결하게 작성하세요.
+
+반드시 아래 JSON만 출력:
+{{"introduction": "소개글 내용"}}"""
 
     @staticmethod
     def get_combined_translation_prompt(lyrics: str) -> str:
@@ -867,6 +955,26 @@ class APIPrompts:
 
 위 URL들의 내용을 우선적으로 참조하여 답변해주세요."""
 
+    @staticmethod
+    def get_similar_artists_prompt(artist_name: str, songs: list) -> str:
+        """
+        사용 위치: src/gemini_api.py -> search_similar_artists()
+        목적: 유사 아티스트 검색
+        """
+        song_list = ", ".join(songs)
+        return f"""아래 아티스트와 음악 스타일이 유사한 다른 아티스트를 추천해주세요.
+
+아티스트: {artist_name}
+대표곡: {song_list}
+
+추천 기준:
+- 음악 장르, 분위기, 사용하는 악기 등을 고려해주세요.
+- 최소 5팀의 아티스트를 추천해주세요.
+
+JSON 형식으로만 응답해주세요:
+{{"similar_artists": [{{"artist_name": "추천아티스트1"}}, {{"artist_name": "추천아티스트2"}}]}}
+"""
+
     # =========================================================================
     # PERPLEXITY API 시스템 프롬프트  
     # =========================================================================
@@ -902,18 +1010,4 @@ class APIPrompts:
 6. 모든 응답은 한국어로 작성하세요"""
 
 
-# =============================================================================
-# 하위 호환성을 위한 별칭 (기존 코드가 동작하도록)
-# =============================================================================
 
-class ArtistPrompts:
-    """기존 artist_prompts.py와의 하위 호환성"""
-    
-    @staticmethod
-    def get_artist_info_prompt(artist_name: str) -> str:
-        return DataCollectionPrompts.get_artist_info_prompt(artist_name)
-    
-    @staticmethod 
-    def get_artist_enhancement_prompt(artist_name: str, empty_fields: list) -> str:
-        # 향후 필요시 구현 예정
-        return DataCollectionPrompts.get_artist_info_prompt(artist_name)

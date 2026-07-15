@@ -14,73 +14,22 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 from lib.config import Config
+from lib.db_utils import get_db_manager
 
 class UpdateSongsOnly:
     def __init__(self):
-        self.ssh_process = None
+        self.db = None
         self.connection = None
         self.cursor = None
         self.csv_file_path = str(Config.OUTPUT_DIR / 'songs.csv')
 
-    def create_ssh_tunnel(self):
-        """SSH 터널 생성"""
-        try:
-            print("🔧 SSH 터널 생성 중...")
-            
-            ssh_command = [
-                'ssh',
-                '-i', Config.get_ssh_key_path(),
-                '-L', '3307:livithdb.c142i2022qs5.ap-northeast-2.rds.amazonaws.com:3306',
-                '-N',
-                '-o', 'StrictHostKeyChecking=no',
-                'ubuntu@43.203.48.65'
-            ]
-            
-            self.ssh_process = subprocess.Popen(
-                ssh_command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                preexec_fn=os.setsid
-            )
-            
-            time.sleep(3)
-            
-            if self.ssh_process.poll() is None:
-                print("✅ SSH 터널 생성 완료!")
-                return True
-            else:
-                return False
-                
-        except Exception as e:
-            print(f"❌ SSH 터널 오류: {e}")
-            return False
-
-    def connect_mysql(self):
-        """MySQL 연결"""
-        try:
-            print("🔌 MySQL 연결 중...")
-            
-            self.connection = mysql.connector.connect(
-                host='127.0.0.1',
-                port=3307,
-                user='root',
-                password='livith0407',
-                database='livith_service',
-                charset='utf8mb4',
-                collation='utf8mb4_unicode_ci'
-            )
-            
-            self.cursor = self.connection.cursor()
-            self.cursor.execute("SET NAMES utf8mb4")
-            self.cursor.execute("SET CHARACTER SET utf8mb4")
-            self.cursor.execute("SET character_set_connection=utf8mb4")
-            
-            print("✅ MySQL 연결 성공!")
+    def connect(self):
+        self.db = get_db_manager()
+        if self.db.connect_with_ssh():
+            self.cursor = self.db.cursor
+            self.connection = self.db.connection
             return True
-            
-        except Error as e:
-            print(f"❌ MySQL 연결 오류: {e}")
-            return False
+        return False
 
     def update_songs(self):
         """songs.csv → songs 테이블 UPDATE"""
@@ -186,39 +135,17 @@ class UpdateSongsOnly:
             self.connection.rollback()
             return False
 
-    def close_connection(self):
-        """연결 종료"""
-        try:
-            if self.cursor:
-                self.cursor.close()
-            if self.connection:
-                self.connection.close()
-            print("🔌 연결 종료")
-        except:
-            pass
-
     def cleanup(self):
-        """정리"""
-        self.close_connection()
-        
-        # SSH 터널 종료
-        if self.ssh_process:
-            try:
-                os.killpg(os.getpgid(self.ssh_process.pid), signal.SIGTERM)
-            except:
-                pass
+        if self.db:
+            self.db.disconnect()
+        print("🔌 연결 종료")
 
 def main():
     """메인 실행"""
     updater = UpdateSongsOnly()
-    
+
     try:
-        # SSH 터널 생성
-        if not updater.create_ssh_tunnel():
-            return
-        
-        # MySQL 연결
-        if not updater.connect_mysql():
+        if not updater.connect():
             return
         
         # songs 테이블 업데이트
