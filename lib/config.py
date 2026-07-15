@@ -6,6 +6,9 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
+import shutil
+import glob
+from datetime import datetime
 
 load_dotenv()
 
@@ -45,6 +48,7 @@ class Config:
     USE_GEMINI_API = os.getenv('USE_GEMINI_API', 'true').lower() == 'true'
     GEMINI_USE_SEARCH = os.getenv('GEMINI_USE_SEARCH', 'true').lower() == 'true'
     GEMINI_MODEL_VERSION = os.getenv('GEMINI_MODEL_VERSION', '2.0')
+    DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL')
     
     # 경로 설정
     DATA_DIR = PROJECT_ROOT / "data"
@@ -79,6 +83,51 @@ class Config:
             print("🚀 프로덕션 모드 활성화")
         
         cls.ensure_directories()
+
+    @classmethod
+    def create_backup(cls, filename: str) -> str:
+        """
+        Creates a timestamped backup of a file from the main output directory.
+
+        Args:
+            filename: The name of the file to back up.
+
+        Returns:
+            The path to the created backup file, or None if the source file doesn't exist.
+        """
+        source_path = cls.DATA_DIR / "main_output" / filename
+        if not source_path.exists():
+            return None
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_filename = f"{source_path.stem}_{timestamp}{source_path.suffix}"
+        backup_path = cls.BACKUP_DIR / backup_filename
+
+        cls.BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, backup_path)
+        return str(backup_path)
+
+    @classmethod
+    def get_backup_files(cls, filename: str) -> list:
+        """
+        Finds all backup files for a given original filename, sorted newest first.
+
+        Args:
+            filename: The original name of the file.
+
+        Returns:
+            A list of paths to backup files, sorted by modification time (descending).
+        """
+        file_stem = Path(filename).stem
+        file_suffix = Path(filename).suffix
+        
+        backup_pattern = f"{file_stem}_*{file_suffix}"
+        backups = sorted(
+            cls.BACKUP_DIR.glob(backup_pattern),
+            key=os.path.getmtime,
+            reverse=True
+        )
+        return [str(p) for p in backups]
     
     @classmethod
     def validate_api_keys(cls):
@@ -96,6 +145,13 @@ class Config:
         if required:
             raise ValueError(f"필수 환경변수가 누락됨: {', '.join(required)}")
         
+        return True
+    
+    @classmethod
+    def validate_musixmatch(cls):
+        """Musixmatch API 키 검증"""
+        if not cls.MUSIXMATCH_API_KEY:
+            raise ValueError("MUSIXMATCH_API_KEY가 설정되지 않았습니다.")
         return True
     
     @classmethod
