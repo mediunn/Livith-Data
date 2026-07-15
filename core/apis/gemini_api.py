@@ -26,7 +26,7 @@ class GeminiAPI:
             temperature=0.3, # 모험적인 정도
             top_p=0.7, # 확률 합 70%
             top_k=10, # 상위 10개
-            max_output_tokens=2048,
+            max_output_tokens=8192,
         )
 
         logger.info(f"Gemini 모델 초기화 완료: {self.model}")
@@ -139,6 +139,15 @@ class GeminiAPI:
                         cleaned_response = cleaned_response[start_idx:].strip()
 
                 cleaned_response = cleaned_response.replace('\\n', '\n').replace('\\"', '"')
+
+                # 텍스트+JSON 혼합 응답 처리: JSON 블록만 추출
+                if not cleaned_response.startswith(('[', '{')):
+                    array_idx = cleaned_response.find('[')
+                    obj_idx = cleaned_response.find('{')
+                    if array_idx != -1 and (obj_idx == -1 or array_idx < obj_idx):
+                        cleaned_response = cleaned_response[array_idx:]
+                    elif obj_idx != -1:
+                        cleaned_response = cleaned_response[obj_idx:]
 
                 if cleaned_response and not cleaned_response.endswith((']', '}')):
                     if cleaned_response.startswith('[') and not cleaned_response.endswith(']'):

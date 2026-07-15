@@ -332,7 +332,7 @@ DB_HOST=livithdb.c142i2022qs5.ap-northeast-2.rds.amazonaws.com
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=livith0407
-DB_NAME=livith_v3
+DB_NAME=livith_service
 ```
 
 ### 팀원 환경 설정 가이드

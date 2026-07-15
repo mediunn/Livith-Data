@@ -143,22 +143,22 @@ class SSHMySQLConnection:
 
 def main():
     """메인 실행 함수"""
-    
+
     # SSH 설정
     ssh_config = {
-        'host': '43.203.48.65',
-        'port': 22,
-        'username': 'ubuntu',
+        'host': Config.DB_SSH_HOST,
+        'port': Config.DB_SSH_PORT,
+        'username': Config.DB_SSH_USER,
         'private_key_path': Config.get_ssh_key_path()
     }
-    
+
     # MySQL 설정
     mysql_config = {
-        'host': 'livithdb.c142i2022qs5.ap-northeast-2.rds.amazonaws.com',
-        'port': 3306,
-        'user': 'root',
-        'password': 'livith0407',
-        'database': 'livith_service',
+        'host': Config.DB_HOST,
+        'port': Config.DB_PORT,
+        'user': Config.DB_USER,
+        'password': Config.DB_PASSWORD,
+        'database': Config.DB_NAME,
         'charset': 'utf8mb4'
     }
     

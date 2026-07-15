@@ -12,70 +12,21 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 from lib.config import Config
+from lib.db_utils import get_db_manager
 
 class DatabaseSchemaChecker:
     def __init__(self):
-        self.ssh_process = None
+        self.db = None
         self.connection = None
         self.cursor = None
 
-    def create_ssh_tunnel(self):
-        """SSH 터널 생성"""
-        try:
-            print("🔧 SSH 터널 생성 중...")
-            
-            ssh_command = [
-                'ssh',
-                '-i', Config.get_ssh_key_path(),
-                '-L', '3307:livithdb.c142i2022qs5.ap-northeast-2.rds.amazonaws.com:3306',
-                '-N',
-                '-o', 'StrictHostKeyChecking=no',
-                'ubuntu@43.203.48.65'
-            ]
-            
-            self.ssh_process = subprocess.Popen(
-                ssh_command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                preexec_fn=os.setsid
-            )
-            
-            time.sleep(3)
-            
-            if self.ssh_process.poll() is None:
-                print("✅ SSH 터널 생성 완료!")
-                return True
-            else:
-                return False
-                
-        except Exception as e:
-            print(f"❌ SSH 터널 오류: {e}")
-            return False
-
-    def connect_mysql(self):
-        """MySQL 연결"""
-        try:
-            print("🔌 MySQL 연결 중...")
-            
-            config = {
-                'host': '127.0.0.1',
-                'port': 3307,
-                'user': 'root',
-                'password': 'livith0407',
-                'database': 'livith_service',
-                'charset': 'utf8mb4',
-                'use_unicode': True
-            }
-            
-            self.connection = mysql.connector.connect(**config)
-            self.cursor = self.connection.cursor()
-            
-            print("✅ MySQL 연결 성공!")
+    def connect(self):
+        self.db = get_db_manager()
+        if self.db.connect_with_ssh():
+            self.cursor = self.db.cursor
+            self.connection = self.db.connection
             return True
-            
-        except Error as e:
-            print(f"❌ MySQL 연결 실패: {e}")
-            return False
+        return False
 
     def show_all_tables(self):
         """모든 테이블 목록 조회"""
@@ -142,12 +93,8 @@ class DatabaseSchemaChecker:
     def close_connections(self):
         """연결 종료"""
         try:
-            if self.cursor:
-                self.cursor.close()
-            if self.connection:
-                self.connection.close()
-            if self.ssh_process:
-                os.killpg(os.getpgid(self.ssh_process.pid), signal.SIGTERM)
+            if self.db:
+                self.db.disconnect()
             print("\n🔒 모든 연결 종료 완료")
         except Exception as e:
             print(f"⚠️ 연결 종료 중 오류: {e}")
@@ -158,15 +105,9 @@ class DatabaseSchemaChecker:
             print("\n" + "="*60)
             print("🔍 데이터베이스 스키마 확인")
             print("="*60)
-            
-            # SSH 터널 생성
-            if not self.create_ssh_tunnel():
-                print("❌ SSH 터널 생성 실패")
-                return
-            
-            # MySQL 연결
-            if not self.connect_mysql():
-                print("❌ MySQL 연결 실패")
+
+            if not self.connect():
+                print("❌ DB 연결 실패")
                 return
             
             # 모든 테이블 목록 조회

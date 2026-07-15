@@ -269,23 +269,21 @@ class MySQLDataLoader:
 
 def main():
     """메인 실행 함수"""
-    # 실제 연결 정보
-    config = {
-        'host': 'localhost',       # MySQL 서버 호스트
-        'port': 3307,             # MySQL 포트
-        'user': 'root',           # MySQL 사용자명
-        'password': 'livith0407', # MySQL 비밀번호
-                'database': 'livith_service',
-    }
-    
-    # CSV 파일들이 있는 경로 - Config 추가 필요
     import sys
     from pathlib import Path
     sys.path.append(str(Path(__file__).parent.parent.parent))
     from lib.config import Config
-    
+
+    config = {
+        'host': 'localhost',
+        'port': Config.DB_PORT,
+        'user': Config.DB_USER,
+        'password': Config.DB_PASSWORD,
+        'database': Config.DB_NAME,
+    }
+
     csv_base_path = str(Config.OUTPUT_DIR.parent)
-    
+
     # 데이터 로더 생성
     loader = MySQLDataLoader(**config)
     
