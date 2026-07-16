@@ -490,9 +490,9 @@ def compare_concerts() -> dict:
         result['removed_count'] = len(removed_codes)
         result['success'] = True
 
-        if Config.DISCORD_WEBHOOK_URL:
+        if Config.DISCORD_WEBHOOK_URL_KOPIS:
             logger.info("📤 Discord 알림 전송 중...")
-            notifier = DiscordNotifier(Config.DISCORD_WEBHOOK_URL)
+            notifier = DiscordNotifier(Config.DISCORD_WEBHOOK_URL_KOPIS)
             for attempt in range(3):
                 if send_discord_results(
                     notifier,

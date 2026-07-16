@@ -27,6 +27,7 @@ class Config:
     SERPER_API_KEY = os.getenv('SERPER_API_KEY')
     CONTACT_EMAIL = os.getenv('CONTACT_EMAIL', 'contact@livith.com')
     DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL', '')
+    DISCORD_WEBHOOK_URL_KOPIS = os.getenv('DISCORD_WEBHOOK_URL_KOPIS', '')
     
     # SSH 설정
     LIVITH_SSH_KEY_PATH = os.getenv('LIVITH_SSH_KEY_PATH')
