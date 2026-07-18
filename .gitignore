@@ -18,3 +18,6 @@ logs/
 output/
 output/**/*.csv
 backup/
+data/instagram_session/
+data/instagram_session/
+data/main_output/concerts.csv
