@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional, List, Tuple, Dict, Any
 
 from lib.prompts import DataCollectionPrompts, CONCERT_KEYWORDS
+from core.apis.serper_api import SerperAPI
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ class InstagramPipeline:
         self.data_collector = data_collector
         self.max_posts = max_posts
         self.generate_introduction = generate_introduction
+        self.serper = SerperAPI()
 
         self._preview_artists: List[Dict] = []
         self._preview_concerts: List[Dict] = []
@@ -460,6 +462,13 @@ class InstagramPipeline:
         ticket_site = self._normalize_ticket_site(parsed.get('ticket_site', ''))
         ticket_url = parsed.get('ticket_url')
         poster = post.image_url or None
+
+        if not ticket_url:
+            serper_result = self.serper.search_ticket_url(title)
+            if serper_result:
+                ticket_url = serper_result['url']
+                ticket_site = serper_result['site']
+                logger.info(f"Serper 티켓 URL 보완: {ticket_url} ({ticket_site})")
 
         # 같은 게시물 재크롤링 → skip
         self.db.cursor.execute("SELECT id FROM concerts WHERE code = %s", (code,))
