@@ -3,9 +3,12 @@ Instagram 공개 계정 게시물 수집 API 클라이언트
 
 instaloader로 로그인 후 세션을 재사용합니다.
 - web_profile_info 엔드포인트에서 프로필 + 최근 게시물을 한 번에 조회합니다.
+- 게시물 URL 하나만으로도(계정명 몰라도) 단일 게시물 조회 가능합니다.
 
 세션 파일 위치: data/instagram_session/
 """
+import re
+import html
 import time
 import logging
 from datetime import datetime, timezone
@@ -53,12 +56,14 @@ class InstagramAPI:
     - instaloader로 로그인 후 세션 재사용 (최초 1회만 로그인)
     - web_profile_info 응답에 포함된 최근 게시물을 파싱
     - 공개 계정 대상, 하루 몇 번 체크하는 낮은 빈도 권장
+    - fetch_post_by_url()로 게시물 URL 하나만으로 단일 게시물 조회 가능 (계정명 불필요)
     """
 
     def __init__(self, username: str, password: str, delay_between_requests: int = 3):
         self.ig_username = username
         self._ig_password = password
         self.delay = delay_between_requests
+        self.loader = None
         self.session = self._build_session(username, password)
 
     def _session_file(self, username: str) -> Path:
@@ -88,6 +93,7 @@ class InstagramAPI:
 
         session = loader.context._session
         session.headers.update(MOBILE_API_HEADERS)
+        self.loader = loader
         return session
 
     def _relogin(self) -> bool:
@@ -102,51 +108,49 @@ class InstagramAPI:
             logger.error(f"재로그인 실패: {e}")
             return False
 
-    def _fetch_profile_with_posts(self, username: str) -> Optional[Dict]:
+    def _fetch_profile_with_posts(self, username: str) -> tuple:
         """web_profile_info로 프로필 + 최근 게시물 한 번에 조회.
 
+        Returns: (user_data, is_rate_limited)
         NOTE: 이 엔드포인트는 최근 게시물을 최대 12개까지만 반환합니다.
-        max_posts를 12 이상으로 설정해도 추가로 수집되지 않습니다.
         """
         url = "https://i.instagram.com/api/v1/users/web_profile_info/"
         resp = self.session.get(url, params={"username": username})
 
         if resp.status_code == 200:
-            return resp.json().get("data", {}).get("user")
+            return resp.json().get("data", {}).get("user"), False
 
         if resp.status_code == 401:
             logger.warning(f"@{username}: 세션 만료 (401), 재로그인 후 재시도")
             if self._relogin():
                 resp = self.session.get(url, params={"username": username})
                 if resp.status_code == 200:
-                    return resp.json().get("data", {}).get("user")
+                    return resp.json().get("data", {}).get("user"), False
 
         elif resp.status_code == 429:
             logger.warning(f"@{username}: Rate limit (429), 60초 대기 후 재시도")
             time.sleep(60)
             resp = self.session.get(url, params={"username": username})
             if resp.status_code == 200:
-                return resp.json().get("data", {}).get("user")
+                return resp.json().get("data", {}).get("user"), False
+            logger.error(f"@{username}: 프로필 조회 실패 ({resp.status_code}) — Rate Limit 지속")
+            return None, True
 
         logger.error(f"@{username}: 프로필 조회 실패 ({resp.status_code})")
-        return None
+        return None, False
 
     def fetch_recent_posts(self, username: str, max_posts: int = 20,
-                           since_datetime: Optional[datetime] = None) -> List[InstagramPost]:
+                           since_datetime: Optional[datetime] = None) -> tuple:
         """
         특정 계정의 최근 게시물 수집
 
-        Args:
-            username: 수집할 Instagram 계정 아이디 (@ 없이)
-            max_posts: 최대 수집 게시물 수
-            since_datetime: 이 시각 이후 게시물만 수집 (crawl_history.last_crawled_at 기준)
-
-        Returns:
-            InstagramPost 리스트 (최신순)
+        Returns: (posts: List[InstagramPost], is_rate_limited: bool)
         """
-        user = self._fetch_profile_with_posts(username)
+        user, rate_limited = self._fetch_profile_with_posts(username)
+        if rate_limited:
+            return [], True
         if not user:
-            return []
+            return [], False
 
         media_count = user.get("edge_owner_to_timeline_media", {}).get("count", "?")
         user_id = user.get("id", "?")
@@ -155,7 +159,7 @@ class InstagramAPI:
         edges = user.get("edge_owner_to_timeline_media", {}).get("edges", [])
         if not edges:
             logger.info(f"@{username}: 게시물 없음 (응답에 포함된 edge 없음)")
-            return []
+            return [], False
 
         # since_datetime을 UTC aware로 변환
         since_utc = None
@@ -197,7 +201,68 @@ class InstagramAPI:
         posts = all_posts[:max_posts]
 
         logger.info(f"@{username}: {len(posts)}개 수집 (전체 {len(edges)}개 중 last_crawled_at 이후 {len(all_posts)}개)")
-        return posts
+        return posts, False
+
+    _MONTH_MAP = {
+        'January': 1, 'February': 2, 'March': 3, 'April': 4,
+        'May': 5, 'June': 6, 'July': 7, 'August': 8,
+        'September': 9, 'October': 10, 'November': 11, 'December': 12,
+    }
+
+    def fetch_post_by_url(self, url: str) -> Optional['InstagramPost']:
+        """Instagram 게시물 URL로 단일 게시물 조회 (웹 메타태그 방식)"""
+        match = re.search(r'/p/([^/?]+)', url)
+        if not match:
+            logger.error(f"URL에서 shortcode 추출 실패: {url}")
+            return None
+        shortcode = match.group(1)
+        try:
+            page_url = f"https://www.instagram.com/p/{shortcode}/"
+            resp = self.session.get(
+                page_url,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+                timeout=15,
+            )
+            if resp.status_code != 200:
+                logger.error(f"게시물 조회 실패 (shortcode={shortcode}): HTTP {resp.status_code}")
+                return None
+            text = resp.text
+
+            def _meta(prop: str) -> str:
+                m = re.search(rf'<meta[^>]+property="{prop}"[^>]+content="([^"]+)"', text)
+                return html.unescape(m.group(1)) if m else ""
+
+            desc = _meta("og:description")
+            og_url = _meta("og:url")
+            image_url = _meta("og:image")
+
+            # caption: '- account on Month D, YYYY: "caption text"' 형식
+            cap_m = re.search(r':\s*"(.*)', desc, re.DOTALL)
+            caption = cap_m.group(1).rstrip('". \n') if cap_m else desc
+
+            # account from og:url
+            acc_m = re.search(r'instagram\.com/([^/]+)/p/', og_url)
+            account = acc_m.group(1) if acc_m else ""
+
+            # 날짜 파싱
+            date_m = re.search(r'on ([A-Za-z]+) (\d+), (\d{4}):', desc)
+            if date_m:
+                month = self._MONTH_MAP.get(date_m.group(1), 1)
+                timestamp = datetime(int(date_m.group(3)), month, int(date_m.group(2)), tzinfo=timezone.utc)
+            else:
+                timestamp = datetime.now(tz=timezone.utc)
+
+            return InstagramPost(
+                shortcode=shortcode,
+                caption=caption,
+                timestamp=timestamp,
+                image_url=image_url,
+                post_url=url,
+                account=account,
+            )
+        except Exception as e:
+            logger.error(f"게시물 조회 실패 (shortcode={shortcode}): {e}")
+            return None
 
     def fetch_post_image_url(self, account: str, shortcode: str) -> Optional[str]:
         """account의 최근 게시물에서 shortcode에 해당하는 display_url 반환.
@@ -213,3 +278,4 @@ class InstagramAPI:
                 return node.get("display_url")
         logger.warning(f"@{account}: shortcode '{shortcode}' 최근 게시물에서 찾을 수 없음 (12개 초과 시 미지원)")
         return None
+

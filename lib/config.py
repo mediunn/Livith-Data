@@ -55,6 +55,7 @@ class Config:
     GEMINI_USE_SEARCH = os.getenv('GEMINI_USE_SEARCH', 'true').lower() == 'true'
     GEMINI_MODEL_VERSION = os.getenv('GEMINI_MODEL_VERSION', '2.0')
     DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL')
+    DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
     
     # 경로 설정
     DATA_DIR = PROJECT_ROOT / "data"

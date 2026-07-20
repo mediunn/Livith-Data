@@ -59,14 +59,23 @@ class InstagramPipeline:
             logger.warning("crawl_history에 등록된 계정이 없습니다.")
             return
 
+        consecutive_rate_limits = 0
         for account, last_crawled_at in accounts:
             logger.info(f"\n{'='*50}")
             logger.info(f"@{account} 처리 시작 (last_crawled_at: {last_crawled_at})")
             try:
-                self._process_account(account, last_crawled_at)
+                rate_limited = self._process_account(account, last_crawled_at)
+                if rate_limited:
+                    consecutive_rate_limits += 1
+                    if consecutive_rate_limits >= 3:
+                        logger.warning("연속 Rate Limit 3회 — Instagram IP 차단 감지, 크롤링 중단")
+                        break
+                else:
+                    consecutive_rate_limits = 0
             except Exception as e:
                 logger.error(f"@{account} 처리 중 오류: {e}")
                 continue
+            time.sleep(5)
 
         self._save_preview_csvs()
 
@@ -74,17 +83,22 @@ class InstagramPipeline:
         self.db.cursor.execute("SELECT account, last_crawled_at FROM crawl_history")
         return self.db.cursor.fetchall()
 
-    def _process_account(self, account: str, last_crawled_at: Optional[datetime]):
-        posts = self.instagram_api.fetch_recent_posts(
+    def _process_account(self, account: str, last_crawled_at: Optional[datetime]) -> bool:
+        """계정 처리. Rate Limit으로 실패했으면 True 반환."""
+        posts, rate_limited = self.instagram_api.fetch_recent_posts(
             account,
             max_posts=self.max_posts,
             since_datetime=last_crawled_at,
         )
 
+        if rate_limited:
+            logger.warning(f"@{account}: Rate Limit으로 조회 실패 — crawl_history 미갱신")
+            return True
+
         if not posts:
             logger.info(f"@{account}: 새 게시물 없음")
             self._update_crawl_history(account)
-            return
+            return False
 
         logger.info(f"@{account}: {len(posts)}개 게시물 수집")
 
@@ -102,6 +116,7 @@ class InstagramPipeline:
 
         self._update_crawl_history(account)
         logger.info(f"@{account}: {processed}개 게시물 처리 완료")
+        return False
 
     def _keyword_filter(self, caption: str) -> bool:
         if not caption:
