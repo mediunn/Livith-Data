@@ -42,12 +42,12 @@ def parse_extraction_embed(embed) -> dict:
     return result
 
 
-def upsert_artist(db, artist_name: str, data_collector) -> Optional[int]:
-    """아티스트 upsert. 기존 있으면 id 반환, 없으면 신규 생성"""
+def upsert_artist(db, artist_name: str, data_collector) -> Tuple[Optional[int], bool]:
+    """아티스트 upsert. (artist_id, is_new) 반환"""
     db.cursor.execute("SELECT id FROM artists WHERE artist = %s", (artist_name,))
     row = db.cursor.fetchone()
     if row:
-        return row[0]
+        return row[0], False
 
     info = data_collector._collect_artist_basic_info(artist_name) or {}
     now = datetime.now()
@@ -62,7 +62,7 @@ def upsert_artist(db, artist_name: str, data_collector) -> Optional[int]:
         now, now,
     ))
     db.commit()
-    return db.cursor.lastrowid
+    return db.cursor.lastrowid, True
 
 
 def find_duplicate_concert(db, artist_id: int, start_date: str, end_date: str) -> Optional[int]:
@@ -78,7 +78,7 @@ def find_duplicate_concert(db, artist_id: int, start_date: str, end_date: str) -
 def register_concert(db, request_id: int, embed, data_collector, gemini_api) -> dict:
     """
     /추가 메인 로직
-    Returns: {"success": bool, "request_result": str, "concert_id": int|None}
+    Returns: {"success": bool, "request_result": str, "concert_id": int|None, "detail": dict}
     """
     parsed = parse_extraction_embed(embed)
     reason_code = parsed["reason_code"]
@@ -114,12 +114,23 @@ def register_concert(db, request_id: int, embed, data_collector, gemini_api) -> 
         db.commit()
         return {"success": False, "request_result": "INSUFFICIENT_INFORMATION", "concert_id": None}
 
-    artist_id = upsert_artist(db, artist_name, data_collector)
+    artist_id, artist_is_new = upsert_artist(db, artist_name, data_collector)
+
+    detail = {
+        "artist_name": artist_name,
+        "artist_is_new": artist_is_new,
+        "concert_title": concert_title,
+        "concert_is_new": False,
+        "concert_schedule_added": [],
+        "genres_added": [],
+        "ticketing_added": [],
+    }
 
     # 중복 콘서트 확인
     concert_id = find_duplicate_concert(db, artist_id, start_date, end_date)
 
     if not concert_id:
+        detail["concert_is_new"] = True
         introduction = data_collector._collect_short_introduction(concert_title, artist_name)
         code = f"discord_req_{request_id}"
         db.cursor.execute("""
@@ -140,6 +151,7 @@ def register_concert(db, request_id: int, embed, data_collector, gemini_api) -> 
                 INSERT INTO schedule (concert_id, category, scheduled_at, type)
                 VALUES (%s, %s, %s, 'CONCERT')
             """, (concert_id, category, f"{current} 00:00:00"))
+            detail["concert_schedule_added"].append(str(current))
 
         # 장르 등록
         genre_list = data_collector.collect_concert_genre(artist_name, concert_title) or []
@@ -151,6 +163,7 @@ def register_concert(db, request_id: int, embed, data_collector, gemini_api) -> 
                     "INSERT IGNORE INTO concert_genres (concert_id, concert_title, genre_id, name) VALUES (%s, %s, %s, %s)",
                     (concert_id, concert_title, genre_id, name)
                 )
+                detail["genres_added"].append(name)
 
         # Serper로 티켓 URL 검색 후 업데이트
         serper_result = SerperAPI().search_ticket_url(concert_title)
@@ -166,27 +179,26 @@ def register_concert(db, request_id: int, embed, data_collector, gemini_api) -> 
         (concert_id,)
     )
     if not db.cursor.fetchone():
-        _insert_ticketing_schedule(db, concert_id, artist_name, concert_title, start_date, end_date, data_collector)
-        
+        added = _insert_ticketing_schedule(db, concert_id, artist_name, concert_title, start_date, end_date, data_collector)
+        detail["ticketing_added"] = added or []
 
     db.cursor.execute(
         "UPDATE concert_requests SET request_result = 'REGISTERED', concert_id = %s, updated_at = NOW(3) WHERE id = %s",
         (concert_id, request_id)
     )
-    
     db.commit()
 
-    return {"success": True, "request_result": "REGISTERED", "concert_id": concert_id}
+    return {"success": True, "request_result": "REGISTERED", "concert_id": concert_id, "detail": detail}
 
 
 def _insert_ticketing_schedule(db, concert_id: int, artist_name: str, concert_title: str,
-                                 start_date: str, end_date: str, data_collector):
-    """공식 소스에서 예매 일정(선예매/일반예매) 검색 후 schedule 테이블에 저장"""
+                                 start_date: str, end_date: str, data_collector) -> list:
+    """공식 소스에서 예매 일정(선예매/일반예매) 검색 후 schedule 테이블에 저장. 추가된 항목 리스트 반환."""
     query = DataCollectionPrompts.get_schedule_info_prompt(artist_name, concert_title, start_date, end_date)
     response = data_collector.api.query_json(query, use_search=True)
 
     if not response:
-        return
+        return []
 
     entries = response if isinstance(response, list) else [response]
 
@@ -196,6 +208,7 @@ def _insert_ticketing_schedule(db, concert_id: int, artist_name: str, concert_ti
         'ADD_TICKETING': ['추가예매', '추가 예매'],
     }
 
+    added = []
     for entry in entries:
         category = entry.get('category', '')
         scheduled_at = entry.get('scheduled_at', '')
@@ -217,5 +230,8 @@ def _insert_ticketing_schedule(db, concert_id: int, artist_name: str, concert_ti
                 INSERT INTO schedule (concert_id, category, scheduled_at, type)
                 VALUES (%s, %s, %s, %s)
             """, (concert_id, category, scheduled_at, schedule_type))
+            added.append(f"{category} ({scheduled_at})")
         except Exception as e:
             print(f"티켓팅 일정 INSERT 실패: {e}")
+
+    return added

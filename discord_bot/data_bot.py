@@ -154,7 +154,19 @@ async def add_command(interaction: discord.Interaction):
         )
 
         if result["success"]:
-            await interaction.followup.send(f"✅ 등록 완료! concert_id: {result['concert_id']}")
+            d = result["detail"]
+            lines = [f"✅ 등록 완료! concert_id: {result['concert_id']}"]
+            lines.append(f"👤 아티스트: {d['artist_name']} ({'🆕 신규 생성' if d['artist_is_new'] else '기존 재사용'})")
+            lines.append(f"🎫 콘서트: {d['concert_title']} ({'🆕 신규 생성' if d['concert_is_new'] else '기존 콘서트 재사용'})")
+            if d['concert_schedule_added']:
+                lines.append(f"📅 공연 일정 추가: {', '.join(d['concert_schedule_added'])}")
+            if d['genres_added']:
+                lines.append(f"🎵 장르 추가: {', '.join(d['genres_added'])}")
+            if d['ticketing_added']:
+                lines.append(f"🎟️ 예매 일정 추가: {', '.join(d['ticketing_added'])}")
+            else:
+                lines.append("🎟️ 예매 일정: 확인된 정보 없음")
+            await interaction.followup.send("\n".join(lines))
 
             # 자동등록여부 TRUE면 관심콘서트 등록
             if info.get("auto_register"):
