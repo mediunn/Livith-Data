@@ -202,11 +202,15 @@ def _insert_ticketing_schedule(db, concert_id: int, artist_name: str, concert_ti
         if not category or not scheduled_at:
             continue
 
-        schedule_type = 'GENERAL_TICKETING'  # 기본값
+        schedule_type = None
         for t, keywords in TYPE_KEYWORDS.items():
             if any(kw in category for kw in keywords):
                 schedule_type = t
                 break
+
+        if schedule_type is None:
+            print(f"예매 카테고리 아님, 스킵: category='{category}'")
+            continue
 
         try:
             db.cursor.execute("""
