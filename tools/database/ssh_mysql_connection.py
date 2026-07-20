@@ -140,7 +140,16 @@ class SSHMySQLConnection:
         except Exception as e:
             self.logger.error(f"❌ 테스트 실패: {e}")
             return False
+    def commit(self):
+        """트랜잭션 커밋"""
+        if self.connection:
+            self.connection.commit()
 
+    def rollback(self):
+        """트랜잭션 롤백"""
+        if self.connection:
+            self.connection.rollback()
+            
 def main():
     """메인 실행 함수"""
 

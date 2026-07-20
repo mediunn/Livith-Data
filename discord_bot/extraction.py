@@ -98,5 +98,7 @@ def format_result_embed(parsed: dict) -> discord.Embed:
     conflict = parsed.get("conflict_note", "")
     if conflict:
         embed.add_field(name="⚠️ 정보 상충", value=conflict, inline=False)
-
+    
+    reason = parsed.get("reason", "")
+    embed.set_footer(text=f"reason_code:{reason}")
     return embed

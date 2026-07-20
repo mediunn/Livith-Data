@@ -3,20 +3,24 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 import json
+import asyncio
 import discord
 from discord import app_commands
 from discord.ext import commands
 from lib.config import Config
+from lib.data_collector import DataCollector
 from core.apis.gemini_api import GeminiAPI
 from core.apis.instagram_api import InstagramAPI
 from utils import get_request_info, find_latest_extraction_message
 from extraction import build_extraction_prompt, format_result_embed
+from registration import register_concert
 
 intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 gemini_api = GeminiAPI(Config.GEMINI_API_KEY)
+data_collector = DataCollector(gemini_api) 
 ig_api = InstagramAPI(Config.INSTAGRAM_USERNAME, Config.INSTAGRAM_PASSWORD)
 
 
@@ -111,5 +115,70 @@ async def edit_command(
     await msg.edit(embed=embed)
     await interaction.response.send_message("✏️ 수정 완료했어요.")
 
+@bot.tree.command(name="추가", description="확정된 정보로 콘서트를 등록합니다")
+async def add_command(interaction: discord.Interaction):
+    if not isinstance(interaction.channel, discord.Thread):
+        await interaction.response.send_message("스레드 안에서만 사용할 수 있어요.", ephemeral=True)
+        return
 
-bot.run(Config.DISCORD_BOT_TOKEN)  # ← 파일 맨 마지막으로 이동!
+    await interaction.response.defer()
+
+    msg = await find_latest_extraction_message(interaction.channel, bot.user)
+    if msg is None:
+        await interaction.followup.send("먼저 `/추출`을 실행해주세요.")
+        return
+
+    info = await get_request_info(interaction.channel)
+    request_id = int(info["request_id"])
+
+    # DB 연결 (SSH 터널)
+    from tools.database.ssh_mysql_connection import SSHMySQLConnection
+    ssh_config = {
+        'host': Config.DB_SSH_HOST, 'port': Config.DB_SSH_PORT,
+        'username': Config.DB_SSH_USER, 'private_key_path': Config.get_ssh_key_path()
+    }
+    mysql_config = {
+        'host': Config.DB_HOST, 'port': Config.DB_PORT,
+        'user': Config.DB_USER, 'password': Config.DB_PASSWORD,
+        'database': Config.DEV_DB_NAME, 'charset': 'utf8mb4'
+    }
+    db = SSHMySQLConnection(ssh_config, mysql_config)
+
+    try:
+        if not db.connect():
+            await interaction.followup.send("DB 연결에 실패했어요.")
+            return
+
+        result = await asyncio.to_thread(
+            register_concert, db, request_id, msg.embeds[0], data_collector, gemini_api
+        )
+
+        if result["success"]:
+            await interaction.followup.send(f"✅ 등록 완료! concert_id: {result['concert_id']}")
+
+            # 자동등록여부 TRUE면 관심콘서트 등록
+            if info.get("auto_register"):
+                db.cursor.execute(
+                    "SELECT id FROM user_interest_concerts WHERE user_id = %s AND concert_id = %s",
+                    (int(info["user_id"]), result["concert_id"])
+                )
+                if db.cursor.fetchone():
+                    await interaction.followup.send("ℹ️ 이미 관심 콘서트로 등록되어 있어요.")
+                else:
+                    db.cursor.execute("""
+                        INSERT INTO user_interest_concerts
+                            (user_id, concert_id, concert_title, user_nickname, toast_shown, alarm_check, created_at, updated_at)
+                        VALUES (%s, %s, %s, %s, 0, 0, NOW(3), NOW(3))
+                    """, (
+                        int(info["user_id"]), result["concert_id"],
+                        info.get("concert_title", ""), info.get("user_nickname", "")
+                    ))
+                    db.commit()
+                    await interaction.followup.send("➕ 관심 콘서트로도 등록했어요.")
+        else:
+            await interaction.followup.send(f"❌ 등록 실패: {result['request_result']}")
+    finally:
+        db.disconnect()
+
+
+bot.run(Config.DISCORD_BOT_TOKEN)
