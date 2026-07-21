@@ -133,7 +133,6 @@ class InstagramAPI:
             logger.warning(f"@{username}: Rate limit (429), 조회 실패")
             return [], True
         except instaloader.exceptions.ConnectionException as e:
-            # instaloader는 429/rate-limit 계열을 ConnectionException으로 감쌀 때가 있음
             if "401" in str(e) or "429" in str(e) or "checkpoint" in str(e).lower():
                 logger.warning(f"@{username}: 연결/인증 오류로 조회 실패 - {e}")
                 return [], True
@@ -145,13 +144,22 @@ class InstagramAPI:
 
         logger.info(f"@{username} 접근 성공 (게시물 {profile.mediacount}개)")
 
+        MAX_SCAN = 100  # 최악의 경우에도 최대 이만큼만 순회 (안전장치)
         posts = []
+        scanned = 0
         try:
             for post in profile.get_posts():
+                scanned += 1
+                if scanned > MAX_SCAN:
+                    logger.warning(f"@{username}: 최대 스캔 개수({MAX_SCAN}) 도달, 중단")
+                    break
+
                 timestamp = post.date_utc.replace(tzinfo=timezone.utc)
 
+                # get_posts()는 최신순이라, since_utc보다 오래된 글을 만나면
+                # 그 뒤로는 전부 더 오래된 글이므로 더 볼 필요 없음 (continue가 아니라 break)
                 if since_utc and timestamp <= since_utc:
-                    continue
+                    break
 
                 posts.append(InstagramPost(
                     shortcode=post.shortcode,
@@ -173,7 +181,7 @@ class InstagramAPI:
         except Exception as e:
             logger.error(f"@{username}: 게시물 순회 중 오류 - {e}")
 
-        logger.info(f"@{username}: {len(posts)}개 수집 (last_crawled_at 이후)")
+        logger.info(f"@{username}: {len(posts)}개 수집 (전체 {scanned}개 스캔, last_crawled_at 이후)")
         return posts, False
 
     def fetch_post_image_url(self, account: str, shortcode: str) -> Optional[str]:
