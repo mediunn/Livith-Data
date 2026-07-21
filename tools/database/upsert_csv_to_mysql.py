@@ -10,22 +10,27 @@ from datetime import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from lib.db_utils import get_db_manager, get_dev_db_manager, get_stage_db_manager
+from lib.config import Config
 
 def upsert_table(table_name, csv_file, db=None):
     """CSV 파일을 MySQL 테이블에 업서트"""
     if db is None:
         db = get_db_manager()
-    
+
     if not db.connect_with_ssh():
         return False
 
-    
+
     try:
         csv_path = db.get_data_path(csv_file)
         if not os.path.exists(csv_path):
             print(f"⚠️ {csv_file} 파일이 없습니다.")
             return True
-            
+
+        backup_path = Config.create_backup(csv_file)
+        if backup_path:
+            print(f"🗄️ 백업 생성: {backup_path}")
+
         df = pd.read_csv(csv_path, encoding='utf-8').fillna('')
         print(f"📁 {csv_file} → {table_name} ({len(df)}개 레코드)")
         
@@ -100,21 +105,21 @@ def _find_existing_artist(db, artist_name: str):
 
 def _upsert_artists(db, df):
     """아티스트 테이블 업서트"""
-    skipped = 0
+    matched = 0
     for _, row in df.iterrows():
         artist_name = row.get('artist', '')
         artist_id = _parse_id(row.get('id', ''))
         current_time = datetime.now()
 
-        # id 없는 신규 아티스트만 이름 기반 중복 검사
+        # id 없는 아티스트는 이름 기반으로 기존 row를 찾아 그 id로 업서트 (신규 중복 생성 방지)
         if not artist_id:
             existing = _find_existing_artist(db, artist_name)
             if existing:
                 existing_id, existing_name = existing
                 if existing_name != artist_name:
-                    print(f"  → 중복 스킵: '{artist_name}' = DB의 '{existing_name}' (id={existing_id})")
-                skipped += 1
-                continue
+                    print(f"  → 기존 아티스트 매칭: '{artist_name}' = DB의 '{existing_name}' (id={existing_id})")
+                artist_id = existing_id
+                matched += 1
 
         query = """
         INSERT INTO artists (id, artist, category, detail, instagram_url, twitter_url, keywords, img_url, debut_date, created_at, updated_at)
@@ -145,7 +150,7 @@ def _upsert_artists(db, df):
         db.cursor.execute(query, params)
 
     db.commit()
-    print(f"✅ artists 테이블 업데이트 완료 (중복 스킵: {skipped}개)")
+    print(f"✅ artists 테이블 업데이트 완료 (기존 아티스트 매칭: {matched}개)")
     return True
 
 def _get_or_create_artist_id(db, artist_name):
@@ -281,8 +286,8 @@ def _upsert_schedule(db, df):
     """스케줄 테이블 업서트"""
     for _, row in df.iterrows():
         concert_id = row.get('concert_id')
-        if pd.isna(concert_id):
-            print(f"⚠️ concert_id가 비어있어 스킵합니다.")
+        if pd.isna(concert_id) or int(concert_id) == 0:
+            print(f"⚠️ concert_id가 비어있거나 0이라 스킵합니다. (row: {row.get('scheduled_at', '')})")
             continue
 
         try:
