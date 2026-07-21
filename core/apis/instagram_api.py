@@ -111,17 +111,10 @@ class InstagramAPI:
             return False
 
     def fetch_recent_posts(self, username: str, max_posts: int = 20,
-                           since_datetime: Optional[datetime] = None) -> Tuple[List[InstagramPost], bool]:
+                       since_datetime: Optional[datetime] = None) -> Tuple[List[InstagramPost], bool]:
         """
         특정 계정의 최근 게시물 수집 (instaloader.Profile 기반)
-
-        Args:
-            username: 수집할 Instagram 계정 아이디 (@ 없이)
-            max_posts: 최대 수집 게시물 수
-            since_datetime: 이 시각 이후 게시물만 수집 (crawl_history.last_crawled_at 기준)
-
-        Returns:
-            (InstagramPost 리스트(최신순), rate_limited 여부) 튜플
+        - 하루 2회 크롤링 전제로, 최신 게시물 상위 SCAN_LIMIT개만 확인하면 충분하다고 보고 그 안에서만 탐색
         """
         since_utc = None
         if since_datetime:
@@ -144,22 +137,19 @@ class InstagramAPI:
 
         logger.info(f"@{username} 접근 성공 (게시물 {profile.mediacount}개)")
 
-        MAX_SCAN = 100  # 최악의 경우에도 최대 이만큼만 순회 (안전장치)
+        SCAN_LIMIT = 15  # 최신 게시물 상위 15개만 확인 (하루 2회 크롤링 전제)
         posts = []
         scanned = 0
         try:
             for post in profile.get_posts():
                 scanned += 1
-                if scanned > MAX_SCAN:
-                    logger.warning(f"@{username}: 최대 스캔 개수({MAX_SCAN}) 도달, 중단")
+                if scanned > SCAN_LIMIT:
                     break
 
                 timestamp = post.date_utc.replace(tzinfo=timezone.utc)
 
-                # get_posts()는 최신순이라, since_utc보다 오래된 글을 만나면
-                # 그 뒤로는 전부 더 오래된 글이므로 더 볼 필요 없음 (continue가 아니라 break)
                 if since_utc and timestamp <= since_utc:
-                    break
+                    continue  # 이 안에서는 continue로 둬도 안전 (상위 15개 안에서만 도니까)
 
                 posts.append(InstagramPost(
                     shortcode=post.shortcode,
@@ -173,7 +163,7 @@ class InstagramAPI:
                 if len(posts) >= max_posts:
                     break
 
-                time.sleep(self.delay)  # 게시물 순회 사이에도 약간의 딜레이
+                time.sleep(self.delay)
 
         except instaloader.exceptions.TooManyRequestsException:
             logger.warning(f"@{username}: 게시물 순회 중 Rate limit (429) - 지금까지 수집된 {len(posts)}개만 반환")
@@ -181,7 +171,7 @@ class InstagramAPI:
         except Exception as e:
             logger.error(f"@{username}: 게시물 순회 중 오류 - {e}")
 
-        logger.info(f"@{username}: {len(posts)}개 수집 (전체 {scanned}개 스캔, last_crawled_at 이후)")
+        logger.info(f"@{username}: {len(posts)}개 수집 (상위 {scanned}개 스캔)")
         return posts, False
 
     def fetch_post_image_url(self, account: str, shortcode: str) -> Optional[str]:
