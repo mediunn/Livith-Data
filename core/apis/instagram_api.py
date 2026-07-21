@@ -252,3 +252,4 @@ class InstagramAPI:
         except Exception as e:
             logger.error(f"게시물 조회 실패 (shortcode={shortcode}): {e}")
             return None
+        
