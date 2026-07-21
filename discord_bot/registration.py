@@ -19,7 +19,7 @@ def parse_extraction_embed(embed) -> dict:
     result = {}
     for field in embed.fields:
         name = field.name
-        value = field.value.split("\n")[0]  # 첫 줄만 (출처/신뢰도 텍스트 제외)
+        value = field.value.split("\n")[0]
         if value == "❌ 없음":
             value = None
         if name == "공연명":
@@ -65,12 +65,19 @@ def upsert_artist(db, artist_name: str, data_collector) -> Tuple[Optional[int], 
     return db.cursor.lastrowid, True
 
 
+def _to_dot_format(date_str: str) -> str:
+    """YYYY-MM-DD → YYYY.MM.DD 통일 (concerts 테이블은 이 포맷으로 저장/비교됨)"""
+    return date_str.replace("-", ".")
+
+
 def find_duplicate_concert(db, artist_id: int, start_date: str, end_date: str) -> Optional[int]:
-    """artist_id + 날짜범위 겹침으로 기존 콘서트 찾기"""
+    """artist_id + 날짜범위 겹침으로 기존 콘서트 찾기 (날짜 포맷 YYYY.MM.DD로 통일)"""
+    start_fmt = _to_dot_format(start_date)
+    end_fmt = _to_dot_format(end_date)
     db.cursor.execute("""
         SELECT id FROM concerts
         WHERE artist_id = %s AND start_date <= %s AND end_date >= %s
-    """, (artist_id, end_date, start_date))
+    """, (artist_id, end_fmt, start_fmt))
     row = db.cursor.fetchone()
     return row[0] if row else None
 
@@ -83,7 +90,6 @@ def register_concert(db, request_id: int, embed, data_collector, gemini_api) -> 
     parsed = parse_extraction_embed(embed)
     reason_code = parsed["reason_code"]
 
-    # 실패 케이스: 추출 단계에서 이미 실패 사유가 있으면 바로 반영하고 종료
     reason_to_result = {
         "past": "PAST_CONCERT",
         "not_found": "INSUFFICIENT_INFORMATION",
@@ -100,7 +106,6 @@ def register_concert(db, request_id: int, embed, data_collector, gemini_api) -> 
         db.commit()
         return {"success": False, "request_result": request_result, "concert_id": None}
 
-    # 성공 케이스: 실제 등록 진행
     concert_title = parsed["concert_title"]
     artist_name = parsed["artist_name"]
     start_date = parsed["start_date"]
@@ -126,21 +131,25 @@ def register_concert(db, request_id: int, embed, data_collector, gemini_api) -> 
         "ticketing_added": [],
     }
 
-    # 중복 콘서트 확인
     concert_id = find_duplicate_concert(db, artist_id, start_date, end_date)
 
     if not concert_id:
         detail["concert_is_new"] = True
         introduction = data_collector._collect_short_introduction(concert_title, artist_name)
         code = f"discord_req_{request_id}"
+
+        # concerts 테이블 저장용 날짜는 점(.) 포맷으로 통일 (기존 KOPIS/인스타 데이터와 일치시켜야 중복매칭 가능)
+        start_fmt = _to_dot_format(start_date)
+        end_fmt = _to_dot_format(end_date)
+
         db.cursor.execute("""
             INSERT INTO concerts
                 (code, title, start_date, end_date, status, artist, artist_id, introduction, created_at, updated_at)
             VALUES (%s, %s, %s, %s, 'UPCOMING', %s, %s, %s, NOW(3), NOW(3))
-        """, (code, concert_title, start_date, end_date, artist_name, artist_id, introduction))
+        """, (code, concert_title, start_fmt, end_fmt, artist_name, artist_id, introduction))
         concert_id = db.cursor.lastrowid
 
-        # schedule 생성 (일자별)
+        # schedule 생성은 datetime 컬럼이라 원본 하이픈 포맷 그대로 파싱해서 사용 (문제없음)
         s = datetime.strptime(start_date, "%Y-%m-%d").date()
         e = datetime.strptime(end_date, "%Y-%m-%d").date()
         days = (e - s).days + 1
@@ -153,7 +162,6 @@ def register_concert(db, request_id: int, embed, data_collector, gemini_api) -> 
             """, (concert_id, category, f"{current} 00:00:00"))
             detail["concert_schedule_added"].append(str(current))
 
-        # 장르 등록
         genre_list = data_collector.collect_concert_genre(artist_name, concert_title) or []
         for genre in genre_list:
             name = genre.get('name', '')
@@ -165,7 +173,6 @@ def register_concert(db, request_id: int, embed, data_collector, gemini_api) -> 
                 )
                 detail["genres_added"].append(name)
 
-        # Serper로 티켓 URL 검색 후 업데이트
         serper_result = SerperAPI().search_ticket_url(concert_title)
         if serper_result:
             db.cursor.execute(
@@ -181,6 +188,12 @@ def register_concert(db, request_id: int, embed, data_collector, gemini_api) -> 
     if not db.cursor.fetchone():
         added = _insert_ticketing_schedule(db, concert_id, artist_name, concert_title, start_date, end_date, data_collector)
         detail["ticketing_added"] = added or []
+
+    # 실제 DB에 저장된 콘서트명으로 detail 갱신 (표시용 정확도 개선)
+    db.cursor.execute("SELECT title FROM concerts WHERE id = %s", (concert_id,))
+    title_row = db.cursor.fetchone()
+    if title_row:
+        detail["concert_title"] = title_row[0]
 
     db.cursor.execute(
         "UPDATE concert_requests SET request_result = 'REGISTERED', concert_id = %s, updated_at = NOW(3) WHERE id = %s",

@@ -29,6 +29,8 @@ async def on_ready():
     print(f"✅ 로그인 완료: {bot.user}")
     synced = await bot.tree.sync()
     print(f"슬래시 커맨드 {len(synced)}개 동기화 완료")
+    await asyncio.sleep(3)
+    print("✅ 봇 준비 완료 - 이제 명령어 사용 가능")
 
 
 @bot.tree.command(name="테스트", description="봇 연결 확인용")
@@ -58,14 +60,16 @@ async def extract_command(interaction: discord.Interaction):
 
     crawled_text = ""
     if url and "instagram.com" in url:
-        post = ig_api.fetch_post_by_url(url)
+        # Instagram 크롤링도 블로킹 호출이라 같이 감싸기
+        post = await asyncio.to_thread(ig_api.fetch_post_by_url, url)
         if post:
             crawled_text = post.caption
 
     prompt = build_extraction_prompt(concert_title, additional_info, crawled_text)
 
     try:
-        result = gemini_api.query_json(prompt, use_search=True)
+        # ← 핵심: Gemini 호출을 별도 스레드로
+        result = await asyncio.to_thread(gemini_api.query_json, prompt, use_search=True)
     except Exception as e:
         await interaction.followup.send(f"AI 추출 중 오류가 발생했어요: {e}")
         return
@@ -82,7 +86,7 @@ async def extract_command(interaction: discord.Interaction):
 @app_commands.describe(
     공연명="수정할 공연명 (선택)",
     아티스트명="수정할 아티스트명 (선택)",
-    날짜="수정할 날짜, YYYY-MM-DD 형식. 범위면 '시작~종료' (선택)"
+    날짜="수정할 날짜, YYYY.MM.DD 형식. 범위면 '시작~종료' (선택)"
 )
 async def edit_command(
     interaction: discord.Interaction,
@@ -131,7 +135,6 @@ async def add_command(interaction: discord.Interaction):
     info = await get_request_info(interaction.channel)
     request_id = int(info["request_id"])
 
-    # DB 연결 (SSH 터널)
     from tools.database.ssh_mysql_connection import SSHMySQLConnection
     ssh_config = {
         'host': Config.DB_SSH_HOST, 'port': Config.DB_SSH_PORT,
@@ -144,38 +147,21 @@ async def add_command(interaction: discord.Interaction):
     }
     db = SSHMySQLConnection(ssh_config, mysql_config)
 
-    try:
+    def _do_registration():
         if not db.connect():
-            await interaction.followup.send("DB 연결에 실패했어요.")
-            return
+            return {"connect_failed": True}
 
-        result = await asyncio.to_thread(
-            register_concert, db, request_id, msg.embeds[0], data_collector, gemini_api
-        )
+        try:
+            result = register_concert(db, request_id, msg.embeds[0], data_collector, gemini_api)
 
-        if result["success"]:
-            d = result["detail"]
-            lines = [f"✅ 등록 완료! concert_id: {result['concert_id']}"]
-            lines.append(f"👤 아티스트: {d['artist_name']} ({'🆕 신규 생성' if d['artist_is_new'] else '기존 재사용'})")
-            lines.append(f"🎫 콘서트: {d['concert_title']} ({'🆕 신규 생성' if d['concert_is_new'] else '기존 콘서트 재사용'})")
-            if d['concert_schedule_added']:
-                lines.append(f"📅 공연 일정 추가: {', '.join(d['concert_schedule_added'])}")
-            if d['genres_added']:
-                lines.append(f"🎵 장르 추가: {', '.join(d['genres_added'])}")
-            if d['ticketing_added']:
-                lines.append(f"🎟️ 예매 일정 추가: {', '.join(d['ticketing_added'])}")
-            else:
-                lines.append("🎟️ 예매 일정: 확인된 정보 없음")
-            await interaction.followup.send("\n".join(lines))
-
-            # 자동등록여부 TRUE면 관심콘서트 등록
-            if info.get("auto_register"):
+            interest_status = None
+            if result["success"] and info.get("auto_register"):
                 db.cursor.execute(
                     "SELECT id FROM user_interest_concerts WHERE user_id = %s AND concert_id = %s",
                     (int(info["user_id"]), result["concert_id"])
                 )
                 if db.cursor.fetchone():
-                    await interaction.followup.send("ℹ️ 이미 관심 콘서트로 등록되어 있어요.")
+                    interest_status = "already"
                 else:
                     db.cursor.execute("""
                         INSERT INTO user_interest_concerts
@@ -183,14 +169,47 @@ async def add_command(interaction: discord.Interaction):
                         VALUES (%s, %s, %s, %s, 0, 0, NOW(3), NOW(3))
                     """, (
                         int(info["user_id"]), result["concert_id"],
-                        info.get("concert_title", ""), info.get("user_nickname", "")
+                        result["detail"]["concert_title"], info.get("user_nickname", "")
                     ))
                     db.commit()
-                    await interaction.followup.send("➕ 관심 콘서트로도 등록했어요.")
+                    interest_status = "added"
+
+            result["interest_status"] = interest_status
+            return result
+        finally:
+            db.disconnect()
+
+    result = await asyncio.to_thread(_do_registration)
+
+    if result.get("connect_failed"):
+        await interaction.followup.send("DB 연결에 실패했어요.")
+        return
+
+    if result["success"]:
+        d = result["detail"]
+        lines = [f"✅ 등록 완료! concert_id: {result['concert_id']}"]
+        lines.append(f"👤 아티스트: {d['artist_name']} ({'🆕 신규 생성' if d['artist_is_new'] else '기존 재사용'})")
+        lines.append(f"🎫 콘서트: {d['concert_title']} ({'🆕 신규 생성' if d['concert_is_new'] else '기존 콘서트 재사용'})")
+        if d['concert_schedule_added']:
+            lines.append(f"📅 공연 일정 추가: {', '.join(d['concert_schedule_added'])}")
+        if d['genres_added']:
+            lines.append(f"🎵 장르 추가: {', '.join(d['genres_added'])}")
+        if d['ticketing_added']:
+            lines.append(f"🎟️ 예매 일정 추가: {', '.join(d['ticketing_added'])}")
         else:
-            await interaction.followup.send(f"❌ 등록 실패: {result['request_result']}")
-    finally:
-        db.disconnect()
+            lines.append("🎟️ 예매 일정: 확인된 정보 없음")
+        if result.get("interest_status") == "added":
+            lines.append("➕ 관심 콘서트로도 등록했어요.")
+        elif result.get("interest_status") == "already":
+            lines.append("ℹ️ 이미 관심 콘서트로 등록되어 있어요.")
+        await interaction.followup.send("\n".join(lines))
+    else:
+        lines = [
+            "❌ 등록 제외",
+            f"concert_requests.id={request_id} → request_result: {result['request_result']}",
+            "콘서트/아티스트 데이터는 추가되지 않았어요."
+        ]
+        await interaction.followup.send("\n".join(lines))
 
 
 bot.run(Config.DISCORD_BOT_TOKEN)
