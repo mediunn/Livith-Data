@@ -43,12 +43,39 @@ def parse_extraction_embed(embed) -> dict:
 
 
 def upsert_artist(db, artist_name: str, data_collector) -> Tuple[Optional[int], bool]:
-    """아티스트 upsert. (artist_id, is_new) 반환"""
+    """아티스트 upsert. (artist_id, is_new) 반환. 대소문자/공백 무시하고 매칭."""
+    # 1차: 정확 일치
     db.cursor.execute("SELECT id FROM artists WHERE artist = %s", (artist_name,))
     row = db.cursor.fetchone()
     if row:
         return row[0], False
 
+    # 2차: 한국어명(괄호 안) 기준 매칭
+    korean_match = re.search(r'\(([가-힣\s]+)\)', artist_name)
+    if korean_match:
+        korean_name = korean_match.group(1).strip()
+        db.cursor.execute(
+            "SELECT id FROM artists WHERE artist LIKE %s LIMIT 1",
+            (f'%({korean_name})%',)
+        )
+        row = db.cursor.fetchone()
+        if row:
+            return row[0], False
+
+    # 3차: 영문명 부분만 공백/대소문자 무시하고 매칭
+    english_part = artist_name.split('(')[0].strip()
+    if english_part:
+        english_normalized = english_part.replace(' ', '').lower()
+        db.cursor.execute(
+            "SELECT id FROM artists "
+            "WHERE LOWER(REPLACE(TRIM(SUBSTRING_INDEX(artist, '(', 1)), ' ', '')) = %s LIMIT 1",
+            (english_normalized,)
+        )
+        row = db.cursor.fetchone()
+        if row:
+            return row[0], False
+
+    # 못 찾았으면 신규 생성
     info = data_collector._collect_artist_basic_info(artist_name) or {}
     now = datetime.now()
     db.cursor.execute("""
